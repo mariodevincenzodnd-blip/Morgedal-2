@@ -38,7 +38,7 @@
     <div class="row">
       <button id="google-login">Accedi con Google</button>
       <button id="google-logout" hidden>Esci</button>
-      <button id="drive-picker" hidden>Seleziona da Google Drive</button>
+      <button id="drive-picker" hidden>Autorizza le 6 schede Drive</button>
     </div>
     <p id="message" class="meta"></p>
 
@@ -46,7 +46,8 @@
       <div><strong>Account:</strong> <span id="user-email"></span></div>
       <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>
       <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
-      <div><strong>Elemento selezionato:</strong> <span id="picked-item">nessuno</span></div>
+      <div><strong>Cartella base:</strong> <span id="base-folder">Sito Nuovo Morgedal</span></div>
+      <div><strong>Schede Drive:</strong> <span id="picked-item">0/6 autorizzate</span></div>
       <p class="meta" style="margin-bottom:0">Editor Master resta disattivato all'accesso e verrà attivato separatamente.</p>
     </div>
   </section>
@@ -59,6 +60,15 @@
   const CLIENT_ID = "742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com";
   const PICKER_API_KEY = "__MORGEDAL_PICKER_API_KEY__";
   const APP_ID = "742585061476";
+  const BASE_FOLDER_ID = "1eq6jMP1Ci5h6M3a7DN3VDBo6aziAq-v3";
+  const CHARACTER_FILES = {
+    "katan-morgedal.json": "1nNUTm4s9JIny4p5Ach6TWCN9BuIMSbnq",
+    "ervork-morgedal.json": "1tBZnu9ccbfokqhmlfVwurJ0XWSFe63j_",
+    "ola-morgedal.json": "1Ow6TcqqH8gS9vnPVcPny7IRmpZt_pwPS",
+    "lux-morgedal.json": "1fx2p5DpIPq-TeOMiCxSYzFxMQZjb4og0",
+    "aggron-morgedal.json": "1xnfbyqxys8L8IEwhQ7eh39LYvseX07BC",
+    "gorg-morgedal.json": "1Z6nSu5Lef4epKsh_CPYKnbdJ2bL5iG6G"
+  };
 
   const ACCESS = {
     "mariodevincenzodnd@gmail.com": { role: "Master · tutte le schede", master: true },
@@ -154,7 +164,11 @@
       if (!driveOk) throw new Error("Drive API non disponibile");
 
       driveStatusEl.textContent = "collegato";
-      setMessage("Identità Google e Google Drive verificati correttamente.", true);
+      const granted = await verifyCharacterFiles();
+      pickedItemEl.textContent = granted + "/6 autorizzate";
+      setMessage(granted === 6
+        ? "Identità Google, Drive e tutte le schede sono collegati."
+        : "Drive collegato. Autorizza ora le 6 schede JSON.", granted === 6);
 
       sessionStorage.setItem("morgedal-user-email", email);
       sessionStorage.setItem("morgedal-user-role", grant.role);
@@ -178,14 +192,18 @@
     }
 
     const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-      .setIncludeFolders(true)
-      .setSelectFolderEnabled(true);
+      .setIncludeFolders(false)
+      .setSelectFolderEnabled(false)
+      .setParent(BASE_FOLDER_ID)
+      .setMimeTypes("application/json")
+      .setMode(google.picker.DocsViewMode.LIST);
 
     const picker = new google.picker.PickerBuilder()
       .setAppId(APP_ID)
       .setOAuthToken(accessToken)
       .setDeveloperKey(PICKER_API_KEY)
       .setOrigin(window.location.origin)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .addView(view)
       .setCallback(handlePicker)
       .build();
@@ -193,20 +211,35 @@
     picker.setVisible(true);
   }
 
-  function handlePicker(data) {
+  async function handlePicker(data) {
     if (data.action === google.picker.Action.PICKED) {
-      const doc = data.docs?.[0];
-      if (!doc) return;
-      const picked = {
+      const docs = data.docs || [];
+      const picked = docs.map(doc => ({
         id: doc.id,
         name: doc.name || doc.id,
         mimeType: doc.mimeType || "",
         url: doc.url || ""
-      };
+      }));
       sessionStorage.setItem("morgedal-picker-selection", JSON.stringify(picked));
-      pickedItemEl.textContent = picked.name;
-      setMessage("Elemento Drive autorizzato per Morgedal 2.", true);
+      const granted = await verifyCharacterFiles();
+      pickedItemEl.textContent = granted + "/6 autorizzate";
+      setMessage(granted === 6
+        ? "Tutte le 6 schede Drive sono autorizzate per Morgedal 2."
+        : "Autorizzate " + granted + " schede su 6. Seleziona anche le rimanenti.", granted === 6);
     }
+  }
+
+  async function verifyCharacterFiles() {
+    let ok = 0;
+    for (const [name, id] of Object.entries(CHARACTER_FILES)) {
+      try {
+        const r = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(id) + "?fields=id,name,mimeType", {
+          headers: { Authorization: "Bearer " + accessToken }
+        });
+        if (r.ok) ok++;
+      } catch (_) {}
+    }
+    return ok;
   }
 
   async function verifyDrive() {
@@ -233,7 +266,7 @@
     logoutBtn.hidden = true;
     pickerBtn.hidden = true;
     driveStatusEl.textContent = "da verificare";
-    pickedItemEl.textContent = "nessuno";
+    pickedItemEl.textContent = "0/6 autorizzate";
   }
 
   loginBtn.disabled = true;
