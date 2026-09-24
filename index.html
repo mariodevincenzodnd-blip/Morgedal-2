@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Morgedal 2 · Lapsus Deus</title>
+  <title>Morgedal · Lapsus Deus</title>
   <style>
     :root{--bg:#101419;--panel:#171c23;--line:#6a593b;--gold:#e6c88b;--muted:#c9c9c9;--ok:#7ed6a6;--bad:#ef8b8b}
     *{box-sizing:border-box}
@@ -29,7 +29,7 @@
 <body>
 <main>
   <small>Lapsus Deus</small>
-  <h1>Morgedal 2</h1>
+  <h1>Morgedal</h1>
   <p>Il nuovo spazio indipendente della campagna.</p>
   <p class="status">Accesso Google + Drive in test</p>
 
@@ -151,7 +151,7 @@
       if (!profile.email_verified) throw new Error("email non verificata");
 
       if (!grant) {
-        setMessage("Questo account Google non è autorizzato per Morgedal 2.", false);
+        setMessage("Questo account Google non è autorizzato per Morgedal.", false);
         revoke();
         return;
       }
