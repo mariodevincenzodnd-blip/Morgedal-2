@@ -1,4 +1,4 @@
-name: Deploy Morgedal 2 to GitHub Pages
+name: Deploy Morgedal to GitHub Pages
 
 on:
   push:
