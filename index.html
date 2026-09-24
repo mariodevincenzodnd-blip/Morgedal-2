@@ -47,7 +47,9 @@
       <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>
       <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
       <div><strong>Cartella base:</strong> <span id="base-folder">Sito Nuovo Morgedal</span></div>
-      <div><strong>Schede Drive:</strong> <span id="picked-item">0/6 autorizzate</span></div>\n      <div><strong>Schede lette:</strong> <span id="loaded-item">0/6</span></div>\n      <div id="sheet-preview" style="margin-top:14px;display:grid;gap:8px"></div>
+      <div><strong>Schede Drive:</strong> <span id="picked-item">0/6 autorizzate</span></div>
+      <div><strong>Schede lette:</strong> <span id="loaded-item">0/6</span></div>
+      <div id="sheet-preview" style="margin-top:14px;display:grid;gap:8px"></div>
       <p class="meta" style="margin-bottom:0">Editor Master resta disattivato all'accesso e verrà attivato separatamente.</p>
     </div>
   </section>
@@ -95,7 +97,9 @@
   const emailEl = document.getElementById("user-email");
   const roleEl = document.getElementById("user-role");
   const driveStatusEl = document.getElementById("drive-status");
-  const pickedItemEl = document.getElementById("picked-item");\n  const loadedItemEl = document.getElementById("loaded-item");\n  const sheetPreviewEl = document.getElementById("sheet-preview");
+  const pickedItemEl = document.getElementById("picked-item");
+  const loadedItemEl = document.getElementById("loaded-item");
+  const sheetPreviewEl = document.getElementById("sheet-preview");
 
   let tokenClient = null;
   let accessToken = null;
@@ -324,7 +328,9 @@
     logoutBtn.hidden = true;
     pickerBtn.hidden = true;
     driveStatusEl.textContent = "da verificare";
-    pickedItemEl.textContent = "0/6 autorizzate";\n    loadedItemEl.textContent = "0/6";\n    sheetPreviewEl.innerHTML = "";
+    pickedItemEl.textContent = "0/6 autorizzate";
+    loadedItemEl.textContent = "0/6";
+    sheetPreviewEl.innerHTML = "";
   }
 
   loginBtn.disabled = true;
