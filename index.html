@@ -43,7 +43,8 @@
 
     <div id="user-card">
       <div><strong>Account:</strong> <span id="user-email"></span></div>
-      <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>\n      <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
+      <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>
+      <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
       <p class="meta" style="margin-bottom:0">Editor Master resta disattivato all'accesso e verrà attivato separatamente.</p>
     </div>
   </section>
@@ -76,7 +77,8 @@
   const message = document.getElementById("message");
   const card = document.getElementById("user-card");
   const emailEl = document.getElementById("user-email");
-  const roleEl = document.getElementById("user-role");\n  const driveStatusEl = document.getElementById("drive-status");
+  const roleEl = document.getElementById("user-role");
+  const driveStatusEl = document.getElementById("drive-status");
   let tokenClient = null;
   let accessToken = null;
 
@@ -92,7 +94,8 @@
     }
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
-      scope: "openid email profile https://www.googleapis.com/auth/drive.file",\n      include_granted_scopes: true,
+      scope: "openid email profile https://www.googleapis.com/auth/drive.file",
+      include_granted_scopes: true,
       callback: handleToken
     });
     loginBtn.disabled = false;
@@ -133,12 +136,17 @@
       card.style.display = "block";
       loginBtn.hidden = true;
       logoutBtn.hidden = false;
-      driveStatusEl.textContent = "verifica in corso…";\n      const driveOk = await verifyDrive();\n      if (!driveOk) throw new Error("Drive API non disponibile");\n      driveStatusEl.textContent = "collegato";\n      setMessage("Identità Google e Google Drive verificati correttamente.", true);
+      driveStatusEl.textContent = "verifica in corso…";
+      const driveOk = await verifyDrive();
+      if (!driveOk) throw new Error("Drive API non disponibile");
+      driveStatusEl.textContent = "collegato";
+      setMessage("Identità Google e Google Drive verificati correttamente.", true);
 
       // Nessun Editor Master automatico: lo stato resta sempre OFF al login.
       sessionStorage.setItem("morgedal-user-email", email);
       sessionStorage.setItem("morgedal-user-role", grant.role);
-      sessionStorage.setItem("morgedal-master-editor", "off");\n      sessionStorage.setItem("morgedal-drive-ready", "true");
+      sessionStorage.setItem("morgedal-master-editor", "off");
+      sessionStorage.setItem("morgedal-drive-ready", "true");
     } catch (err) {
       console.error(err);
       setMessage("Non è stato possibile verificare l'identità Google.", false);
@@ -146,7 +154,16 @@
     }
   }
 
-  async function verifyDrive() {\n    const r = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", {\n      headers: { Authorization: "Bearer " + accessToken }\n    });\n    if (!r.ok) return false;\n    const data = await r.json();\n    return !!data.user?.emailAddress;\n  }\n\n  function revoke() {
+  async function verifyDrive() {
+    const r = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+    if (!r.ok) return false;
+    const data = await r.json();
+    return !!data.user?.emailAddress;
+  }
+
+  function revoke() {
     if (accessToken && window.google?.accounts?.oauth2) {
       google.accounts.oauth2.revoke(accessToken, () => {});
     }
