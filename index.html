@@ -2,354 +2,118 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090d12">
   <title>Morgedal · Lapsus Deus</title>
-  <style>
-    :root{--bg:#101419;--panel:#171c23;--line:#6a593b;--gold:#e6c88b;--muted:#c9c9c9;--ok:#7ed6a6;--bad:#ef8b8b}
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100svh;display:grid;place-items:center;background:var(--bg);color:#eee6d4;font-family:Georgia,serif}
-    main{width:min(92vw,680px);margin:28px;padding:clamp(28px,7vw,64px);border:1px solid var(--line);background:var(--panel);text-align:center;border-radius:12px;box-shadow:0 20px 80px #0008}
-    small{color:#cbb380;letter-spacing:.2em;text-transform:uppercase}
-    h1{font-size:clamp(44px,9vw,72px);font-weight:normal;margin:24px 0 10px}
-    p{font-family:system-ui,sans-serif;line-height:1.6;color:var(--muted)}
-    .status{display:inline-block;border:1px solid #756342;padding:9px 16px;border-radius:30px;color:var(--gold);font-size:14px}
-    .auth{margin-top:30px;padding-top:28px;border-top:1px solid #39342b}
-    button{appearance:none;border:1px solid #88724b;background:#211d17;color:#f4deb0;border-radius:8px;padding:12px 18px;font:600 15px system-ui,sans-serif;cursor:pointer}
-    button:hover{background:#2a241b}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    #user-card{display:none;margin-top:22px;border:1px solid #4c463b;border-radius:10px;padding:18px;text-align:left;font-family:system-ui,sans-serif}
-    #user-card strong{color:#fff}
-    #message{min-height:24px;margin-top:14px}
-    .ok{color:var(--ok)!important}.bad{color:var(--bad)!important}
-    .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-    .meta{font-size:14px;color:#aaa}
-  </style>
+  <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
-<main>
-  <small>Lapsus Deus</small>
-  <h1>Morgedal</h1>
-  <p>Il nuovo spazio indipendente della campagna.</p>
-  <p class="status">Accesso Google + Drive in test</p>
+  <div class="site-shell">
+    <header class="topbar">
+      <div class="brand-mini">LAPSUS DEUS</div>
+      <div class="auth-actions">
+        <span id="drivePill" class="pill" hidden>DRIVE</span>
+        <span id="masterPill" class="pill master" hidden>EDITOR MASTER · OFF</span>
+        <span id="accountPill" class="pill" hidden></span>
+        <button id="loginBtn" class="primary-btn" disabled>Accedi</button>
+        <button id="logoutBtn" class="ghost-btn" hidden>Esci</button>
+      </div>
+    </header>
 
-  <section class="auth">
-    <p>Accedi con l'account Google autorizzato per verificare l'identità.</p>
-    <div class="row">
-      <button id="google-login">Accedi con Google</button>
-      <button id="google-logout" hidden>Esci</button>
-      <button id="drive-picker" hidden>Autorizza le 6 schede Drive</button>
-    </div>
-    <p id="message" class="meta"></p>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">LAPSUS DEUS</p>
+        <h1>Morgedal</h1>
+        <p class="hero-copy">Schede dei personaggi, risorse e progressi della campagna in un unico spazio collegato a Google Drive.</p>
+        <div class="connection-line">
+          <span class="pill">CANONE · DRIVE</span>
+          <span class="pill">ACCESSI · GOOGLE</span>
+        </div>
+      </section>
 
-    <div id="user-card">
-      <div><strong>Account:</strong> <span id="user-email"></span></div>
-      <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>
-      <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
-      <div><strong>Cartella base:</strong> <span id="base-folder">Sito Nuovo Morgedal</span></div>
-      <div><strong>Schede Drive:</strong> <span id="picked-item">0/6 autorizzate</span></div>
-      <div><strong>Schede lette:</strong> <span id="loaded-item">0/6</span></div>
-      <div id="sheet-preview" style="margin-top:14px;display:grid;gap:8px"></div>
-      <p class="meta" style="margin-bottom:0">Editor Master resta disattivato all'accesso e verrà attivato separatamente.</p>
-    </div>
-  </section>
-</main>
+      <section id="loginPanel" class="login-panel">
+        <div>
+          <strong>Accesso alle schede</strong>
+          <p>Accedi con l'account Google autorizzato. Il Master può aprire tutte le schede; ogni giocatore accede soltanto al proprio personaggio.</p>
+        </div>
+        <button class="primary-btn" onclick="document.getElementById('loginBtn').click()">Accedi con Google</button>
+      </section>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://apis.google.com/js/api.js"></script>
-<script>
-(() => {
-  const CLIENT_ID = "742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com";
-  const PICKER_API_KEY = "__MORGEDAL_PICKER_API_KEY__";
-  const APP_ID = "742585061476";
-  const BASE_FOLDER_ID = "1eq6jMP1Ci5h6M3a7DN3VDBo6aziAq-v3";
-  const CHARACTER_FILES = {
-    "katan-morgedal.json": "1nNUTm4s9JIny4p5Ach6TWCN9BuIMSbnq",
-    "ervork-morgedal.json": "1tBZnu9ccbfokqhmlfVwurJ0XWSFe63j_",
-    "ola-morgedal.json": "1Ow6TcqqH8gS9vnPVcPny7IRmpZt_pwPS",
-    "lux-morgedal.json": "1fx2p5DpIPq-TeOMiCxSYzFxMQZjb4og0",
-    "aggron-morgedal.json": "1xnfbyqxys8L8IEwhQ7eh39LYvseX07BC",
-    "gorg-morgedal.json": "1Z6nSu5Lef4epKsh_CPYKnbdJ2bL5iG6G"
-  };
+      <section class="section">
+        <div class="section-heading">
+          <div><h2>Principali</h2></div>
+          <p>I quattro personaggi principali della campagna.</p>
+        </div>
+        <div class="character-grid">
+          <article class="character-card" data-slug="katan" data-access="locked" style="--accent:#2e9bff" tabindex="0">
+            <div class="card-top"><span class="card-index">01 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">K</div>
+            <div class="character-name">KATAN</div>
+            <div class="character-class">GUERRIERO TELECINETICO 8</div>
+          </article>
+          <article class="character-card" data-slug="ervork" data-access="locked" style="--accent:#d43b3b" tabindex="0">
+            <div class="card-top"><span class="card-index">02 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">E</div>
+            <div class="character-name">ERVORK</div>
+            <div class="character-class">GUERRIERO DEMONIACO LVL. 8</div>
+          </article>
+          <article class="character-card" data-slug="ola" data-access="locked" style="--accent:#9450d8" tabindex="0">
+            <div class="card-top"><span class="card-index">03 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">O</div>
+            <div class="character-name">OLA</div>
+            <div class="character-class">IBRIDO DISTRUTTORE LVL. 8</div>
+          </article>
+          <article class="character-card" data-slug="lux" data-access="locked" style="--accent:#ffffff" tabindex="0">
+            <div class="card-top"><span class="card-index">04 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">L</div>
+            <div class="character-name">LUX</div>
+            <div class="character-class">EVOCATORE CELESTE LVL. 8</div>
+          </article>
+        </div>
+      </section>
 
-  const ACCESS = {
-    "mariodevincenzodnd@gmail.com": { role: "Master · tutte le schede", master: true },
-    "genchi.walter@gmail.com": { role: "Katan", master: false },
-    "dray1286@gmail.com": { role: "Ervork", master: false },
-    "nicoladmn@gmail.com": { role: "Ola", master: false },
-    "ivandevincenzo18052005@gmail.com": { role: "Lux", master: false },
-    "savimusciagna@gmail.com": { role: "Jhaggork", master: false },
-    "markogiga25@gmail.com": { role: "Niger", master: false },
-    "jigenmail98@gmail.com": { role: "Vorkax", master: false },
-    "pabloderubautenze@gmail.com": { role: "Bull", master: false },
-    "pabloderuba@gmail.com": { role: "Bull", master: false },
-    "marinanapoletano1998@gmail.com": { role: "Crop", master: false },
-    "rocco.scotellaro93@gmail.com": { role: "Aggron", master: false },
-    "annamaria.romanocyr@gmail.com": { role: "Mary", master: false },
-    "manudegiorgi999@gmail.com": { role: "Gorg", master: false }
-  };
+      <section class="section">
+        <div class="section-heading">
+          <div><h2>Viaggiatori</h2></div>
+          <p>Compagni e viaggiatori legati alla campagna.</p>
+        </div>
+        <div class="character-grid travelers">
+          <article class="character-card" data-slug="aggron" data-access="locked" style="--accent:#6b8f4e" tabindex="0">
+            <div class="card-top"><span class="card-index">05 · VIAGGIATORE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">A</div>
+            <div class="character-name">AGGRON</div>
+            <div class="character-class">GUERRIERO STREGONE LVL. 8</div>
+          </article>
+          <article class="character-card" data-slug="gorg" data-access="locked" style="--accent:#4fae54" tabindex="0">
+            <div class="card-top"><span class="card-index">06 · VIAGGIATORE</span><span class="card-lock">BLOCCATA</span></div>
+            <div class="card-initial">G</div>
+            <div class="character-name">GORG</div>
+            <div class="character-class">CAMPIONE DEL CAOS</div>
+          </article>
+        </div>
+      </section>
 
-  const loginBtn = document.getElementById("google-login");
-  const logoutBtn = document.getElementById("google-logout");
-  const pickerBtn = document.getElementById("drive-picker");
-  const message = document.getElementById("message");
-  const card = document.getElementById("user-card");
-  const emailEl = document.getElementById("user-email");
-  const roleEl = document.getElementById("user-role");
-  const driveStatusEl = document.getElementById("drive-status");
-  const pickedItemEl = document.getElementById("picked-item");
-  const loadedItemEl = document.getElementById("loaded-item");
-  const sheetPreviewEl = document.getElementById("sheet-preview");
+      <section id="pickerPanel" class="system-panel">
+        <p>Questo account è autorizzato, ma alcuni file Drive necessari non sono ancora concessi all'app Morgedal. Autorizzali uno alla volta dalla cartella <strong>Sito Nuovo Morgedal</strong>.</p>
+        <button id="pickerBtn" class="primary-btn">Autorizza file Drive</button>
+      </section>
+    </main>
 
-  let tokenClient = null;
-  let accessToken = null;
-  let pickerReady = false;
+    <footer class="footer">LAPSUS DEUS · MORGEDAL</footer>
+  </div>
 
-  function setMessage(text, ok = null) {
-    message.textContent = text;
-    message.className = "meta" + (ok === true ? " ok" : ok === false ? " bad" : "");
-  }
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  function initGoogle() {
-    if (!window.google?.accounts?.oauth2) {
-      setTimeout(initGoogle, 100);
-      return;
-    }
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: "openid email profile https://www.googleapis.com/auth/drive.file",
-      include_granted_scopes: true,
-      callback: handleToken
-    });
-    loginBtn.disabled = false;
-    setMessage("Pronto per l'accesso Google.");
-
-    if (window.gapi) {
-      gapi.load("picker", () => { pickerReady = true; });
-    }
-  }
-
-  async function handleToken(response) {
-    loginBtn.disabled = false;
-    if (response.error || !response.access_token) {
-      setMessage("Accesso Google non completato.", false);
-      return;
-    }
-
-    accessToken = response.access_token;
-
-    try {
-      const r = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: "Bearer " + accessToken }
-      });
-      if (!r.ok) throw new Error("userinfo " + r.status);
-
-      const profile = await r.json();
-      const email = String(profile.email || "").toLowerCase();
-      const grant = ACCESS[email];
-
-      if (!profile.email_verified) throw new Error("email non verificata");
-
-      if (!grant) {
-        setMessage("Questo account Google non è autorizzato per Morgedal.", false);
-        revoke();
-        return;
-      }
-
-      emailEl.textContent = profile.email;
-      roleEl.textContent = grant.role;
-      card.style.display = "block";
-      loginBtn.hidden = true;
-      logoutBtn.hidden = false;
-      pickerBtn.hidden = false;
-      driveStatusEl.textContent = "verifica in corso…";
-
-      const driveOk = await verifyDrive();
-      if (!driveOk) throw new Error("Drive API non disponibile");
-
-      driveStatusEl.textContent = "collegato";
-      const granted = await verifyCharacterFiles();
-      pickedItemEl.textContent = granted + "/6 autorizzate";
-      if (granted === 6) {
-        const loaded = await loadCharacterSummaries();
-        loadedItemEl.textContent = loaded.length + "/6";
-        renderCharacterSummaries(loaded);
-        setMessage(loaded.length === 6
-          ? "Identità Google, Drive e tutte le 6 schede sono collegate e leggibili."
-          : "Le schede sono autorizzate, ma non tutte sono state lette.", loaded.length === 6);
-      } else {
-        loadedItemEl.textContent = "0/6";
-        sheetPreviewEl.innerHTML = "";
-        setMessage("Drive collegato. Autorizza ora le 6 schede JSON.", false);
-      }
-
-      sessionStorage.setItem("morgedal-user-email", email);
-      sessionStorage.setItem("morgedal-user-role", grant.role);
-      sessionStorage.setItem("morgedal-master-editor", "off");
-      sessionStorage.setItem("morgedal-drive-ready", "true");
-    } catch (err) {
-      console.error(err);
-      setMessage("Non è stato possibile verificare l'identità Google.", false);
-      revoke();
-    }
-  }
-
-  function openDrivePicker() {
-    if (!accessToken) {
-      setMessage("Accedi prima con Google.", false);
-      return;
-    }
-    if (!pickerReady || !window.google?.picker) {
-      setMessage("Google Picker non è ancora pronto. Riprova tra un istante.", false);
-      return;
-    }
-
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-      .setIncludeFolders(false)
-      .setSelectFolderEnabled(false)
-      .setParent(BASE_FOLDER_ID)
-      .setMimeTypes("application/json")
-      .setMode(google.picker.DocsViewMode.LIST);
-
-    const picker = new google.picker.PickerBuilder()
-      .setAppId(APP_ID)
-      .setOAuthToken(accessToken)
-      .setDeveloperKey(PICKER_API_KEY)
-      .setOrigin(window.location.origin)
-      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-      .addView(view)
-      .setCallback(handlePicker)
-      .build();
-
-    picker.setVisible(true);
-  }
-
-  async function handlePicker(data) {
-    if (data.action === google.picker.Action.PICKED) {
-      const docs = data.docs || [];
-      const picked = docs.map(doc => ({
-        id: doc.id,
-        name: doc.name || doc.id,
-        mimeType: doc.mimeType || "",
-        url: doc.url || ""
-      }));
-      sessionStorage.setItem("morgedal-picker-selection", JSON.stringify(picked));
-      const granted = await verifyCharacterFiles();
-      pickedItemEl.textContent = granted + "/6 autorizzate";
-      if (granted === 6) {
-        const loaded = await loadCharacterSummaries();
-        loadedItemEl.textContent = loaded.length + "/6";
-        renderCharacterSummaries(loaded);
-        setMessage(loaded.length === 6
-          ? "Tutte le 6 schede Drive sono autorizzate e leggibili."
-          : "Autorizzazione completata, ma la lettura non è ancora completa.", loaded.length === 6);
-      } else {
-        loadedItemEl.textContent = "0/6";
-        setMessage("Autorizzate " + granted + " schede su 6. Seleziona anche le rimanenti.", false);
-      }
-    }
-  }
-
-  async function verifyCharacterFiles() {
-    let ok = 0;
-    for (const [name, id] of Object.entries(CHARACTER_FILES)) {
-      try {
-        const r = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(id) + "?fields=id,name,mimeType", {
-          headers: { Authorization: "Bearer " + accessToken }
-        });
-        if (r.ok) ok++;
-      } catch (_) {}
-    }
-    return ok;
-  }
-
-  async function loadCharacterSummaries() {
-    const loaded = [];
-    for (const [fileName, id] of Object.entries(CHARACTER_FILES)) {
-      try {
-        const r = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(id) + "?alt=media", {
-          headers: { Authorization: "Bearer " + accessToken }
-        });
-        if (!r.ok) continue;
-        const data = await r.json();
-        loaded.push({
-          fileName,
-          id,
-          nome: data.nome || fileName,
-          tipo: data.tipo || "",
-          classe: data.classe || "",
-          giocatore: data.giocatore || "",
-          identityColor: data.identityColor || "#888888"
-        });
-      } catch (_) {}
-    }
-    sessionStorage.setItem("morgedal-character-summaries", JSON.stringify(loaded));
-    return loaded;
-  }
-
-  function renderCharacterSummaries(items) {
-    sheetPreviewEl.innerHTML = "";
-    for (const item of items) {
-      const el = document.createElement("div");
-      el.style.cssText = "border:1px solid #4c463b;border-left:4px solid " + item.identityColor + ";border-radius:8px;padding:10px 12px;background:#11161c";
-      el.innerHTML = "<strong>" + escapeHtml(item.nome) + "</strong><br><span class='meta'>" +
-        escapeHtml(item.tipo) + " · " + escapeHtml(item.classe) + "</span>";
-      sheetPreviewEl.appendChild(el);
-    }
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    })[ch]);
-  }
-
-  async function verifyDrive() {
-    const r = await fetch("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-    if (!r.ok) return false;
-    const data = await r.json();
-    return !!data.user?.emailAddress;
-  }
-
-  function revoke() {
-    if (accessToken && window.google?.accounts?.oauth2) {
-      google.accounts.oauth2.revoke(accessToken, () => {});
-    }
-    accessToken = null;
-    sessionStorage.removeItem("morgedal-user-email");
-    sessionStorage.removeItem("morgedal-user-role");
-    sessionStorage.removeItem("morgedal-drive-ready");
-    sessionStorage.removeItem("morgedal-picker-selection");
-    sessionStorage.setItem("morgedal-master-editor", "off");
-    card.style.display = "none";
-    loginBtn.hidden = false;
-    logoutBtn.hidden = true;
-    pickerBtn.hidden = true;
-    driveStatusEl.textContent = "da verificare";
-    pickedItemEl.textContent = "0/6 autorizzate";
-    loadedItemEl.textContent = "0/6";
-    sheetPreviewEl.innerHTML = "";
-  }
-
-  loginBtn.disabled = true;
-  loginBtn.addEventListener("click", () => {
-    if (!tokenClient) return;
-    loginBtn.disabled = true;
-    setMessage("Apertura accesso Google…");
-    tokenClient.requestAccessToken({ prompt: "select_account" });
-  });
-
-  pickerBtn.addEventListener("click", openDrivePicker);
-
-  logoutBtn.addEventListener("click", () => {
-    revoke();
-    setMessage("Sessione Google chiusa.");
-  });
-
-  window.addEventListener("load", initGoogle);
-})();
-</script>
+  <script>
+    window.MORGEDAL_CONFIG = {
+      clientId:"742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com",
+      pickerKey:"__MORGEDAL_PICKER_API_KEY__",
+      appId:"742585061476",
+      baseFolderId:"1eq6jMP1Ci5h6M3a7DN3VDBo6aziAq-v3"
+    };
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="./assets/app.js"></script>
 </body>
 </html>
