@@ -38,7 +38,7 @@
     <div class="row">
       <button id="google-login">Accedi con Google</button>
       <button id="google-logout" hidden>Esci</button>
-      <button id="drive-picker" hidden disabled>Seleziona da Google Drive</button>
+      <button id="drive-picker" hidden>Seleziona da Google Drive</button>
     </div>
     <p id="message" class="meta"></p>
 
@@ -46,16 +46,19 @@
       <div><strong>Account:</strong> <span id="user-email"></span></div>
       <div><strong>Accesso previsto:</strong> <span id="user-role"></span></div>
       <div><strong>Google Drive:</strong> <span id="drive-status">da verificare</span></div>
-      <div><strong>Picker:</strong> <span id="picker-status">in attesa della nuova chiave</span></div>
+      <div><strong>Elemento selezionato:</strong> <span id="picked-item">nessuno</span></div>
       <p class="meta" style="margin-bottom:0">Editor Master resta disattivato all'accesso e verrà attivato separatamente.</p>
     </div>
   </section>
 </main>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script>
 (() => {
   const CLIENT_ID = "742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com";
+  const PICKER_API_KEY = "__MORGEDAL_PICKER_API_KEY__";
+  const APP_ID = "742585061476";
 
   const ACCESS = {
     "mariodevincenzodnd@gmail.com": { role: "Master · tutte le schede", master: true },
@@ -82,8 +85,11 @@
   const emailEl = document.getElementById("user-email");
   const roleEl = document.getElementById("user-role");
   const driveStatusEl = document.getElementById("drive-status");
+  const pickedItemEl = document.getElementById("picked-item");
+
   let tokenClient = null;
   let accessToken = null;
+  let pickerReady = false;
 
   function setMessage(text, ok = null) {
     message.textContent = text;
@@ -103,6 +109,10 @@
     });
     loginBtn.disabled = false;
     setMessage("Pronto per l'accesso Google.");
+
+    if (window.gapi) {
+      gapi.load("picker", () => { pickerReady = true; });
+    }
   }
 
   async function handleToken(response) {
@@ -137,6 +147,7 @@
       card.style.display = "block";
       loginBtn.hidden = true;
       logoutBtn.hidden = false;
+      pickerBtn.hidden = false;
       driveStatusEl.textContent = "verifica in corso…";
 
       const driveOk = await verifyDrive();
@@ -153,6 +164,48 @@
       console.error(err);
       setMessage("Non è stato possibile verificare l'identità Google.", false);
       revoke();
+    }
+  }
+
+  function openDrivePicker() {
+    if (!accessToken) {
+      setMessage("Accedi prima con Google.", false);
+      return;
+    }
+    if (!pickerReady || !window.google?.picker) {
+      setMessage("Google Picker non è ancora pronto. Riprova tra un istante.", false);
+      return;
+    }
+
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(true);
+
+    const picker = new google.picker.PickerBuilder()
+      .setAppId(APP_ID)
+      .setOAuthToken(accessToken)
+      .setDeveloperKey(PICKER_API_KEY)
+      .setOrigin(window.location.origin)
+      .addView(view)
+      .setCallback(handlePicker)
+      .build();
+
+    picker.setVisible(true);
+  }
+
+  function handlePicker(data) {
+    if (data.action === google.picker.Action.PICKED) {
+      const doc = data.docs?.[0];
+      if (!doc) return;
+      const picked = {
+        id: doc.id,
+        name: doc.name || doc.id,
+        mimeType: doc.mimeType || "",
+        url: doc.url || ""
+      };
+      sessionStorage.setItem("morgedal-picker-selection", JSON.stringify(picked));
+      pickedItemEl.textContent = picked.name;
+      setMessage("Elemento Drive autorizzato per Morgedal 2.", true);
     }
   }
 
@@ -173,11 +226,14 @@
     sessionStorage.removeItem("morgedal-user-email");
     sessionStorage.removeItem("morgedal-user-role");
     sessionStorage.removeItem("morgedal-drive-ready");
+    sessionStorage.removeItem("morgedal-picker-selection");
     sessionStorage.setItem("morgedal-master-editor", "off");
     card.style.display = "none";
     loginBtn.hidden = false;
     logoutBtn.hidden = true;
+    pickerBtn.hidden = true;
     driveStatusEl.textContent = "da verificare";
+    pickedItemEl.textContent = "nessuno";
   }
 
   loginBtn.disabled = true;
@@ -187,6 +243,8 @@
     setMessage("Apertura accesso Google…");
     tokenClient.requestAccessToken({ prompt: "select_account" });
   });
+
+  pickerBtn.addEventListener("click", openDrivePicker);
 
   logoutBtn.addEventListener("click", () => {
     revoke();
