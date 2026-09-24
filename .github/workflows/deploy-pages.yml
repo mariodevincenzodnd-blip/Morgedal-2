@@ -24,9 +24,9 @@ jobs:
 
       - name: Build static site
         env:
-          MORGEDAL_PICKER_API_KEY: ${{ secrets.MORGEDAL_PICKER_API_KEY }}
+          MORGEDAL_PICKER_API_KEY: ${{ vars.MORGEDAL_PICKER_API_KEY }}
         run: |
-          test -n "$MORGEDAL_PICKER_API_KEY" || { echo "Missing MORGEDAL_PICKER_API_KEY secret"; exit 1; }
+          test -n "$MORGEDAL_PICKER_API_KEY" || { echo "Missing MORGEDAL_PICKER_API_KEY variable"; exit 1; }
           mkdir -p _site
           rsync -a --exclude '.git' --exclude '_site' ./ _site/
           python3 - <<'PY'
