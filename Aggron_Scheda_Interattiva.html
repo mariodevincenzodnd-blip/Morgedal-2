@@ -1154,19 +1154,41 @@ async function onGoogleSignedIn(){
     googleUserEmail = (info && info.email) || "";
   }catch(e){ googleUserEmail = ""; }
 
-  // Aggron usa UN SOLO file condiviso ufficiale, di proprietà del Master.
-  // Non usare più copie personali o collegamenti salvati nel browser:
-  // tutti i dispositivi/account autorizzati devono leggere e scrivere lo stesso ID.
   driveFileIdKey = driveStorageKey();
+
+  // Recupera l'eventuale vecchio file personale creato dal Player prima che
+  // Aggron fosse collegato correttamente al file condiviso ufficiale.
+  let legacyFileId = null;
+  try{ legacyFileId = localStorage.getItem(driveFileIdKey) || null; }catch(e){}
+
+  const isAggronPlayer = (googleUserEmail || "").toLowerCase() === GOOGLE_PLAYER_EMAIL.toLowerCase();
+
+  if (isAggronPlayer && legacyFileId && legacyFileId !== DEFAULT_DRIVE_FILE_ID){
+    // Migrazione automatica una tantum: carica la copia personale di Rocco,
+    // trasferisce lo stato nel file ufficiale del Master e poi collega il browser
+    // definitivamente al file condiviso. In questo modo non perdiamo le modifiche
+    // già effettuate prima della correzione.
+    driveFileId = legacyFileId;
+    const loadedLegacy = await driveLoad();
+    if (loadedLegacy){
+      try{
+        driveFileId = DEFAULT_DRIVE_FILE_ID;
+        await driveUpdate(DEFAULT_DRIVE_FILE_ID);
+        try{ localStorage.setItem(driveFileIdKey, DEFAULT_DRIVE_FILE_ID); }catch(e){}
+        updateGoogleStatus();
+        setStatus("Modifiche precedenti migrate nel file condiviso ✓");
+        return;
+      }catch(e){
+        console.error("Migrazione verso il file condiviso non riuscita:", e);
+      }
+    }
+  }
+
+  // Flusso normale: un solo file condiviso ufficiale per Aggron.
   driveFileId = DEFAULT_DRIVE_FILE_ID;
-  try{
-    localStorage.setItem(driveFileIdKey, driveFileId);
-  }catch(e){}
+  try{ localStorage.setItem(driveFileIdKey, driveFileId); }catch(e){}
   updateGoogleStatus();
 
-  // All'accesso carica sempre la versione più recente dal file condiviso.
-  // Così le modifiche effettuate da Rocco diventano subito visibili anche al Master
-  // e viceversa, senza creare copie separate.
   const ok = await driveLoad();
   if (!ok){
     setStatus("Errore collegamento file condiviso Drive");
