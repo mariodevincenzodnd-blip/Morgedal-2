@@ -695,15 +695,13 @@
 
 <div id="lock-screen">
   <div class="lock-box">
-    <h2>Accesso Protetto</h2>
-    <p>Inserisci la password per aprire questa scheda.</p>
-    <input type="password" id="lock-input" placeholder="Password" autocomplete="off">
-    <button id="lock-submit">Sblocca</button>
-    <div class="lock-error" id="lock-error"></div>
+    <h2>Verifica accesso</h2>
+    <p>È necessario un account Google autorizzato per aprire questa scheda.</p>
+    <div class="lock-error" id="lock-error">Verifica dell'account Google…</div>
   </div>
 </div>
 
-<a class="home-link" href="index.html" title="Torna all’elenco dei personaggi">← Home</a>
+<a class="home-link" href="index.html?home=1" title="Torna all’elenco dei personaggi">← Home</a>
 
 <div class="hero" id="hero">
   <div class="hero-bg" id="hero-bg"></div>
@@ -3475,25 +3473,18 @@ async function googleAccountCanBypassPassword(){
 }
 
 async function initLock(){
-  const noPasswordSet = !CHAR_PASSWORD_HASH && !MASTER_PASSWORD_HASH;
-  if (noPasswordSet || isUnlockedThisSession() || isMasterUnlocked()){
-    hideLockScreen();
-    init();
-    return;
-  }
+  // Accesso obbligatorio con account Google autorizzato.
   if (await googleAccountCanBypassPassword()){
-    // Accesso Google autorizzato: nessuna password della scheda.
-    // Non impostiamo MASTER_UNLOCK_KEY e non accendiamo l'Editor Master.
     setMasterEditorOn(false);
     hideLockScreen();
     init();
     return;
   }
-  const submitBtn = document.getElementById("lock-submit");
-  const input = document.getElementById("lock-input");
-  if (submitBtn) submitBtn.addEventListener("click", attemptUnlock);
-  if (input) input.addEventListener("keydown", (e)=>{ if (e.key === "Enter") attemptUnlock(); });
-  if (input) input.focus();
+
+  // Apertura diretta senza sessione Google valida: torna alla Home,
+  // dove il login parte automaticamente e il giocatore viene inviato
+  // alla propria scheda in base all'indirizzo email.
+  window.location.replace("index.html");
 }
 
 /* ============================================================
