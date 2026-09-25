@@ -1051,6 +1051,7 @@ let localFileHandle = null;
 const GOOGLE_CLIENT_ID = "742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email";
 const GOOGLE_TOKEN_STORAGE_KEY = "morgedal-google-token-v3-shared";
+const GOOGLE_IDENTITY_TOKEN_STORAGE_KEY = "morgedal-google-token-v2";
 const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
 /* Google Picker: per attivare il pulsante "File condiviso" serve, oltre al Client
    ID sopra, una API Key con la "Google Picker API" abilitata sullo stesso progetto
@@ -3402,26 +3403,39 @@ async function attemptUnlock(){
 }
 
 async function googleAccountCanBypassPassword(){
-  const token = loadGoogleTokenFromSession();
-  if (!token) return false;
+  // Per l'identità accettiamo sia il nuovo token Drive condiviso sia il token
+  // usato dalla Home. In questo modo l'utente non resta bloccato in un loop
+  // Home -> Aggron -> Home mentre deve ancora concedere il nuovo permesso Drive.
+  const candidates = [];
+  const sharedToken = loadGoogleTokenFromSession();
+  if (sharedToken) candidates.push(sharedToken);
   try{
-    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: "Bearer " + token }
-    });
-    if (!res.ok) return false;
-    const info = await res.json();
-    const email = String(info && info.email || "").toLowerCase();
-    if (!email) return false;
-    // Il proprietario/Master entra in tutte le schede senza password, ma
-    // l'Editor Master resta OFF finché non viene attivato manualmente.
-    if (email === GOOGLE_OWNER_EMAIL.toLowerCase()){
-      markMasterUnlocked();
-      return true;
+    const raw = sessionStorage.getItem(GOOGLE_IDENTITY_TOKEN_STORAGE_KEY);
+    if (raw){
+      const data = JSON.parse(raw);
+      if (data && data.token && data.expiresAt && Date.now() <= data.expiresAt - 60000){
+        candidates.push(data.token);
+      }
     }
-    // Il giocatore può entrare senza password soltanto nella propria scheda.
-    if (GOOGLE_PLAYER_EMAIL && email === GOOGLE_PLAYER_EMAIL.toLowerCase()) return true;
-    return false;
-  }catch(e){ return false; }
+  }catch(e){}
+
+  for (const token of candidates){
+    try{
+      const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!res.ok) continue;
+      const info = await res.json();
+      const email = String(info && info.email || "").toLowerCase();
+      if (!email) continue;
+      if (email === GOOGLE_OWNER_EMAIL.toLowerCase()){
+        markMasterUnlocked();
+        return true;
+      }
+      if (GOOGLE_PLAYER_EMAIL && email === GOOGLE_PLAYER_EMAIL.toLowerCase()) return true;
+    }catch(e){}
+  }
+  return false;
 }
 
 async function initLock(){
