@@ -1,0 +1,5 @@
+{
+  "buildCommand": "python3 build_vercel.py",
+  "outputDirectory": "dist",
+  "cleanUrls": false
+}
