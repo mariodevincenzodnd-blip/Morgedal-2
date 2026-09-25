@@ -1,9 +1,7 @@
 #:schema https://developers.openai.com/codex/config-schema.json
 
-# Project defaults chosen to conserve GPT-6 Astra allowance.
-# A user/session override can still raise reasoning effort when a hard task needs it.
-model_reasoning_effort = "low"
+# Morgedal 2 project configuration.
+# Keep the standard service tier to avoid unnecessary Fast-mode consumption.
+# Reasoning effort is intentionally not forced here: the active Codex/Astra
+# session remains free to use the level appropriate for the task.
 service_tier = "default"
-
-[features]
-fast_mode = false
