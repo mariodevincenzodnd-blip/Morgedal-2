@@ -205,6 +205,12 @@ const CHARACTERS = [
   { name: "Ola", subtitle: "Ibrido Distruttore — Corredo Genetico", tag: "Livello 8", file: "Ola_Scheda_Interattiva.html", color: "#9450d8", principale: true },
   { name: "Ervork", subtitle: "Guerriero Demoniaco — Ervork / Rust", tag: "Livello 8", file: "Ervork_Scheda_Interattiva.html", color: "#d43b3b", principale: true },
   { name: "Gorg", subtitle: "Campione del Caos — Goblin posseduto da Sakar", tag: "", file: "Gorg_Scheda_Interattiva.html", color: "#4fae54", color2: "#d6409f", principale: false },
+  { name: "Jhaggork", subtitle: "Mago Multielementale — Lizardfolk", tag: "Livello 7", file: "Jhaggork_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
+  { name: "Niger", subtitle: "Ninja — Numa", tag: "Livello 7", file: "Niger_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
+  { name: "Vorkax", subtitle: "Mago — Dragonide", tag: "Livello 7", file: "Vorkax_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
+  { name: "Bull", subtitle: "Tank — Orco Imbruttito", tag: "Livello 7", file: "Bull_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
+  { name: "Crop", subtitle: "Misto — Tulip", tag: "Livello 7", file: "Crop_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
+  { name: "Mary", subtitle: "Mago — Elfo", tag: "Livello 8", file: "Mary_Scheda_Interattiva.html", color: "#b89b5e", principale: false },
   { name: "Katan", subtitle: "Guerriero Telecinetico — la mente come arma", tag: "Livello 8", file: "Katan_Scheda_Interattiva.html", color: "#2e9bff", principale: true }
 ];
 
@@ -378,7 +384,7 @@ function routeAuthenticatedUser(email){
   }
 
   if (GOOGLE_PENDING_EMAILS.has(email)){
-    setAuthGateStatus("Account riconosciuto, ma la scheda di questo personaggio non è ancora disponibile.", true);
+    setAuthGateStatus("Account riconosciuto: la nuova scheda esiste, ma questo account deve ancora essere associato al personaggio corretto dal Master.", true);
     return;
   }
 
