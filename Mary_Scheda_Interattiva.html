@@ -2418,7 +2418,7 @@ function renderFonteOriginale(){
   const panel=document.getElementById("panel-fonte");
   if(!panel)return;
   const raw=STATE.fonteOriginale||"";
-  panel.innerHTML=\`<div class="card"><h2>Dettagli & Poteri <small>trascrizione integrale della scheda originale</small></h2><div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;color:var(--text-dim);font-size:13.5px;">\${esc(raw)}</div></div>\`;
+  panel.innerHTML=`<div class="card"><h2>Dettagli & Poteri <small>trascrizione integrale della scheda originale</small></h2><div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;color:var(--text-dim);font-size:13.5px;">${esc(raw)}</div></div>`;
 }
 
 /* ============================================================
