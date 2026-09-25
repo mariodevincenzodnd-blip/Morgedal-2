@@ -1797,7 +1797,7 @@ function renderScheda(){
     <div class="card">
       <h2>Attacchi & Incantesimi di Prima Utilit\u00e0</h2>
       ${renderAttacchiNav()}
-      <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich="attacchi">${STATE.attacchi}</div>
+      <div class="rich" contenteditable="true" data-rich="attacchi">${STATE.attacchi}</div>
     </div>
   `;
 
@@ -1822,7 +1822,7 @@ function renderScheda(){
   // il calcolo automatico resta attivo, ma un valore inserito qui manualmente
   // sostituisce quello calcolato e non viene più sovrascritto dal ricalcolo.
   document.querySelectorAll('[data-modover]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{
       const k = inp.dataset.modover;
       const raw = inp.value.trim();
@@ -1868,7 +1868,7 @@ function renderScheda(){
   bindRich();
 
   const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp");
-  hpMax.readOnly = false;
+  hpMax.readOnly = !isMasterEditorOn();
   function refreshHp(){
     let cur = parseInt(hpCur.value||"0",10), max = parseInt(hpMax.value||"0",10);
     if (cur > max) cur = max;
@@ -2351,7 +2351,7 @@ function renderEquip(){
   `;
 
   document.querySelectorAll('[data-equip]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{ STATE.equip[inp.dataset.equip] = inp.value; queueSave(); });
   });
   bindRich();
@@ -2391,7 +2391,7 @@ function renderEquipSlots(){
     grid.appendChild(box);
   });
   grid.querySelectorAll('[data-equip]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{ STATE.equip[inp.dataset.equip] = inp.value; queueSave(); });
   });
 }
@@ -2634,7 +2634,7 @@ function renderLore(){
   `;
 
   document.querySelectorAll('[data-desc]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{ STATE.descrizione[inp.dataset.desc]=inp.value; queueSave(); });
   });
   document.querySelectorAll('[data-rich-lore]').forEach(el=>{
