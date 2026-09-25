@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morgedal — Pannello Master</title>
+<style>
+  :root{
+    --bg:#0f0d0c; --bg-panel:#1b1613; --bg-panel-2:#241d18; --bg-panel-3:#171210;
+    --border:#3d3024; --border-soft:#2a2119;
+    --gold:#c9a34e; --gold-bright:#eecb7c;
+    --violet:#9450d8; --violet-dim:#5c3a86;
+    --good:#6f9a63; --bad:#c9463b;
+    --text:#ece3d0; --text-dim:#a89880; --text-faint:#7a6c58;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(ellipse 900px 500px at 15% -10%, rgba(148,80,216,0.12), transparent 60%), var(--bg);
+    color:var(--text);font-family:var(--sans);line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased;
+  }
+
+  /* -------- lock screen -------- */
+  #lock-screen{ position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px; }
+  .lock-box{
+    background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-3));
+    border:1px solid var(--border-soft);border-radius:12px;padding:32px 30px;max-width:340px;width:100%;text-align:center;
+  }
+  .lock-box h2{ font-family:var(--serif);color:var(--gold-bright);text-transform:uppercase;letter-spacing:1.6px;font-size:20px;margin:0 0 8px; }
+  .lock-box p{ color:var(--text-dim);font-size:13px;margin:0 0 18px; }
+  .lock-box input[type=password]{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);
+    border-radius:6px;padding:10px 12px;font-size:14px;width:100%;text-align:center;margin-bottom:12px;
+  }
+  .lock-box input:focus{ outline:none;border-color:var(--gold); }
+  .lock-box button{
+    background:linear-gradient(180deg, #3a2a12, #241a0c);border:1px solid var(--gold);color:var(--gold-bright);
+    border-radius:8px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;width:100%;
+  }
+  .lock-error{ color:#ff9d90;font-size:12px;margin-top:10px;min-height:14px; }
+
+  /* -------- panel -------- */
+  #panel{ display:none; }
+  .wrap{ max-width:760px;margin:0 auto;padding:44px 20px 60px; }
+  h1{
+    font-family:var(--serif);font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    font-size:clamp(26px,4vw,38px);color:var(--gold-bright);margin:0 0 6px;
+    text-shadow:0 2px 0 rgba(0,0,0,0.6), 0 0 26px rgba(148,80,216,0.3);
+  }
+  .subtitle{ font-family:var(--serif);font-style:italic;color:var(--text-dim);margin:0 0 8px;font-size:14px; }
+  .master-status{ font-size:11.5px;color:var(--good);margin:0 0 26px; }
+
+  .card{
+    background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-3));
+    border:1px solid var(--border-soft);border-radius:10px;padding:20px;margin-bottom:18px;
+  }
+  .card h2{ font-family:var(--serif);font-size:13px;text-transform:uppercase;letter-spacing:1.4px;color:var(--gold);margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px; }
+  .card h2 small{ font-family:var(--sans);text-transform:none;letter-spacing:0;color:var(--text-faint);font-size:11px;font-weight:400; }
+  .card p{ color:var(--text-dim);font-size:13px;line-height:1.6;margin:0 0 12px; }
+
+  label{ display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-faint);margin-bottom:5px; }
+  input[type=text], input[type=password]{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);
+    border-radius:6px;padding:9px 11px;font-size:14px;width:100%;
+  }
+  input[type=text]:focus, input[type=password]:focus{ outline:none;border-color:var(--gold); }
+  input[type=color]{
+    width:44px;height:34px;padding:2px;border-radius:6px;border:1px solid var(--border-soft);background:var(--bg-panel-2);cursor:pointer;
+  }
+  select{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);
+    border-radius:6px;padding:9px 11px;font-size:14px;width:100%;
+  }
+  .grid2{ display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  .grid3{ display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; }
+  @media (max-width:560px){ .grid2, .grid3{ grid-template-columns:1fr; } }
+
+  button.action{
+    background:linear-gradient(180deg, #3a2a12, #241a0c);border:1px solid var(--gold);color:var(--gold-bright);
+    border-radius:8px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer;margin-top:10px;
+  }
+  button.action:hover{ opacity:0.9; }
+  button.action:disabled{ opacity:0.4;cursor:not-allowed; }
+  button.small{ padding:6px 12px;font-size:11.5px;margin-top:0; }
+  button.secondary{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text-dim);
+    border-radius:8px;padding:8px 14px;font-size:12.5px;cursor:pointer;
+  }
+  button.secondary:hover{ border-color:var(--gold);color:var(--gold-bright); }
+
+  .result{
+    margin-top:14px;background:var(--bg-panel-3);border:1px solid var(--border-soft);border-radius:8px;
+    padding:12px;display:none;
+  }
+  .result.show{ display:block; }
+  .result label{ margin-bottom:6px; }
+  .hash-box{
+    font-family:var(--mono);font-size:12.5px;color:var(--gold-bright);word-break:break-all;
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);border-radius:6px;padding:8px 10px;
+  }
+  .copy-btn{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text-dim);
+    border-radius:6px;padding:5px 12px;font-size:11.5px;cursor:pointer;margin-top:8px;
+  }
+  .copy-btn:hover{ border-color:var(--gold);color:var(--gold-bright); }
+  code{ background:var(--bg-panel-2);border:1px solid var(--border-soft);border-radius:4px;padding:1px 6px;color:var(--gold-bright);font-size:12px; }
+
+  .char-row{
+    display:grid;grid-template-columns:26px 1fr auto auto;gap:10px;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--border-soft);
+  }
+  .char-row:last-child{ border-bottom:none; }
+  .char-row .cname{ font-weight:700;color:var(--text); }
+  .char-row .cfile{ font-size:10.5px;color:var(--text-faint);font-family:var(--mono); }
+  .char-pw-row{
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:8px;
+  }
+  .status-line{ font-size:12px;margin-top:10px;min-height:16px; }
+  .status-line.ok{ color:var(--good); }
+  .status-line.err{ color:#ff9d90; }
+  .status-line.busy{ color:var(--text-faint); }
+
+  .token-warning{
+    font-size:11.5px;color:#ffb3a0;background:rgba(201,70,59,0.1);border:1px solid rgba(201,70,59,0.3);
+    border-radius:6px;padding:8px 10px;margin-top:10px;
+  }
+
+  .bg-preview{
+    height:90px;border-radius:10px;border:1px solid var(--border-soft);
+  }
+</style>
+</head>
+<body>
+
+<div id="lock-screen">
+  <div class="lock-box">
+    <h2>Pannello Master</h2>
+    <p>Solo per il master della campagna.</p>
+    <input type="password" id="lock-input" placeholder="Password Master" autocomplete="off">
+    <button id="lock-submit">Entra</button>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="wrap">
+    <h1>Pannello Master</h1>
+    <p class="subtitle">Strumenti per gestire le schede dei personaggi</p>
+    <p class="master-status">🔓 Da questo momento tutte le schede del gruppo su questo browser sono sbloccate, senza dover reinserire alcuna password.</p>
+
+    <div class="card">
+      <h2>Connessione a GitHub <small>necessaria solo per aggiornare password/colori direttamente da qui</small></h2>
+      <p>Serve un <b>Personal Access Token</b> di GitHub con permesso di scrittura su questo repository (scope <code>repo</code>, oppure un token "fine-grained" con permesso Contents: Read & Write sul repo <code>Morgedal-2</code>). Il token resta solo in questa scheda del browser: non viene salvato da nessuna parte, sparisce chiudendo la finestra.</p>
+      <div class="grid3">
+        <div><label>Proprietario (owner)</label><input type="text" id="gh-owner" value="mariodevincenzodnd-blip"></div>
+        <div><label>Repository</label><input type="text" id="gh-repo" value="Morgedal-2"></div>
+        <div><label>Branch</label><input type="text" id="gh-branch" value="main"></div>
+      </div>
+      <div style="margin-top:10px;"><label>Personal Access Token</label><input type="password" id="gh-token" placeholder="ghp_..." autocomplete="off"></div>
+      <button class="action" id="gh-save">Salva connessione</button>
+      <div class="token-warning">⚠️ Non condividere mai questo token. Chiunque lo abbia può modificare tutti i file del repository.</div>
+      <div class="status-line" id="gh-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Personaggi <small id="char-count"></small></h2>
+      <p>Carica l'elenco da <code>index.html</code> per modificare password e colore identificativo di ciascun personaggio direttamente da qui.</p>
+      <button class="action" id="load-chars">Carica elenco da GitHub</button>
+      <div class="status-line" id="chars-status"></div>
+      <div id="char-list" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Impostazioni grafiche globali <small>sfondo della Home (Morgedal)</small></h2>
+      <p>Personalizza i colori dei due bagliori decorativi e il colore di base dello sfondo scuro della Home. L'anteprima qui sotto è dal vivo; il salvataggio scrive davvero su <code>index.html</code> su GitHub.</p>
+      <button class="secondary small" id="bg-load">Carica valori attuali da GitHub</button>
+      <div class="bg-preview" id="bg-preview" style="margin-top:12px;"></div>
+      <div class="grid3" style="margin-top:12px;">
+        <div>
+          <label>Bagliore 1</label>
+          <input type="color" id="bg-glow1" value="#9450d8">
+        </div>
+        <div>
+          <label>Bagliore 2</label>
+          <input type="color" id="bg-glow2" value="#c9463b">
+        </div>
+        <div>
+          <label>Sfondo di base</label>
+          <input type="color" id="bg-base" value="#0f0d0c">
+        </div>
+      </div>
+      <button class="action" id="bg-save">Salva sfondo su GitHub</button>
+      <div class="status-line" id="bg-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Cambia la password Master</h2>
+      <p>Aggiorna la password Master su <b>tutti</b> i personaggi già caricati in elenco, in un colpo solo.</p>
+      <input type="text" id="master-pw-input" placeholder="Nuova password Master" autocomplete="off">
+      <button class="action" id="master-pw-update">Applica a tutti i personaggi</button>
+      <div class="status-line" id="master-pw-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Genera solo un hash <small>senza toccare GitHub</small></h2>
+      <p>Utile se preferisci incollare tu stesso l'hash a mano, o per un personaggio non ancora nell'elenco.</p>
+      <label>Password in chiaro</label>
+      <input type="text" id="pw-input" placeholder="es. Mario-Nano-14" autocomplete="off">
+      <br><button class="action" id="pw-generate">Genera hash</button>
+      <div class="result" id="pw-result">
+        <label>Hash</label>
+        <div class="hash-box" id="pw-hash"></div>
+        <button class="copy-btn" id="pw-copy">Copia</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Nuovo personaggio</h2>
+      <p>Per una scheda nuova, genera qui la password che vuoi dargli, e passa a Claude il file di partenza insieme a quell'hash: lo inserisce lui al posto giusto nel nuovo file. Una volta caricato su GitHub, ricarica l'elenco qui sopra per poterlo gestire.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const MASTER_PASSWORD_HASH = "c95488e91dbb746dde809ac9806bdcadb59f72c0dbd89f3440aa4f3e3e25688a";
+const SESSION_KEY = "morgedal-admin-unlocked";
+const MASTER_UNLOCK_KEY = "morgedal-master-unlocked";
+/* Migrazione: lo sblocco Master condiviso ora vive in sessionStorage, non più
+   in localStorage (dura una sessione/tab, non sopravvive alla chiusura del
+   browser). Rimuove anche l'eventuale vecchia chiave legacy in localStorage. */
+try{ localStorage.removeItem(MASTER_UNLOCK_KEY); }catch(e){}
+
+async function sha256Hex(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function showPanel(){
+  document.getElementById("lock-screen").style.display = "none";
+  document.getElementById("panel").style.display = "block";
+}
+
+async function attemptUnlock(){
+  const input = document.getElementById("lock-input");
+  const err = document.getElementById("lock-error");
+  const pw = input.value;
+  if (!pw){ err.textContent = "Inserisci la password."; return; }
+  const hash = await sha256Hex(pw);
+  if (hash === MASTER_PASSWORD_HASH){
+    try{
+      sessionStorage.setItem(SESSION_KEY, "1");
+      sessionStorage.setItem(MASTER_UNLOCK_KEY, "1"); // sblocca anche tutte le altre schede (stessa sessione/tab)
+    }catch(e){}
+    showPanel();
+  } else {
+    err.textContent = "Password errata.";
+    input.value = ""; input.focus();
+  }
+}
+
+document.getElementById("lock-submit").addEventListener("click", attemptUnlock);
+document.getElementById("lock-input").addEventListener("keydown", (e)=>{ if(e.key==="Enter") attemptUnlock(); });
+
+let unlocked = false;
+try{ unlocked = sessionStorage.getItem(SESSION_KEY) === "1"; }catch(e){}
+if (unlocked){
+  try{ sessionStorage.setItem(MASTER_UNLOCK_KEY, "1"); }catch(e){}
+  showPanel();
+} else {
+  document.getElementById("lock-input").focus();
+}
+
+/* ---------- Generatore hash semplice ---------- */
+document.getElementById("pw-generate").addEventListener("click", async ()=>{
+  const val = document.getElementById("pw-input").value;
+  if (!val) return;
+  const hash = await sha256Hex(val);
+  document.getElementById("pw-hash").textContent = hash;
+  document.getElementById("pw-result").classList.add("show");
+});
+document.getElementById("pw-copy").addEventListener("click", ()=>{
+  const text = document.getElementById("pw-hash").textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById("pw-copy");
+    const old = btn.textContent; btn.textContent = "Copiato!";
+    setTimeout(()=>{ btn.textContent = old; }, 1500);
+  });
+});
+
+/* ============================================================
+   CONNESSIONE GITHUB
+   ============================================================ */
+const REPO_CONFIG_KEY = "morgedal-admin-repo-config";
+let GH_TOKEN = "";
+try{ GH_TOKEN = sessionStorage.getItem("morgedal-admin-token") || ""; }catch(e){}
+
+function loadRepoConfig(){
+  try{
+    const raw = localStorage.getItem(REPO_CONFIG_KEY);
+    if (raw){
+      const cfg = JSON.parse(raw);
+      if (cfg.owner) document.getElementById("gh-owner").value = cfg.owner;
+      if (cfg.repo) document.getElementById("gh-repo").value = cfg.repo;
+      if (cfg.branch) document.getElementById("gh-branch").value = cfg.branch;
+    }
+  }catch(e){}
+  if (GH_TOKEN) document.getElementById("gh-token").value = GH_TOKEN;
+}
+loadRepoConfig();
+
+function getRepoConfig(){
+  return {
+    owner: document.getElementById("gh-owner").value.trim(),
+    repo: document.getElementById("gh-repo").value.trim(),
+    branch: document.getElementById("gh-branch").value.trim() || "main"
+  };
+}
+
+document.getElementById("gh-save").addEventListener("click", ()=>{
+  const cfg = getRepoConfig();
+  try{ localStorage.setItem(REPO_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
+  GH_TOKEN = document.getElementById("gh-token").value.trim();
+  try{ sessionStorage.setItem("morgedal-admin-token", GH_TOKEN); }catch(e){}
+  setStatus("gh-status", GH_TOKEN ? "Connessione salvata per questa sessione." : "Impostazioni salvate (nessun token inserito).", "ok");
+});
+
+function setStatus(elId, msg, type){
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = "status-line" + (type ? " " + type : "");
+}
+
+function b64EncodeUnicode(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUnicode(str){
+  return decodeURIComponent(escape(atob(str)));
+}
+
+async function ghGetFile(path){
+  const {owner, repo, branch} = getRepoConfig();
+  if (!GH_TOKEN) throw new Error("Nessun token configurato. Salva prima la connessione a GitHub.");
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+  const res = await fetch(url, {
+    headers: { "Authorization": "token " + GH_TOKEN, "Accept": "application/vnd.github+json" }
+  });
+  if (!res.ok){
+    const t = await res.text().catch(()=> "");
+    throw new Error(`Lettura di ${path} fallita (HTTP ${res.status}). ${t}`);
+  }
+  const data = await res.json();
+  const content = b64DecodeUnicode(data.content.replace(/\n/g, ""));
+  return { content, sha: data.sha };
+}
+
+async function ghPutFile(path, newContent, sha, message){
+  const {owner, repo, branch} = getRepoConfig();
+  if (!GH_TOKEN) throw new Error("Nessun token configurato. Salva prima la connessione a GitHub.");
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Authorization": "token " + GH_TOKEN,
+      "Accept": "application/vnd.github+json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: message || `Aggiornamento da Pannello Master: ${path}`,
+      content: b64EncodeUnicode(newContent),
+      sha: sha,
+      branch: branch
+    })
+  });
+  if (!res.ok){
+    const t = await res.text().catch(()=> "");
+    throw new Error(`Scrittura di ${path} fallita (HTTP ${res.status}). ${t}`);
+  }
+  return res.json();
+}
+
+/* ============================================================
+   ELENCO PERSONAGGI (letto da index.html)
+   ============================================================ */
+let CHAR_LIST = [];
+
+document.getElementById("load-chars").addEventListener("click", async ()=>{
+  setStatus("chars-status", "Caricamento in corso…", "busy");
+  try{
+    const { content } = await ghGetFile("index.html");
+    const match = content.match(/const CHARACTERS = (\[[\s\S]*?\]);/);
+    if (!match) throw new Error("Non trovo l'elenco CHARACTERS dentro index.html.");
+    CHAR_LIST = new Function("return " + match[1])();
+    renderCharList();
+    setStatus("chars-status", `Caricati ${CHAR_LIST.length} personaggi.`, "ok");
+  }catch(e){
+    setStatus("chars-status", e.message, "err");
+  }
+});
+
+function renderCharList(){
+  const box = document.getElementById("char-list");
+  document.getElementById("char-count").textContent = CHAR_LIST.length ? `(${CHAR_LIST.length} caricati)` : "";
+  box.innerHTML = CHAR_LIST.map((c, i) => {
+    const isPrincipale = !!c.principale;
+    const moveLabel = isPrincipale ? "Sposta tra i Viaggiatori" : "Sposta tra i Principali";
+    const color2Row = c.color2 ? `
+      <div class="char-pw-row" style="grid-column:1 / -1;">
+        <input type="color" data-color2-idx="${i}" value="${c.color2}">
+        <button class="secondary small" data-save-color2="${i}">Salva 2° colore</button>
+      </div>` : "";
+    return `
+    <div class="char-row">
+      <input type="color" data-color-idx="${i}" value="${c.color || '#c9a34e'}">
+      <div>
+        <div class="cname">${c.name} <span style="font-weight:400;font-size:10px;color:var(--text-faint);">(${isPrincipale ? "Principale" : "Viaggiatore"})</span></div>
+        <div class="cfile">${c.file}</div>
+      </div>
+      <button class="secondary small" data-save-color="${i}">Salva colore</button>
+      <span></span>${color2Row}
+      <div class="char-pw-row" style="grid-column:1 / -1;">
+        <input type="text" placeholder="Nuova password per ${c.name}" data-pw-input="${i}">
+        <button class="secondary small" data-save-pw="${i}">Aggiorna password</button>
+      </div>
+      <div style="grid-column:1 / -1;margin-top:2px;">
+        <button class="secondary small" data-move="${i}">${moveLabel}</button>
+      </div>
+      <div class="status-line" id="char-status-${i}" style="grid-column:1 / -1;"></div>
+    </div>
+  `;
+  }).join("");
+
+  box.querySelectorAll("[data-save-color]").forEach(btn=>{
+    btn.addEventListener("click", ()=> updateCharColor(parseInt(btn.dataset.saveColor, 10)));
+  });
+  box.querySelectorAll("[data-save-color2]").forEach(btn=>{
+    btn.addEventListener("click", ()=> updateCharColor2(parseInt(btn.dataset.saveColor2, 10)));
+  });
+  box.querySelectorAll("[data-save-pw]").forEach(btn=>{
+    btn.addEventListener("click", ()=> updateCharPassword(parseInt(btn.dataset.savePw, 10)));
+  });
+  box.querySelectorAll("[data-move]").forEach(btn=>{
+    btn.addEventListener("click", ()=> updateCharPrincipale(parseInt(btn.dataset.move, 10)));
+  });
+}
+
+/* Trova l'oggetto {...} del personaggio dentro il testo di index.html */
+function findCharEntry(content, file){
+  const entryRegex = new RegExp(`(\\{[^{}]*file:\\s*["']${file}["'][^{}]*\\})`);
+  const m = content.match(entryRegex);
+  if (!m) throw new Error("Non trovo questo personaggio nell'elenco su GitHub.");
+  return m[1];
+}
+
+/* Aggiorna una variabile CSS --nome:#hex; dentro il file scheda di un personaggio (best-effort:
+   se la scheda non ha ancora quella variabile non blocchiamo l'operazione principale). */
+async function syncSheetCssVar(file, varName, hexColor, commitLabel){
+  try{
+    const sheet = await ghGetFile(file);
+    const re = new RegExp(`--${varName}\\s*:\\s*#[0-9a-fA-F]{3,8}\\s*;`);
+    if (re.test(sheet.content)){
+      const newContent = sheet.content.replace(re, `--${varName}:${hexColor};`);
+      await ghPutFile(file, newContent, sheet.sha, commitLabel);
+      return true;
+    }
+    return false;
+  }catch(e){
+    return false;
+  }
+}
+
+async function updateCharColor(i){
+  const c = CHAR_LIST[i];
+  const colorInput = document.querySelector(`[data-color-idx="${i}"]`);
+  const newColor = colorInput.value;
+  setStatus(`char-status-${i}`, "Aggiornamento colore…", "busy");
+  try{
+    const { content, sha } = await ghGetFile("index.html");
+    let entry = findCharEntry(content, c.file);
+    let newEntry;
+    if (/color\s*:/.test(entry)){
+      newEntry = entry.replace(/color\s*:\s*["'][^"']*["']/, `color: "${newColor}"`);
+    } else {
+      newEntry = entry.replace(/\}\s*$/, `, color: "${newColor}" }`);
+    }
+    const newContent = content.replace(entry, newEntry);
+    await ghPutFile("index.html", newContent, sha, `Aggiorna colore di ${c.name}`);
+    CHAR_LIST[i].color = newColor;
+
+    const synced = await syncSheetCssVar(c.file, "identity", newColor, `Sincronizza colore identità di ${c.name}`);
+    setStatus(`char-status-${i}`, synced
+      ? "Colore aggiornato ✓ (homepage e scheda sincronizzate)"
+      : "Colore aggiornato ✓ su homepage. Non ho trovato la variabile colore nella scheda: verificala a mano.", "ok");
+  }catch(e){
+    setStatus(`char-status-${i}`, e.message, "err");
+  }
+}
+
+async function updateCharColor2(i){
+  const c = CHAR_LIST[i];
+  const colorInput = document.querySelector(`[data-color2-idx="${i}"]`);
+  const newColor = colorInput.value;
+  setStatus(`char-status-${i}`, "Aggiornamento 2° colore…", "busy");
+  try{
+    const { content, sha } = await ghGetFile("index.html");
+    let entry = findCharEntry(content, c.file);
+    let newEntry;
+    if (/color2\s*:/.test(entry)){
+      newEntry = entry.replace(/color2\s*:\s*["'][^"']*["']/, `color2: "${newColor}"`);
+    } else {
+      newEntry = entry.replace(/\}\s*$/, `, color2: "${newColor}" }`);
+    }
+    const newContent = content.replace(entry, newEntry);
+    await ghPutFile("index.html", newContent, sha, `Aggiorna 2° colore di ${c.name}`);
+    CHAR_LIST[i].color2 = newColor;
+
+    const synced = await syncSheetCssVar(c.file, "identity2", newColor, `Sincronizza 2° colore identità di ${c.name}`);
+    setStatus(`char-status-${i}`, synced
+      ? "2° colore aggiornato ✓ (homepage e scheda sincronizzate)"
+      : "2° colore aggiornato ✓ su homepage. Non ho trovato la variabile nella scheda: verificala a mano.", "ok");
+  }catch(e){
+    setStatus(`char-status-${i}`, e.message, "err");
+  }
+}
+
+/* Sposta un personaggio tra Principali e Viaggiatori: aggiorna sia il campo "principale"
+   sia l'elenco PRINCIPALI_ORDER dentro index.html, e sincronizza l'etichetta TIPO nella scheda.
+   NON aggiunge/rimuove automaticamente la scheda "Evoluzioni Future": è una modifica strutturale
+   al file (nuova voce in TABS + chiamata di rendering) che questo pannello, per sicurezza, non
+   esegue da solo — va chiesta a parte quando serve davvero. */
+async function updateCharPrincipale(i){
+  const c = CHAR_LIST[i];
+  const willBePrincipale = !c.principale;
+  setStatus(`char-status-${i}`, "Aggiornamento in corso…", "busy");
+  try{
+    const idx = await ghGetFile("index.html");
+    let content = idx.content;
+
+    let entry = findCharEntry(content, c.file);
+    let newEntry;
+    if (/principale\s*:/.test(entry)){
+      newEntry = entry.replace(/principale\s*:\s*(true|false)/, `principale: ${willBePrincipale}`);
+    } else {
+      newEntry = entry.replace(/\}\s*$/, `, principale: ${willBePrincipale} }`);
+    }
+    content = content.replace(entry, newEntry);
+
+    const orderMatch = content.match(/const PRINCIPALI_ORDER = (\[[^\]]*\]);/);
+    if (!orderMatch) throw new Error("Non trovo PRINCIPALI_ORDER in index.html.");
+    let orderArr = new Function("return " + orderMatch[1])();
+    if (willBePrincipale){
+      if (!orderArr.includes(c.name)) orderArr.push(c.name);
+    } else {
+      orderArr = orderArr.filter(n => n !== c.name);
+    }
+    const newOrderLiteral = "[" + orderArr.map(n => `"${n}"`).join(", ") + "]";
+    content = content.replace(orderMatch[0], `const PRINCIPALI_ORDER = ${newOrderLiteral};`);
+
+    await ghPutFile("index.html", content, idx.sha, `Sposta ${c.name} tra i ${willBePrincipale ? "Principali" : "Viaggiatori"}`);
+    CHAR_LIST[i].principale = willBePrincipale;
+
+    const newTipo = willBePrincipale ? "PRINCIPALE" : "VIAGGIATORE";
+    let tipoSynced = false;
+    try{
+      const sheet = await ghGetFile(c.file);
+      const tipoRe = /tipo\s*:\s*"[^"]*"/;
+      if (tipoRe.test(sheet.content)){
+        const newSheetContent = sheet.content.replace(tipoRe, `tipo: "${newTipo}"`);
+        await ghPutFile(c.file, newSheetContent, sheet.sha, `Sincronizza TIPO di ${c.name}`);
+        tipoSynced = true;
+      }
+    }catch(e){ /* best-effort, non blocca lo spostamento già riuscito */ }
+
+    renderCharList();
+    const tipoNote = tipoSynced ? "" : " (etichetta TIPO nella scheda non trovata: verificala a mano)";
+    setStatus(`char-status-${i}`,
+      `Spostato tra i ${willBePrincipale ? "Principali" : "Viaggiatori"} ✓${tipoNote}. Se deve anche guadagnare/perdere la scheda "Evoluzioni Future", chiedilo a parte: il pannello non la tocca in automatico.`,
+      "ok");
+  }catch(e){
+    setStatus(`char-status-${i}`, e.message, "err");
+  }
+}
+
+async function updateCharPassword(i){
+  const c = CHAR_LIST[i];
+  const pwInput = document.querySelector(`[data-pw-input="${i}"]`);
+  const newPw = pwInput.value.trim();
+  if (!newPw){ setStatus(`char-status-${i}`, "Scrivi prima una password.", "err"); return; }
+  setStatus(`char-status-${i}`, "Aggiornamento password…", "busy");
+  try{
+    const hash = await sha256Hex(newPw);
+    const { content, sha } = await ghGetFile(c.file);
+    if (!/const CHAR_PASSWORD_HASH = "[^"]*";/.test(content)){
+      throw new Error("Non trovo la riga CHAR_PASSWORD_HASH in questo file.");
+    }
+    const newContent = content.replace(/const CHAR_PASSWORD_HASH = "[^"]*";/, `const CHAR_PASSWORD_HASH = "${hash}";`);
+    await ghPutFile(c.file, newContent, sha, `Aggiorna password di ${c.name}`);
+    pwInput.value = "";
+    setStatus(`char-status-${i}`, "Password aggiornata ✓", "ok");
+  }catch(e){
+    setStatus(`char-status-${i}`, e.message, "err");
+  }
+}
+
+/* ============================================================
+   IMPOSTAZIONI GRAFICHE GLOBALI — sfondo decorativo della Home
+   Tocca solo i colori dei due bagliori radiali e il colore di base
+   dietro di essi in index.html; non serve pre-caricare l'elenco
+   personaggi per usare questa sezione. */
+function hexToRgbaStr(hex, alpha){
+  const h = (hex || "#000000").replace("#", "");
+  const r = parseInt(h.substring(0,2), 16) || 0;
+  const g = parseInt(h.substring(2,4), 16) || 0;
+  const b = parseInt(h.substring(4,6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+function rgbStrToHex(rgbaInner){
+  const parts = rgbaInner.split(",").map(s => parseInt(s.trim(), 10));
+  const toHex = n => Math.max(0, Math.min(255, n || 0)).toString(16).padStart(2, "0");
+  return "#" + toHex(parts[0]) + toHex(parts[1]) + toHex(parts[2]);
+}
+const BG_GLOW1_RE = /radial-gradient\(ellipse 1000px 560px at 15% -10%, rgba\(([^)]+)\), transparent 60%\)/;
+const BG_GLOW2_RE = /radial-gradient\(ellipse 1000px 560px at 100% 0%, rgba\(([^)]+)\), transparent 55%\)/;
+const BG_BASE_RE = /--bg:\s*(#[0-9a-fA-F]{3,8});/;
+
+function refreshBgPreview(){
+  const preview = document.getElementById("bg-preview");
+  if (!preview) return;
+  const c1 = document.getElementById("bg-glow1").value;
+  const c2 = document.getElementById("bg-glow2").value;
+  const cb = document.getElementById("bg-base").value;
+  /* alpha alzata solo nell'anteprima (riquadro piccolo), il salvataggio usa
+     sempre gli stessi 0.12 / 0.08 già in produzione */
+  preview.style.background =
+    `radial-gradient(ellipse 260px 140px at 15% -10%, ${hexToRgbaStr(c1, 0.35)}, transparent 60%),` +
+    `radial-gradient(ellipse 260px 140px at 100% 0%, ${hexToRgbaStr(c2, 0.28)}, transparent 55%),` +
+    cb;
+}
+["bg-glow1", "bg-glow2", "bg-base"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", refreshBgPreview);
+});
+refreshBgPreview();
+
+document.getElementById("bg-load").addEventListener("click", async ()=>{
+  setStatus("bg-status", "Caricamento in corso…", "busy");
+  try{
+    const { content } = await ghGetFile("index.html");
+    const g1 = content.match(BG_GLOW1_RE);
+    const g2 = content.match(BG_GLOW2_RE);
+    const bg = content.match(BG_BASE_RE);
+    if (!g1 || !g2 || !bg) throw new Error("Non trovo lo sfondo decorativo dentro index.html: verificalo a mano.");
+    document.getElementById("bg-glow1").value = rgbStrToHex(g1[1]);
+    document.getElementById("bg-glow2").value = rgbStrToHex(g2[1]);
+    document.getElementById("bg-base").value = bg[1];
+    refreshBgPreview();
+    setStatus("bg-status", "Valori attuali caricati ✓", "ok");
+  }catch(e){
+    setStatus("bg-status", e.message, "err");
+  }
+});
+
+document.getElementById("bg-save").addEventListener("click", async ()=>{
+  const c1 = document.getElementById("bg-glow1").value;
+  const c2 = document.getElementById("bg-glow2").value;
+  const cb = document.getElementById("bg-base").value;
+  setStatus("bg-status", "Aggiornamento in corso…", "busy");
+  try{
+    const { content, sha } = await ghGetFile("index.html");
+    if (!BG_GLOW1_RE.test(content) || !BG_GLOW2_RE.test(content) || !BG_BASE_RE.test(content)){
+      throw new Error("Non trovo lo sfondo decorativo dentro index.html: verificalo a mano.");
+    }
+    const newContent = content
+      .replace(BG_GLOW1_RE, `radial-gradient(ellipse 1000px 560px at 15% -10%, ${hexToRgbaStr(c1, 0.12)}, transparent 60%)`)
+      .replace(BG_GLOW2_RE, `radial-gradient(ellipse 1000px 560px at 100% 0%, ${hexToRgbaStr(c2, 0.08)}, transparent 55%)`)
+      .replace(BG_BASE_RE, `--bg:${cb};`);
+    await ghPutFile("index.html", newContent, sha, "Aggiorna sfondo decorativo della Home");
+    setStatus("bg-status", "Sfondo aggiornato ✓", "ok");
+  }catch(e){
+    setStatus("bg-status", e.message, "err");
+  }
+});
+
+/* ---------- Password Master su tutti i personaggi ---------- */
+document.getElementById("master-pw-update").addEventListener("click", async ()=>{
+  const newPw = document.getElementById("master-pw-input").value.trim();
+  if (!newPw){ setStatus("master-pw-status", "Scrivi prima una nuova password Master.", "err"); return; }
+  if (!CHAR_LIST.length){ setStatus("master-pw-status", "Carica prima l'elenco dei personaggi.", "err"); return; }
+  setStatus("master-pw-status", "Aggiornamento in corso su tutti i file…", "busy");
+  const hash = await sha256Hex(newPw);
+  let okCount = 0, errCount = 0;
+  for (const c of CHAR_LIST){
+    try{
+      const { content, sha } = await ghGetFile(c.file);
+      if (!/const MASTER_PASSWORD_HASH = "[^"]*";/.test(content)) throw new Error("riga non trovata");
+      const newContent = content.replace(/const MASTER_PASSWORD_HASH = "[^"]*";/, `const MASTER_PASSWORD_HASH = "${hash}";`);
+      await ghPutFile(c.file, newContent, sha, `Aggiorna password Master (da ${c.name})`);
+      okCount++;
+    }catch(e){
+      errCount++;
+    }
+  }
+  if (errCount === 0){
+    setStatus("master-pw-status", `Fatto: password Master aggiornata su tutti i ${okCount} personaggi. Ricordati di comunicarla.`, "ok");
+  } else {
+    setStatus("master-pw-status", `Aggiornati ${okCount}, falliti ${errCount}. Controlla la connessione e riprova sui falliti.`, "err");
+  }
+});
+</script>
+
+</body>
+</html>
