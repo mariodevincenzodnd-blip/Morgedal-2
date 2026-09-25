@@ -1803,7 +1803,7 @@ function renderScheda(){
 
   // score inputs
   document.querySelectorAll('[data-score]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{
       const k = inp.dataset.score;
       STATE.scores[k] = parseInt(inp.value || "0", 10);
@@ -1847,11 +1847,11 @@ function renderScheda(){
     });
   });
   document.querySelectorAll('[data-save]').forEach(inp=>{
-    inp.disabled = !isMasterEditorOn();
+    inp.disabled = false;
     inp.addEventListener("change", ()=>{ STATE.saves[inp.dataset.save] = inp.checked; queueSave(); });
   });
   document.querySelectorAll('[data-skill]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.addEventListener("input", ()=>{ STATE.skills[inp.dataset.skill][2] = parseInt(inp.value||"0",10); queueSave(); });
   });
   document.querySelectorAll('[data-death]').forEach(btn=>{
@@ -1868,7 +1868,7 @@ function renderScheda(){
   bindRich();
 
   const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp");
-  hpMax.readOnly = !isMasterEditorOn();
+  hpMax.readOnly = false;
   function refreshHp(){
     let cur = parseInt(hpCur.value||"0",10), max = parseInt(hpMax.value||"0",10);
     if (cur > max) cur = max;
@@ -2385,7 +2385,7 @@ function renderEquipSlots(){
       ()=>{ STATE.equipImages[key] = ""; renderEquipSlots(); queueSave(); },
       true,
       label,
-      !isMasterEditorOn()
+      false
     );
     box.appendChild(picker);
     grid.appendChild(box);
@@ -2412,13 +2412,13 @@ function renderInvTable(){
       <div class="inv-item-top">
         <input type="checkbox" data-inv-check="${i}" ${it[0]==="\u2713"?"checked":""} title="Portato/equipaggiato">
         <div class="imgcell" id="inv-img-${i}"></div>
-        <input type="text" class="inv-item-name" data-inv-name="${i}" value="${esc(it[1])}" placeholder="Nome oggetto" ${masterOn?'':'readonly'}>
+        <input type="text" class="inv-item-name" data-inv-name="${i}" value="${esc(it[1])}" placeholder="Nome oggetto">
         ${masterOn ? `<button class="inv-remove" data-inv-del="${i}" title="Rimuovi oggetto">\u2715</button>` : ''}
       </div>
-      <textarea class="inv-item-desc" data-inv-desc="${i}" placeholder="Descrizione" rows="1" ${masterOn?'':'readonly'}>${esc(it[3])}</textarea>
+      <textarea class="inv-item-desc" data-inv-desc="${i}" placeholder="Descrizione" rows="1">${esc(it[3])}</textarea>
       <div class="inv-item-peso">
         <label>Peso</label>
-        <input type="number" data-inv-peso="${i}" value="${it[2]}" ${masterOn?'':'readonly'}>
+        <input type="number" data-inv-peso="${i}" value="${it[2]}">
       </div>
     </div>`).join("");
 
@@ -2431,7 +2431,7 @@ function renderInvTable(){
       ()=>{ STATE.inventario[i][4] = ""; renderInvTable(); queueSave(); },
       true,
       it[1] || "Oggetto",
-      !isMasterEditorOn()
+      false
     );
     // nell'elenco mostriamo solo la miniatura, senza le etichette testuali
     const lbl = picker.querySelector(".file-btn");
@@ -3337,7 +3337,7 @@ function esc(s){
 
 function bindSimpleInputs(){
   document.querySelectorAll('[data-key]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.oninput = ()=>{
       STATE[inp.dataset.key] = inp.value;
       syncHeroChips();
@@ -3346,7 +3346,7 @@ function bindSimpleInputs(){
     };
   });
   document.querySelectorAll('[data-key-num]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
+    inp.readOnly = false;
     inp.oninput = ()=>{ STATE[inp.dataset.keyNum] = parseFloat(inp.value||"0"); queueSave(); };
   });
 }
