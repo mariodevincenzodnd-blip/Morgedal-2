@@ -1,0 +1,9 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Project defaults chosen to conserve GPT-6 Astra allowance.
+# A user/session override can still raise reasoning effort when a hard task needs it.
+model_reasoning_effort = "low"
+service_tier = "default"
+
+[features]
+fast_mode = false
