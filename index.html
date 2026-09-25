@@ -1,119 +1,358 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#090d12">
-  <title>Morgedal · Lapsus Deus</title>
-  <link rel="stylesheet" href="./assets/styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morgedal — Schede dei Personaggi</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg:#0f0d0c;
+    --bg-panel:#1b1613;
+    --bg-panel-2:#241d18;
+    --bg-panel-3:#171210;
+    --border:#3d3024;
+    --border-soft:#2a2119;
+    --gold:#c9a34e;
+    --gold-bright:#eecb7c;
+    --violet:#9450d8;
+    --violet-dim:#5c3a86;
+    --text:#ece3d0;
+    --text-dim:#a89880;
+    --text-faint:#7a6c58;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 1000px 560px at 15% -10%, rgba(148,80,216,0.12), transparent 60%),
+      radial-gradient(ellipse 1000px 560px at 100% 0%, rgba(201,70,59,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.5;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hero{
+    padding:56px 24px 34px;
+    text-align:center;
+    border-bottom:1px solid var(--border);
+  }
+  .hero h1{
+    font-family:var(--serif);font-weight:700;letter-spacing:3px;text-transform:uppercase;
+    font-size:clamp(30px,5vw,48px);color:var(--gold-bright);margin:0 0 10px;
+    text-shadow:0 2px 0 rgba(0,0,0,0.6), 0 0 26px rgba(148,80,216,0.3);
+  }
+  .hero p{font-family:var(--serif);font-style:italic;color:var(--text-dim);margin:0;font-size:15px;}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:36px 20px 60px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(240px,1fr));gap:18px;}
+
+  .card{
+    display:block;text-decoration:none;color:inherit;
+    background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-3));
+    border:1px solid var(--border-soft);border-radius:12px;
+    padding:20px 20px 20px 24px;transition:transform .15s, border-color .15s, box-shadow .15s;
+    position:relative;overflow:hidden;
+  }
+  .card .colorbar{position:absolute;top:0;left:0;bottom:0;width:5px;}
+  .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:var(--card-accent, linear-gradient(90deg, var(--violet), var(--gold)));
+    opacity:0;transition:opacity .15s;
+  }
+  .card:hover{transform:translateY(-3px);border-color:var(--card-color, var(--gold));box-shadow:0 10px 24px rgba(0,0,0,0.35);}
+  .card:hover::before{opacity:1;}
+  .card .name{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--gold-bright);letter-spacing:.5px;margin-bottom:4px;}
+  .card .subtitle{font-size:13px;color:var(--text-dim);margin-bottom:12px;min-height:34px;}
+  .card .tag{
+    display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+    color:var(--violet);background:rgba(148,80,216,0.12);border:1px solid var(--violet-dim);
+    border-radius:10px;padding:3px 10px;
+  }
+  .card .arrow{position:absolute;bottom:16px;right:18px;color:var(--text-faint);font-size:18px;transition:color .15s, transform .15s;}
+  .card:hover .arrow{color:var(--gold-bright);transform:translateX(3px);}
+
+  .empty-card{
+    border:1px dashed var(--border);border-radius:12px;padding:20px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    color:var(--text-faint);font-size:13px;min-height:120px;
+  }
+
+  .section-title{
+    font-family:var(--serif);font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    font-size:15px;color:var(--text-dim);margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .section-title:not(:first-child){margin-top:36px;}
+
+  .footer-note{margin-top:40px;padding-top:20px;border-top:1px solid var(--border-soft);font-size:12px;color:var(--text-faint);}
+  .footer-note code{background:var(--bg-panel-2);border:1px solid var(--border-soft);border-radius:4px;padding:1px 6px;color:var(--gold-bright);font-size:11.5px;}
+  .master-link{
+    display:inline-flex;align-items:center;gap:5px;margin-top:14px;font-size:11.5px;
+    color:var(--violet);text-decoration:none;border-top:1px solid transparent;padding-top:0;
+    opacity:0.75;transition:opacity .15s, color .15s;
+  }
+  .master-link:hover{opacity:1;color:var(--gold-bright);}
+  .master-badge{
+    display:none;align-items:center;gap:6px;justify-content:center;margin:14px auto 0;width:fit-content;
+    background:rgba(148,80,216,0.12);border:1px solid var(--violet-dim);border-radius:20px;
+    padding:5px 14px;font-size:11.5px;color:var(--violet);
+  }
+  .master-badge.show{display:flex;}
+  .master-badge button{
+    background:none;border:none;color:var(--text-faint);text-decoration:underline;cursor:pointer;font-size:11px;padding:0;
+  }
+  .master-badge button:hover{color:var(--gold-bright);}
+  .google-signin{
+    display:inline-flex;align-items:center;gap:8px;margin:14px auto 0;flex-wrap:wrap;justify-content:center;
+  }
+  .google-signin button{
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text-dim);
+    border-radius:14px;padding:7px 16px;font-size:12px;font-weight:700;letter-spacing:.2px;
+    cursor:pointer;transition:border-color .15s, color .15s;
+  }
+  .google-signin button:hover{border-color:var(--gold-bright);color:var(--gold-bright);}
+  .google-signin .google-status-home{font-size:11.5px;color:var(--text-dim);}
+</style>
 </head>
 <body>
-  <div class="site-shell">
-    <header class="topbar">
-      <div class="brand-mini">LAPSUS DEUS</div>
-      <div class="auth-actions">
-        <span id="drivePill" class="pill" hidden>DRIVE</span>
-        <span id="masterPill" class="pill master" hidden>EDITOR MASTER · OFF</span>
-        <span id="accountPill" class="pill" hidden></span>
-        <button id="loginBtn" class="primary-btn" disabled>Accedi</button>
-        <button id="logoutBtn" class="ghost-btn" hidden>Esci</button>
-      </div>
-    </header>
 
-    <main>
-      <section class="hero">
-        <p class="eyebrow">LAPSUS DEUS</p>
-        <h1>Morgedal</h1>
-        <p class="hero-copy">Schede dei personaggi, risorse e progressi della campagna in un unico spazio collegato a Google Drive.</p>
-        <div class="connection-line">
-          <span class="pill">CANONE · DRIVE</span>
-          <span class="pill">ACCESSI · GOOGLE</span>
-        </div>
-      </section>
-
-      <section id="loginPanel" class="login-panel">
-        <div>
-          <strong>Accesso alle schede</strong>
-          <p>Accedi con l'account Google autorizzato. Il Master può aprire tutte le schede; ogni giocatore accede soltanto al proprio personaggio.</p>
-        </div>
-        <button class="primary-btn" onclick="document.getElementById('loginBtn').click()">Accedi con Google</button>
-      </section>
-
-      <section class="section">
-        <div class="section-heading">
-          <div><h2>Principali</h2></div>
-          <p>I quattro personaggi principali della campagna.</p>
-        </div>
-        <div class="character-grid">
-          <article class="character-card" data-slug="katan" data-access="locked" style="--accent:#2e9bff" tabindex="0">
-            <div class="card-top"><span class="card-index">01 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">K</div>
-            <div class="character-name">KATAN</div>
-            <div class="character-class">GUERRIERO TELECINETICO 8</div>
-          </article>
-          <article class="character-card" data-slug="ervork" data-access="locked" style="--accent:#d43b3b" tabindex="0">
-            <div class="card-top"><span class="card-index">02 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">E</div>
-            <div class="character-name">ERVORK</div>
-            <div class="character-class">GUERRIERO DEMONIACO LVL. 8</div>
-          </article>
-          <article class="character-card" data-slug="ola" data-access="locked" style="--accent:#9450d8" tabindex="0">
-            <div class="card-top"><span class="card-index">03 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">O</div>
-            <div class="character-name">OLA</div>
-            <div class="character-class">IBRIDO DISTRUTTORE LVL. 8</div>
-          </article>
-          <article class="character-card" data-slug="lux" data-access="locked" style="--accent:#ffffff" tabindex="0">
-            <div class="card-top"><span class="card-index">04 · PRINCIPALE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">L</div>
-            <div class="character-name">LUX</div>
-            <div class="character-class">EVOCATORE CELESTE LVL. 8</div>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-heading">
-          <div><h2>Viaggiatori</h2></div>
-          <p>Compagni e viaggiatori legati alla campagna.</p>
-        </div>
-        <div class="character-grid travelers">
-          <article class="character-card" data-slug="aggron" data-access="locked" style="--accent:#6b8f4e" tabindex="0">
-            <div class="card-top"><span class="card-index">05 · VIAGGIATORE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">A</div>
-            <div class="character-name">AGGRON</div>
-            <div class="character-class">GUERRIERO STREGONE LVL. 8</div>
-          </article>
-          <article class="character-card" data-slug="gorg" data-access="locked" style="--accent:#4fae54" tabindex="0">
-            <div class="card-top"><span class="card-index">06 · VIAGGIATORE</span><span class="card-lock">BLOCCATA</span></div>
-            <div class="card-initial">G</div>
-            <div class="character-name">GORG</div>
-            <div class="character-class">CAMPIONE DEL CAOS</div>
-          </article>
-        </div>
-      </section>
-
-      <section id="pickerPanel" class="system-panel">
-        <p>Questo account è autorizzato, ma alcuni file Drive necessari non sono ancora concessi all'app Morgedal. Autorizzali uno alla volta dalla cartella <strong>Sito Nuovo Morgedal</strong>.</p>
-        <button id="pickerBtn" class="primary-btn">Autorizza file Drive</button>
-      </section>
-    </main>
-
-    <footer class="footer">LAPSUS DEUS · MORGEDAL</footer>
+<div class="hero">
+  <h1>Morgedal</h1>
+  <p>Le schede dei personaggi del gruppo</p>
+  <div class="master-badge" id="master-badge">
+    🔓 Modalità Master attiva — tutte le schede sono sbloccate
+    <button id="master-logout">esci</button>
   </div>
+  <div class="google-signin" id="google-signin">
+    <button id="btn-google-home" type="button">Accedi con Google</button>
+    <span class="google-status-home" id="google-status-home"></span>
+  </div>
+</div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div class="wrap">
+  <h2 class="section-title">Principali</h2>
+  <div class="grid" id="grid-principali"></div>
 
-  <script>
-    window.MORGEDAL_CONFIG = {
-      clientId:"742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com",
-      pickerKey:"__MORGEDAL_PICKER_API_KEY__",
-      appId:"742585061476",
-      baseFolderId:"1eq6jMP1Ci5h6M3a7DN3VDBo6aziAq-v3"
-    };
-  </script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script src="./assets/app.js"></script>
+  <h2 class="section-title">Viaggiatori</h2>
+  <div class="grid" id="grid-viaggiatori"></div>
+
+  <div class="footer-note">
+    Per aggiungere un nuovo personaggio: carica il suo file <code>.html</code> in questa stessa cartella su GitHub,
+    poi aggiungi una riga all'elenco <code>CHARACTERS</code> in cima a questo file con nome, sottotitolo e nome del file.
+    Il nuovo personaggio comparirà tra i Viaggiatori finché non viene esplicitamente spostato tra i Principali.
+    <br>
+    <a class="master-link" href="admin.html">MASTER 🔒</a>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ELENCO PERSONAGGI
+   Per aggiungere un nuovo personaggio, aggiungi una riga qui:
+   { name: "Nome", subtitle: "Classe — breve descrizione", tag: "Livello X", file: "nomefile.html", color: "#c9a34e" }
+   Il campo "color" è il colore identificativo del personaggio.
+   Il campo "color2", se presente, indica un secondo colore identificativo: la barretta
+   sul bordo della card diventa un gradiente tra "color" e "color2" (es. Gorg).
+   Un nuovo personaggio senza il campo "principale" (o con principale:false) compare
+   automaticamente tra i Viaggiatori: nessuno viene spostato tra i Principali di default.
+   L'ordine dei Principali in homepage è fisso (vedi PRINCIPALI_ORDER) e non dipende
+   dall'ordine in cui i personaggi compaiono in questo elenco.
+   Il file va caricato nella stessa cartella di questo index.
+   ============================================================ */
+const CHARACTERS = [
+  { name: "Aggron", subtitle: "Guerriero Stregone — Ogre Bicefalo", tag: "Livello 8", file: "Aggron_Scheda_Interattiva.html", color: "#6b8f4e", principale: false },
+  { name: "Lux", subtitle: "Evocatore Celeste — Arcangelo Pacificatore", tag: "Livello 8", file: "Lux_Scheda_Interattiva.html", color: "#ffffff", principale: true },
+  { name: "Ola", subtitle: "Ibrido Distruttore — Corredo Genetico", tag: "Livello 8", file: "Ola_Scheda_Interattiva.html", color: "#9450d8", principale: true },
+  { name: "Ervork", subtitle: "Guerriero Demoniaco — Ervork / Rust", tag: "Livello 8", file: "Ervork_Scheda_Interattiva.html", color: "#d43b3b", principale: true },
+  { name: "Gorg", subtitle: "Campione del Caos — Goblin posseduto da Sakar", tag: "", file: "Gorg_Scheda_Interattiva.html", color: "#4fae54", color2: "#d6409f", principale: false },
+  { name: "Katan", subtitle: "Guerriero Telecinetico — la mente come arma", tag: "Livello 8", file: "Katan_Scheda_Interattiva.html", color: "#2e9bff", principale: true }
+];
+
+/* Ordine fisso di visualizzazione dei Principali (indipendente dall'ordine in CHARACTERS) */
+const PRINCIPALI_ORDER = ["Katan", "Ervork", "Ola", "Lux"];
+
+function cardHtml(c){
+  const barStyle = c.color2
+    ? `background:linear-gradient(180deg, ${c.color}, ${c.color2})`
+    : (c.color ? `background:${c.color}` : "");
+  const accentStyle = c.color
+    ? `--card-accent:${c.color2 ? `linear-gradient(90deg, ${c.color}, ${c.color2})` : c.color};--card-color:${c.color};`
+    : "";
+  return `
+  <a class="card" href="${encodeURI(c.file)}" style="${accentStyle}">
+    ${(c.color || c.color2) ? `<span class="colorbar" style="${barStyle}"></span>` : ""}
+    <div class="name">${c.name}</div>
+    <div class="subtitle">${c.subtitle || ""}</div>
+    ${c.tag ? `<span class="tag">${c.tag}</span>` : ""}
+    <span class="arrow">→</span>
+  </a>`;
+}
+
+const principali = PRINCIPALI_ORDER
+  .map(n => CHARACTERS.find(c => c.name === n))
+  .filter(Boolean);
+const viaggiatori = CHARACTERS.filter(c => !principali.includes(c));
+
+document.getElementById("grid-principali").innerHTML =
+  principali.map(cardHtml).join("") || `<div class="empty-card">Nessun personaggio Principale in elenco.</div>`;
+
+document.getElementById("grid-viaggiatori").innerHTML =
+  viaggiatori.map(cardHtml).join("") + `<div class="empty-card">+ Nuovo personaggio<br>(aggiungilo all'elenco CHARACTERS)</div>`;
+
+/* Indicatore modalità Master (condiviso con tutte le schede tramite sessionStorage:
+   dura una sessione/tab di navigazione, non sopravvive alla chiusura del browser). */
+const MASTER_UNLOCK_KEY = "morgedal-master-unlocked";
+try{ localStorage.removeItem(MASTER_UNLOCK_KEY); }catch(e){} // rimuove eventuale vecchia chiave legacy
+function refreshMasterBadge(){
+  const badge = document.getElementById("master-badge");
+  let unlocked = false;
+  try{ unlocked = sessionStorage.getItem(MASTER_UNLOCK_KEY) === "1"; }catch(e){}
+  badge.classList.toggle("show", unlocked);
+}
+document.getElementById("master-logout").addEventListener("click", ()=>{
+  try{ sessionStorage.removeItem(MASTER_UNLOCK_KEY); }catch(e){}
+  refreshMasterBadge();
+});
+refreshMasterBadge();
+
+/* ============================================================
+   ACCESSO GOOGLE CONDIVISO
+   Accedendo qui, il token viene salvato in sessionStorage: aprendo
+   poi una scheda personaggio nella STESSA scheda del browser (stesso
+   tab), l'accesso a Google risulta già attivo e non va rifatto.
+   Se il Client ID non è configurato, il pulsante resta inattivo.
+   ============================================================ */
+const GOOGLE_CLIENT_ID = "742585061476-valqb0mr397vgtj34f9nfp4h91u2d2b8.apps.googleusercontent.com";
+const MORGEDAL_PICKER_API_KEY = "__MORGEDAL_PICKER_API_KEY__";
+try{ if (MORGEDAL_PICKER_API_KEY && !MORGEDAL_PICKER_API_KEY.startsWith("__")) localStorage.setItem("morgedal-picker-key", MORGEDAL_PICKER_API_KEY); }catch(e){}
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
+const GOOGLE_TOKEN_STORAGE_KEY = "morgedal-google-token";
+const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
+
+function saveGoogleTokenToSession(token, expiresInSeconds){
+  try{
+    sessionStorage.setItem(GOOGLE_TOKEN_STORAGE_KEY, JSON.stringify({
+      token: token,
+      expiresAt: Date.now() + (Number(expiresInSeconds || 0) * 1000)
+    }));
+  }catch(e){}
+}
+
+function loadGoogleTokenFromSession(){
+  try{
+    const raw = sessionStorage.getItem(GOOGLE_TOKEN_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !data.token || !data.expiresAt) return null;
+    if (Date.now() > data.expiresAt - 60000) return null; // margine di sicurezza di 60s
+    return data.token;
+  }catch(e){ return null; }
+}
+
+let googleIndexTokenClient = null;
+let googlePendingSignInResolve = null;
+
+function refreshGoogleHomeStatus(){
+  const statusEl = document.getElementById("google-status-home");
+  const btn = document.getElementById("btn-google-home");
+  if (!statusEl || !btn) return;
+  const tok = loadGoogleTokenFromSession();
+  statusEl.textContent = tok ? "🟢 Connesso a Google — apri una scheda per continuare" : "";
+  btn.textContent = tok ? "Cambia account Google" : "Accedi con Google";
+}
+
+function initGoogleIndex(){
+  const btn = document.getElementById("btn-google-home");
+  if (!GOOGLE_CLIENT_ID){
+    if (btn) btn.style.display = "none";
+    return;
+  }
+  const tryInit = ()=>{
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2){
+      setTimeout(tryInit, 300);
+      return;
+    }
+    googleIndexTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: (resp)=>{
+        if (resp && resp.access_token){
+          saveGoogleTokenToSession(resp.access_token, resp.expires_in);
+          try{ localStorage.setItem(GOOGLE_EVER_CONNECTED_KEY, "1"); }catch(e){}
+        }
+        refreshGoogleHomeStatus();
+        if (googlePendingSignInResolve){ const r = googlePendingSignInResolve; googlePendingSignInResolve = null; r(); }
+      },
+      error_callback: ()=>{
+        // Popup chiuso, bloccato, o accesso silenzioso non riuscito: non deve
+        // mai impedire l'apertura della scheda, Google Drive resta facoltativo.
+        if (googlePendingSignInResolve){ const r = googlePendingSignInResolve; googlePendingSignInResolve = null; r(); }
+      }
+    });
+    // Se questo browser ha già usato Google Drive almeno una volta (qui o su
+    // una scheda personaggio), prova subito un accesso silenzioso, senza popup.
+    if (!loadGoogleTokenFromSession()){
+      try{
+        if (localStorage.getItem(GOOGLE_EVER_CONNECTED_KEY) === "1"){
+          googleIndexTokenClient.requestAccessToken({ prompt: "" });
+        }
+      }catch(e){}
+    }
+  };
+  tryInit();
+
+  if (btn) btn.addEventListener("click", ()=>{
+    if (!googleIndexTokenClient){ window.alert("Google non è ancora pronto, riprova tra un istante."); return; }
+    googleIndexTokenClient.requestAccessToken({ prompt: "consent" });
+  });
+
+  refreshGoogleHomeStatus();
+}
+initGoogleIndex();
+
+/* ============================================================
+   ACCESSO GOOGLE AL CLICK SU UNA SCHEDA PERSONAGGIO
+   Prima di aprire la scheda, se in questa scheda del browser non
+   si è ancora collegati a Google, si tenta subito l'accesso: così,
+   se il Master ha già condiviso un file, la scheda che si apre può
+   proporlo immediatamente, senza dover premere di nuovo "Accedi con
+   Google" una volta dentro. Se l'accesso non riesce o viene annullato
+   (o Google non è configurato), la scheda si apre comunque: Google
+   Drive resta sempre facoltativo, non blocca mai l'ingresso.
+   Un click con tasto centrale, o con Ctrl/Cmd/Shift/Alt premuto (per
+   aprire in una nuova scheda), non viene intercettato: si comporta
+   come un link normale.
+   ============================================================ */
+function ensureGoogleSignInThenGo(href){
+  const proceed = ()=>{ window.location.href = href; };
+  if (!GOOGLE_CLIENT_ID || loadGoogleTokenFromSession() || !googleIndexTokenClient){
+    proceed();
+    return;
+  }
+  let settled = false;
+  const settle = ()=>{ if (!settled){ settled = true; proceed(); } };
+  googlePendingSignInResolve = settle;
+  // Rete di sicurezza: se la callback di Google non dovesse mai arrivare, non
+  // si resta bloccati sulla homepage in attesa.
+  setTimeout(settle, 15000);
+  googleIndexTokenClient.requestAccessToken({ prompt: "consent" });
+}
+
+document.addEventListener("click", (e)=>{
+  const card = e.target.closest(".card");
+  if (!card || e.defaultPrevented) return;
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const href = card.getAttribute("href");
+  if (!href) return;
+  e.preventDefault();
+  ensureGoogleSignInThenGo(href);
+});
+</script>
+
 </body>
 </html>
