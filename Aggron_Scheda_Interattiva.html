@@ -3465,7 +3465,10 @@ async function googleAccountCanBypassPassword(){
     if (!email) return false;
     // Il proprietario/Master entra in tutte le schede senza password, ma
     // l'Editor Master resta OFF finché non viene attivato manualmente.
-    if (email === GOOGLE_OWNER_EMAIL.toLowerCase()) return true;
+    if (email === GOOGLE_OWNER_EMAIL.toLowerCase()){
+      markMasterUnlocked();
+      return true;
+    }
     // Il giocatore può entrare senza password soltanto nella propria scheda.
     if (GOOGLE_PLAYER_EMAIL && email === GOOGLE_PLAYER_EMAIL.toLowerCase()) return true;
     return false;
