@@ -19,18 +19,15 @@ for p in ROOT.iterdir():
         shutil.copy2(p, dst)
 
 key = os.environ.get("MORGEDAL_PICKER_API_KEY", "").strip()
-if not key:
-    raise SystemExit("Missing MORGEDAL_PICKER_API_KEY")
-
 marker = "__MORGEDAL_PICKER_API_KEY__"
 changed = 0
-for p in OUT.rglob("*.html"):
-    s = p.read_text(encoding="utf-8")
-    if marker in s:
-        p.write_text(s.replace(marker, key), encoding="utf-8")
-        changed += 1
 
-if changed == 0:
-    raise SystemExit("Picker key marker not found in HTML files")
-
-print(f"Prepared Vercel output in {OUT} and injected Picker key into {changed} HTML file(s).")
+if key:
+    for p in OUT.rglob("*.html"):
+        s = p.read_text(encoding="utf-8")
+        if marker in s:
+            p.write_text(s.replace(marker, key), encoding="utf-8")
+            changed += 1
+    print(f"Prepared Vercel output in {OUT} and injected Picker key into {changed} HTML file(s).")
+else:
+    print("Prepared Vercel output without Picker key; site will use manual Picker-key fallback until Vercel env is available.")
