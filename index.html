@@ -354,7 +354,12 @@ function routeAuthenticatedUser(email){
   try{ sessionStorage.setItem(GOOGLE_EMAIL_STORAGE_KEY, email); }catch(e){}
 
   if (email === GOOGLE_OWNER_EMAIL){
+    try{
+      sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
+      sessionStorage.removeItem("morgedal-master-editor");
+    }catch(e){}
     showHomeForAuthenticatedUser(email);
+    refreshMasterBadge();
     return;
   }
 
