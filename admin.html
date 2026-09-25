@@ -266,12 +266,21 @@ document.getElementById("lock-submit").addEventListener("click", attemptUnlock);
 document.getElementById("lock-input").addEventListener("keydown", (e)=>{ if(e.key==="Enter") attemptUnlock(); });
 
 let unlocked = false;
-try{ unlocked = sessionStorage.getItem(SESSION_KEY) === "1"; }catch(e){}
+try{
+  unlocked =
+    sessionStorage.getItem(SESSION_KEY) === "1" ||
+    sessionStorage.getItem(MASTER_UNLOCK_KEY) === "1";
+}catch(e){}
 if (unlocked){
-  try{ sessionStorage.setItem(MASTER_UNLOCK_KEY, "1"); }catch(e){}
+  try{
+    sessionStorage.setItem(SESSION_KEY, "1");
+    sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
+  }catch(e){}
   showPanel();
 } else {
-  document.getElementById("lock-input").focus();
+  // L'accesso normale passa dalla Home e dall'account Google.
+  // L'account proprietario autorizzato entra qui senza password.
+  window.location.replace("index.html");
 }
 
 /* ---------- Generatore hash semplice ---------- */
