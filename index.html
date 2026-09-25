@@ -117,9 +117,44 @@
   }
   .google-signin button:hover{border-color:var(--gold-bright);color:var(--gold-bright);}
   .google-signin .google-status-home{font-size:11.5px;color:var(--text-dim);}
+
+  /* ---------- ACCESSO GOOGLE OBBLIGATORIO ---------- */
+  #auth-gate{
+    position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+    padding:22px;background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(148,80,216,0.12), transparent 60%),
+      var(--bg);
+  }
+  .auth-gate-box{
+    width:min(420px,100%);padding:30px 26px;text-align:center;
+    background:linear-gradient(180deg,var(--bg-panel),var(--bg-panel-3));
+    border:1px solid var(--border);border-radius:14px;box-shadow:0 22px 70px rgba(0,0,0,.45);
+  }
+  .auth-gate-box h2{font-family:var(--serif);color:var(--gold-bright);margin:0 0 10px;letter-spacing:1.2px;}
+  .auth-gate-box p{color:var(--text-dim);font-size:13px;line-height:1.6;margin:0 0 18px;}
+  .auth-gate-box button{
+    background:linear-gradient(180deg,#3a2a12,#241a0c);border:1px solid var(--gold);
+    color:var(--gold-bright);border-radius:9px;padding:11px 18px;font-weight:700;cursor:pointer;
+  }
+  .auth-gate-box button:hover{opacity:.92;}
+  #auth-gate-status{min-height:18px;margin-top:12px;color:var(--text-dim);font-size:12px;}
+  #auth-gate-status.error{color:#ff9d90;}
+  body:not(.auth-ready) > .hero,
+  body:not(.auth-ready) > .wrap{display:none !important;}
+  body.auth-ready #auth-gate{display:none;}
+
 </style>
 </head>
 <body>
+<div id="auth-gate">
+  <div class="auth-gate-box">
+    <h2>Accesso a Morgedal</h2>
+    <p>Per entrare nel sito è obbligatorio accedere con l'account Google autorizzato.</p>
+    <button id="auth-gate-btn" type="button">Accedi con Google</button>
+    <div id="auth-gate-status">Apertura accesso Google…</div>
+  </div>
+</div>
+
 
 <div class="hero">
   <h1>Morgedal</h1>
@@ -233,6 +268,26 @@ try{ if (MORGEDAL_PICKER_API_KEY && !MORGEDAL_PICKER_API_KEY.startsWith("__")) l
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
 const GOOGLE_TOKEN_STORAGE_KEY = "morgedal-google-token";
 const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
+const GOOGLE_EMAIL_STORAGE_KEY = "morgedal-google-email";
+const GOOGLE_OWNER_EMAIL = "mariodevincenzodnd@gmail.com";
+const GOOGLE_ROUTE_BY_EMAIL = {
+  "genchi.walter@gmail.com": "Katan_Scheda_Interattiva.html",
+  "dray1286@gmail.com": "Ervork_Scheda_Interattiva.html",
+  "nicoladmn@gmail.com": "Ola_Scheda_Interattiva.html",
+  "ivandevincenzo18052005@gmail.com": "Lux_Scheda_Interattiva.html",
+  "rocco.scotellaro93@gmail.com": "Aggron_Scheda_Interattiva.html",
+  "manudegiorgi999@gmail.com": "Gorg_Scheda_Interattiva.html"
+};
+const GOOGLE_PENDING_EMAILS = new Set([
+  "savimusciagna@gmail.com",
+  "markogiga25@gmail.com",
+  "jigenmail98@gmail.com",
+  "pabloderubautenze@gmail.com",
+  "pabloderuba@gmail.com",
+  "marinanapoletano1998@gmail.com",
+  "annamaria.romanocyr@gmail.com"
+]);
+
 
 function saveGoogleTokenToSession(token, expiresInSeconds){
   try{
@@ -266,52 +321,125 @@ function refreshGoogleHomeStatus(){
   btn.textContent = tok ? "Cambia account Google" : "Accedi con Google";
 }
 
-function initGoogleIndex(){
+function setAuthGateStatus(message, isError=false){
+  const el = document.getElementById("auth-gate-status");
+  if (!el) return;
+  el.textContent = message || "";
+  el.classList.toggle("error", !!isError);
+}
+
+async function getGoogleEmail(token){
+  const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers:{ Authorization:"Bearer " + token }
+  });
+  if (!res.ok) throw new Error("userinfo");
+  const info = await res.json();
+  return String(info && info.email || "").toLowerCase();
+}
+
+function showHomeForAuthenticatedUser(email){
+  try{ sessionStorage.setItem(GOOGLE_EMAIL_STORAGE_KEY, email); }catch(e){}
+  document.body.classList.add("auth-ready");
+  const statusEl = document.getElementById("google-status-home");
   const btn = document.getElementById("btn-google-home");
-  if (!GOOGLE_CLIENT_ID){
-    if (btn) btn.style.display = "none";
+  if (statusEl) statusEl.textContent = email ? "🟢 " + email : "🟢 Account Google verificato";
+  if (btn) btn.textContent = "Cambia account Google";
+}
+
+function shouldStayOnHome(){
+  return new URLSearchParams(window.location.search).get("home") === "1";
+}
+
+function routeAuthenticatedUser(email){
+  try{ sessionStorage.setItem(GOOGLE_EMAIL_STORAGE_KEY, email); }catch(e){}
+
+  if (email === GOOGLE_OWNER_EMAIL){
+    showHomeForAuthenticatedUser(email);
     return;
   }
-  const tryInit = ()=>{
+
+  const target = GOOGLE_ROUTE_BY_EMAIL[email];
+  if (target){
+    if (shouldStayOnHome()) showHomeForAuthenticatedUser(email);
+    else window.location.replace(target);
+    return;
+  }
+
+  if (GOOGLE_PENDING_EMAILS.has(email)){
+    setAuthGateStatus("Account riconosciuto, ma la scheda di questo personaggio non è ancora disponibile.", true);
+    return;
+  }
+
+  setAuthGateStatus("Questo account Google non è autorizzato per Morgedal.", true);
+}
+
+async function acceptGoogleToken(resp){
+  if (!resp || !resp.access_token){
+    setAuthGateStatus("Accesso Google non completato. Premi il pulsante per riprovare.", true);
+    return;
+  }
+  saveGoogleTokenToSession(resp.access_token, resp.expires_in);
+  try{ localStorage.setItem(GOOGLE_EVER_CONNECTED_KEY, "1"); }catch(e){}
+  try{
+    const email = await getGoogleEmail(resp.access_token);
+    if (!email) throw new Error("email");
+    routeAuthenticatedUser(email);
+  }catch(e){
+    try{ sessionStorage.removeItem(GOOGLE_TOKEN_STORAGE_KEY); }catch(_){}
+    setAuthGateStatus("Non è stato possibile verificare l'account Google. Riprova.", true);
+  }
+}
+
+function requestMandatoryGoogleLogin(promptMode="select_account"){
+  if (!googleIndexTokenClient){
+    setAuthGateStatus("Google non è ancora pronto. Riprova tra un istante.", true);
+    return;
+  }
+  setAuthGateStatus("Apertura accesso Google…");
+  try{ googleIndexTokenClient.requestAccessToken({ prompt: promptMode }); }
+  catch(e){ setAuthGateStatus("Il browser ha bloccato l'apertura automatica. Premi “Accedi con Google”.", true); }
+}
+
+function initGoogleIndex(){
+  const btn = document.getElementById("btn-google-home");
+  const gateBtn = document.getElementById("auth-gate-btn");
+  if (!GOOGLE_CLIENT_ID){
+    setAuthGateStatus("Accesso Google non configurato.", true);
+    return;
+  }
+
+  const tryInit = async ()=>{
     if (!window.google || !window.google.accounts || !window.google.accounts.oauth2){
-      setTimeout(tryInit, 300);
+      setTimeout(tryInit, 250);
       return;
     }
+
     googleIndexTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: DRIVE_SCOPE,
-      callback: (resp)=>{
-        if (resp && resp.access_token){
-          saveGoogleTokenToSession(resp.access_token, resp.expires_in);
-          try{ localStorage.setItem(GOOGLE_EVER_CONNECTED_KEY, "1"); }catch(e){}
-        }
-        refreshGoogleHomeStatus();
-        if (googlePendingSignInResolve){ const r = googlePendingSignInResolve; googlePendingSignInResolve = null; r(); }
-      },
+      include_granted_scopes: true,
+      callback: acceptGoogleToken,
       error_callback: ()=>{
-        // Popup chiuso, bloccato, o accesso silenzioso non riuscito: non deve
-        // mai impedire l'apertura della scheda, Google Drive resta facoltativo.
-        if (googlePendingSignInResolve){ const r = googlePendingSignInResolve; googlePendingSignInResolve = null; r(); }
+        setAuthGateStatus("Accesso Google necessario. Premi il pulsante per continuare.", true);
       }
     });
-    // Se questo browser ha già usato Google Drive almeno una volta (qui o su
-    // una scheda personaggio), prova subito un accesso silenzioso, senza popup.
-    if (!loadGoogleTokenFromSession()){
+
+    const restored = loadGoogleTokenFromSession();
+    if (restored){
       try{
-        if (localStorage.getItem(GOOGLE_EVER_CONNECTED_KEY) === "1"){
-          googleIndexTokenClient.requestAccessToken({ prompt: "" });
-        }
-      }catch(e){}
+        const email = await getGoogleEmail(restored);
+        if (email){ routeAuthenticatedUser(email); return; }
+      }catch(e){
+        try{ sessionStorage.removeItem(GOOGLE_TOKEN_STORAGE_KEY); }catch(_){}
+      }
     }
+
+    setTimeout(()=>requestMandatoryGoogleLogin("select_account"), 200);
   };
   tryInit();
 
-  if (btn) btn.addEventListener("click", ()=>{
-    if (!googleIndexTokenClient){ window.alert("Google non è ancora pronto, riprova tra un istante."); return; }
-    googleIndexTokenClient.requestAccessToken({ prompt: "consent" });
-  });
-
-  refreshGoogleHomeStatus();
+  if (gateBtn) gateBtn.addEventListener("click", ()=>requestMandatoryGoogleLogin("select_account"));
+  if (btn) btn.addEventListener("click", ()=>requestMandatoryGoogleLogin("select_account"));
 }
 initGoogleIndex();
 
