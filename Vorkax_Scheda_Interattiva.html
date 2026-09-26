@@ -957,7 +957,12 @@ const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
 const GOOGLE_PICKER_API_KEY = (()=>{ try{ return localStorage.getItem("morgedal-picker-key") || ""; }catch(e){ return ""; } })();
 const DEFAULT_DRIVE_FILE_ID = "1JT24yPQbHKDnNxKObfJ2Ni2_sRNKHn24";
 const GOOGLE_OWNER_EMAIL = "mariodevincenzodnd@gmail.com";
-const GOOGLE_PLAYER_EMAIL = "";
+const GOOGLE_PLAYER_EMAILS = ["jigenmail98@gmail.com"];
+const GOOGLE_PLAYER_EMAIL = GOOGLE_PLAYER_EMAILS[0] || "";
+function isAuthorizedPlayerEmail(email){
+  const normalized = String(email || "").toLowerCase();
+  return GOOGLE_PLAYER_EMAILS.some(playerEmail => playerEmail.toLowerCase() === normalized);
+}
 
 // Salva il token in sessionStorage così che, navigando dalla Home a una scheda
 // (o da una scheda all'altra) nella stessa scheda del browser, l'accesso a Google
@@ -1054,7 +1059,7 @@ async function onGoogleSignedIn(){
   driveFileIdKey = driveStorageKey();
   let legacyFileId = null;
   try{ legacyFileId = localStorage.getItem(driveFileIdKey) || null; }catch(e){}
-  const isPlayer = (googleUserEmail || "").toLowerCase() === GOOGLE_PLAYER_EMAIL.toLowerCase();
+  const isPlayer = isAuthorizedPlayerEmail(googleUserEmail);
 
   if (isPlayer && legacyFileId && legacyFileId !== DEFAULT_DRIVE_FILE_ID){
     driveFileId = legacyFileId;
@@ -3328,7 +3333,7 @@ async function googleAccountCanBypassPassword(){
         markMasterUnlocked();
         return true;
       }
-      if (GOOGLE_PLAYER_EMAIL && email === GOOGLE_PLAYER_EMAIL.toLowerCase()) return true;
+      if (isAuthorizedPlayerEmail(email)) return true;
     }catch(e){}
   }
   return false;
