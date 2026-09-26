@@ -75,8 +75,17 @@ Ogni nuova scheda deve nascere già con:
 - sintassi JavaScript verificata;
 - test dei campi operativi Player e dei massimi Master-only.
 
-## 7. Fonti del contenuto
+## 7. Principio assoluto sulle fonti
 
-I dati del personaggio devono derivare dalla relativa scheda canonica su Google Drive e, per nomi/lore generale, da LAPSUS DEUS.
+Per nomi, testi, descrizioni, poteri, abilità, oggetti, inventario e classificazioni canoniche:
 
-Non inventare contenuti mancanti e non accorciare automaticamente i testi canonici.
+1. usare come fonte primaria la **scheda originale del singolo personaggio su Google Drive** per i dati specifici del PG;
+2. usare **LAPSUS DEUS** come fonte primaria per canone generale, lore e grafia corretta dei nomi;
+3. non inventare contenuti mancanti;
+4. non riassumere, parafrasare, abbreviare o "migliorare" i testi canonici;
+5. non ricostruire da memoria ciò che non è presente nelle fonti;
+6. quando un elemento viene spostato, rimuoverlo dalla vecchia sezione: **spostare non significa duplicare**;
+7. l'unica area in cui sono consentite micro-descrizioni operative è **Attacchi e Incantesimi di Prima Utilità**;
+8. se una fonte necessaria manca o due fonti sono in conflitto, non scegliere autonomamente: fermarsi su quella voce e chiedere al Master.
+
+Questa regola vale per tutte le schede esistenti e future.
