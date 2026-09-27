@@ -72,3 +72,10 @@
 .traveller-sheet button.quicknav-pill{font-family:inherit;text-align:left;white-space:normal;max-width:100%;}
 .traveller-sheet .quicknav-pill:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;}
 .traveller-sheet [id^="powers-"],.traveller-sheet .source-block{scroll-margin-top:90px;}
+
+/* Keep linked resource rules alongside their counter at every viewport width. */
+.traveller-sheet .power-resource-description{flex-basis:100%;min-width:0;}
+@media(max-width:700px){
+ /* Desktop box heights must not constrain wrapped mobile source text. */
+ .traveller-sheet .source-block{height:auto!important;}
+}

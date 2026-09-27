@@ -1814,15 +1814,15 @@ function setMasterEditorOn(on){  try{ if (on) sessionStorage.setItem(MASTER_EDIT
 }
 
 function masterToCanonical(cat, item){
-  if (cat === "sourceSections") return {...item};
+  if (cat === "sourceSections") return {...item, width:item.width||3};
   if (MASTER_ARR_SHAPE_CATS.has(cat)){
-    return { nome:item[0]||"", desc:item[1]||"", group:item[2]||"", width:item[3]||1 };
+    return { nome:item[0]||"", desc:item[1]||"", group:item[2]||"", width:item[3]||3 };
   }
-  if (cat === "passive") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Passiva", width:item.width||1, hidden:!!item.hidden };
-  if (cat === "truccetti") return { nome:item.nome||"", desc:item.desc||"", uso:item.uso||"?", width:item.width||1, hidden:!!item.hidden };
-  if (cat === "abilita") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Abilità", width:item.width||1, hidden:!!item.hidden };
-  if (cat === "risorse") return { nome:item.nome||"", desc:item.desc||"", max:item.max||1, width:item.width||1, hidden:!!item.hidden };
-  if (cat === "incantesimo") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Incantesimo", width:item.width||1, hidden:!!item.hidden };
+  if (cat === "passive") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Passiva", width:item.width||3, hidden:!!item.hidden };
+  if (cat === "truccetti") return { nome:item.nome||"", desc:item.desc||"", uso:item.uso||"?", width:item.width||3, hidden:!!item.hidden };
+  if (cat === "abilita") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Abilità", width:item.width||3, hidden:!!item.hidden };
+  if (cat === "risorse") return { nome:item.nome||"", desc:item.desc||"", max:item.max||1, width:item.width||3, hidden:!!item.hidden };
+  if (cat === "incantesimo") return { nome:item.nome||"", desc:item.desc||"", tag:item.tag||"Incantesimo", width:item.width||3, hidden:!!item.hidden };
   return { nome:"", desc:"", width:1 };
 }
 function masterFromCanonical(cat, c){
@@ -2123,7 +2123,7 @@ function renderPoteri(){
       if(!masterOn&&item.hidden)return '';
       const ri=resourceIndexFor(cat,item);let uses='';
       if(ri>=0){linked.add(ri);const r=STATE.risorse[ri];
-        if(masterOn||!r.hidden)uses=`<div class="power-uses"><span class="field-label">${esc(r.nome)} · utilizzi</span><div class="pips">${Array.from({length:r.max},(_,p)=>`<button type="button" class="pip ${p<r.used?'used':''}" data-respip="${ri}-${p}" aria-label="${esc(r.nome)}: utilizzo ${p+1}" aria-pressed="${p<r.used}"></button>`).join('')}</div></div>`;
+        if(masterOn||!r.hidden)uses=`<div class="power-uses">${r.desc?`<div class="rich power-resource-description">${formatTravellerRich(r.desc)}</div>`:''}<span class="field-label">${esc(r.nome)} · utilizzi</span><div class="pips">${Array.from({length:r.max},(_,p)=>`<button type="button" class="pip ${p<r.used?'used':''}" data-respip="${ri}-${p}" aria-label="${esc(r.nome)}: utilizzo ${p+1}" aria-pressed="${p<r.used}"></button>`).join('')}</div></div>`;
       }
       return `<div class="subcard${item.hidden?' master-hidden-item':''}" data-width="${item.width||3}" id="anchor-${slugify(item.nome)}"${masterBoxStyle(cat,i)}>
         ${masterOn?masterToolbarHtml(cat,i):''}<span class="tag ${cls}">${esc(MASTER_CATS.find(c=>c.key===cat)?.label||label)}</span>
