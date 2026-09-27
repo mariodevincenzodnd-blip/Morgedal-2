@@ -67,3 +67,8 @@
  .traveller-sheet .hero-hint{opacity:1;}
 }
 @media print{.traveller-sheet .power-index{display:none;}.traveller-sheet .rich{overflow:visible;}.traveller-sheet [data-reading-paragraph]{break-inside:avoid;}}
+
+/* Navigation matches the existing sheet shortcuts and remains keyboard usable. */
+.traveller-sheet button.quicknav-pill{font-family:inherit;text-align:left;white-space:normal;max-width:100%;}
+.traveller-sheet .quicknav-pill:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;}
+.traveller-sheet [id^="powers-"],.traveller-sheet .source-block{scroll-margin-top:90px;}

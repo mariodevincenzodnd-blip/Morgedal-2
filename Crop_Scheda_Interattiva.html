@@ -833,10 +833,18 @@ function tagColorClass(tag){
   if (/abilit/i.test(t)) return "tag-abilita";
   return "";
 }
-const ATTACCHI_LINKS = [];
 function renderAttacchiNav(){
-  if (!ATTACCHI_LINKS.length) return "";
-  return `<div class="quicknav">${ATTACCHI_LINKS.map(l=>`<span class="quicknav-pill" data-jump-tab="${l.tab}" data-jump-anchor="${l.anchor}">${l.label}</span>`).join("")}</div>`;
+  const masterOn = isMasterEditorOn();
+  const links = [{label:'Poteri e risorse',tab:'poteri',anchor:'powers-slots'}];
+  const groups = new Set();
+  (STATE.sourceSections||[]).forEach((section,i)=>{
+    if(section.location!=='equip'||(!masterOn&&section.hidden))return;
+    const label=section.group||section.nome;
+    if(!label||groups.has(label))return;
+    groups.add(label);
+    links.push({label,tab:'equip',anchor:'source-'+i});
+  });
+  return `<nav class="quicknav" aria-label="Dettagli di attacchi ed equipaggiamento">${links.map(l=>`<button type="button" class="quicknav-pill" data-jump-tab="${esc(l.tab)}" data-jump-anchor="${esc(l.anchor)}">${esc(l.label)}</button>`).join('')}</nav>`;
 }
 function bindQuicknav(){
   document.querySelectorAll(".quicknav-pill").forEach(el=>{
@@ -1862,7 +1870,7 @@ function masterCreate(cat){
 }
 function masterBoxWidth(cat, idx){
   const item = STATE[cat][idx];
-  return (MASTER_ARR_SHAPE_CATS.has(cat) ? item[3] : item.width) || 1;
+  return (MASTER_ARR_SHAPE_CATS.has(cat) ? item[3] : item.width) || 3;
 }
 function setMasterBoxWidth(cat, idx, w){
   const item = STATE[cat][idx];
@@ -2132,11 +2140,11 @@ function renderPoteri(){
       <div class="rich" ${masterOn?'contenteditable="true"':''} data-master-field="risorse|${i}|desc">${formatTravellerRich(r.desc||'')}</div>
       <div class="pips">${Array.from({length:r.max},(_,p)=>`<button type="button" class="pip ${p<r.used?'used':''}" data-respip="${i}-${p}" aria-label="${esc(r.nome)}: utilizzo ${p+1}" aria-pressed="${p<r.used}"></button>`).join('')}</div></div>`;
   }).join('');
-  panel.innerHTML=`<nav class="power-index" aria-label="Sezioni poteri"><a href="#powers-slots">${TRAVELLER_MAGE?'Slot Incantesimo':'Slot'}</a>${categories.filter(([c])=>masterOn||visible(c)).map(([c,l])=>`<a href="#powers-${c}">${l}</a>`).join('')}${(STATE.sourceSections||[]).some(s=>(s.location||'poteri')==='poteri'&&(masterOn||!s.hidden))?'<a href="#powers-extra">Regole e capacità</a>':''}</nav>
+  panel.innerHTML=`<nav class="power-index" aria-label="Sezioni poteri"><a href="#powers-slots">${TRAVELLER_MAGE?'Slot Incantesimo':'Slot'}</a>${categories.filter(([c])=>masterOn||visible(c)).map(([c,l])=>`<a href="#powers-${c}">${l}</a>`).join('')}${(resources||masterOn)?'<a href="#powers-resources">Risorse</a>':''}${(STATE.sourceSections||[]).some(s=>(s.location||'poteri')==='poteri'&&(masterOn||!s.hidden))?'<a href="#powers-extra">Regole e capacità</a>':''}</nav>
     <section class="card" id="powers-slots"><h2>${TRAVELLER_MAGE?'Slot Incantesimo':'Slot'}</h2>
     ${(STATE.slots||[]).map((s,i)=>`<div class="slot-lvl"><div class="lvl-badge">${TRAVELLER_MAGE?'Livello '+s.lvl:'Slot'}</div><div class="pips">${Array.from({length:s.max},(_,p)=>`<button type="button" class="pip ${p<s.used?'used':''} ${s.colorClass||''}" data-slotpip="${i}-${p}" aria-label="Slot ${s.lvl}, ${p+1}" aria-pressed="${p<s.used}"></button>`).join('')}</div><label>max <input class="maxslot" type="number" min="0" data-slotmax="${i}" value="${s.max}" ${masterOn?'':'readonly'}></label></div>`).join('')}
     <button class="btn primary" id="reset-slots">Riposo Lungo — recupera tutti gli slot</button></section>
-    ${(resources||masterOn)?`<section class="card"><h2>Risorse</h2>${resources}${masterOn?masterNewBoxBtn('risorse','Risorsa'):''}</section>`:''}
+    ${(resources||masterOn)?`<section class="card" id="powers-resources"><h2>Risorse</h2>${resources}${masterOn?masterNewBoxBtn('risorse','Risorsa'):''}</section>`:''}
     <div style="margin-bottom:20px"><button class="btn" id="reset-risorse">Riposo Lungo — recupera le risorse</button></div>
     ${cards}${sourceSectionsHtml('poteri')?`<section class="card" id="powers-extra">${sourceSectionsHtml('poteri')}</section>`:''}`;
   panel.querySelectorAll('[data-slotpip]').forEach(el=>el.addEventListener('click',()=>{const[i,p]=el.dataset.slotpip.split('-').map(Number),s=STATE.slots[i];s.used=p<s.used?p:p+1;renderPoteri();queueSave();}));
