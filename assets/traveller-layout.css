@@ -1,0 +1,50 @@
+/* The established character-sheet surfaces, with room for complete source text. */
+.traveller-sheet .hero { min-height:280px; isolation:isolate; display:flex; align-items:flex-end; }
+.traveller-sheet .hero-inner { width:100%; }
+.traveller-sheet .hero-bg { z-index:-1; }
+.traveller-sheet .power-index { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 22px; }
+.traveller-sheet .power-index a { padding:9px 13px; border:1px solid var(--border-soft); border-radius:6px; color:var(--text); text-decoration:none; background:var(--bg-panel); font-size:14px; }
+.traveller-sheet .power-index a:hover { border-color:var(--identity); }
+.traveller-sheet .power-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.traveller-sheet .power-grid>.subcard { grid-column:1/-1; min-width:0; margin:0; }
+.traveller-sheet .power-grid>.subcard[data-width="1"] { grid-column:span 1; }
+.traveller-sheet .power-grid>.subcard[data-width="2"] { grid-column:span 2; }
+.traveller-sheet .power-grid>.subcard[data-width="3"] { grid-column:span 3; }
+.traveller-sheet .rich { overflow-wrap:anywhere; line-height:1.65; }
+.traveller-sheet .power-grid .rich, .traveller-sheet .source-block .rich { font-size:16px; }
+.traveller-sheet .rich p { margin:0 0 .85em; white-space:pre-wrap; }
+.traveller-sheet .rich p:last-child { margin-bottom:0; }
+.traveller-sheet .rich h4 { font-family:var(--serif); color:var(--text); font-size:18px; margin:1.3em 0 .65em; }
+.traveller-sheet .subcard h3 { font-size:20px; line-height:1.3; white-space:pre-line; overflow-wrap:anywhere; }
+.traveller-sheet .source-block { margin:0 0 18px; }
+.traveller-sheet .source-block:last-child { margin-bottom:0; }
+.traveller-sheet .source-group-title { margin:28px 0 16px; }
+.traveller-sheet .tracker { display:block; }
+.traveller-sheet .tracker .pips { margin-top:12px; }
+.traveller-sheet .pips { flex-wrap:wrap; }
+.traveller-sheet .pip { min-width:28px; min-height:28px; }
+.traveller-sheet .pip-special { border-color:#d46060; }
+.traveller-sheet .power-uses { margin-top:18px; padding-top:12px; border-top:1px solid var(--border-soft); }
+.traveller-sheet .power-uses .field-label { display:block; margin-bottom:8px; font-size:13px; color:var(--text-dim); }
+.traveller-sheet .portrait img { aspect-ratio:3/4; object-fit:contain; background:rgba(0,0,0,.2); }
+.traveller-sheet .portrait .cap { font-size:15px; }
+.traveller-sheet .master-toolbar { flex-wrap:wrap; }
+.traveller-sheet .slot-lvl { flex-wrap:wrap; }
+.traveller-sheet .card h2 small { font-size:13px; line-height:1.5; }
+.traveller-sheet .inv-item-desc { font-size:15px; line-height:1.6; }
+.traveller-sheet .rich table { width:100%; border-collapse:collapse; font-size:14px; }
+.traveller-sheet .rich td { border:1px solid var(--border-soft); padding:8px; vertical-align:top; }
+@media(max-width:700px){
+ .traveller-sheet .hero { min-height:300px; padding:32px 18px 22px; }
+ .traveller-sheet .hero-meta { gap:6px; }
+ .traveller-sheet .hero-chip { max-width:100%; }
+ .traveller-sheet .power-grid { display:block; }
+ .traveller-sheet .power-grid>.subcard { margin-bottom:16px; width:100%; height:auto!important; }
+ .traveller-sheet .card { padding:18px 14px; }
+ .traveller-sheet .card h2 { flex-wrap:wrap; line-height:1.4; }
+ .traveller-sheet .subcard { padding:16px 14px; }
+ .traveller-sheet .power-index a { flex:1 1 auto; text-align:center; }
+ .traveller-sheet .hero-hint { opacity:1; }
+ .traveller-sheet .tracker { min-width:0; }
+ .traveller-sheet .master-name-input { max-width:100%; }
+}
