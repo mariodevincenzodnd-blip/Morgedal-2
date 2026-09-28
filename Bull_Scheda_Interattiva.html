@@ -727,6 +727,17 @@
     a{ color:#000 !important; text-decoration:underline; }
   }
 
+
+/* Xsor is a dedicated play surface; it reads the existing shared counters. */
+body[data-sheet="bull"] .bull-xsor-console{border-top:3px solid var(--identity2);}
+body[data-sheet="bull"] .bull-xsor-trackers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+body[data-sheet="bull"] .bull-xsor-tracker{min-width:0;background:var(--bg-panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:16px;}
+body[data-sheet="bull"] .bull-xsor-tracker h3{font-family:var(--serif);font-size:17px;color:var(--gold-bright);margin:0 0 12px;}
+body[data-sheet="bull"] .bull-xsor-count{display:block;margin-top:10px;color:var(--text-dim);font-size:14px;}
+body[data-sheet="bull"] .bull-xsor-rules .source-block{border-left:3px solid var(--identity2);}
+body[data-sheet="bull"] #panel-xsor [id^="source-"]{scroll-margin-top:90px;}
+@media(max-width:700px){body[data-sheet="bull"] .bull-xsor-trackers{grid-template-columns:1fr;}}
+
 </style>
 <link rel="stylesheet" href="assets/traveller-layout.css">
 <script src="assets/traveller-typography.js"></script>
@@ -842,7 +853,7 @@ function renderAttacchiNav(){
     const label=section.group||section.nome;
     if(!label||groups.has(label))return;
     groups.add(label);
-    links.push({label,tab:'equip',anchor:'source-'+i});
+    links.push({label,tab:bullSectionLocation(section),anchor:'source-'+i});
   });
   return `<nav class="quicknav" aria-label="Dettagli di attacchi ed equipaggiamento">${links.map(l=>`<button type="button" class="quicknav-pill" data-jump-tab="${esc(l.tab)}" data-jump-anchor="${esc(l.anchor)}">${esc(l.label)}</button>`).join('')}</nav>`;
 }
@@ -1526,7 +1537,8 @@ function makeImagePicker(currentSrc, onPick, onRemove, allowZoom, zoomLabel, rea
    ============================================================ */
 const TABS = [
   {id:"scheda", label:"Scheda"},
-  {id:"poteri", label:"Forza & Xsor"},
+  {id:"poteri", label:"Forza & Risorse"},
+  {id:"xsor", label:"Xsor"},
   {id:"equip", label:"Equip. & Inventario"},
   {id:"lore", label:"Ritratto & Lore"},
   {id:"note", label:"Bull & Wilson"},
@@ -2104,16 +2116,39 @@ function migrateTravellerState(){
     const nIndex=sections.findIndex(s=>s.nome==="NOTE" && s.desc===BULL_NOTE_V2_DESC);
     if(nIndex>=0){
       const cards=(DEFAULT_STATE.sourceSections||[]).filter(s=>s.group==="IL MONDO DI BULL").map(s=>JSON.parse(JSON.stringify(s)));
-      sections.splice(nIndex,1,...cards);
+      sections.splice(nIndex,1,...cards.map(card=>({...card,hidden:sections[nIndex].hidden ?? card.hidden})));
     }
     STATE.travellerLayoutVersion=5;
   }
 }
 
+const BULL_XSOR_GROUP='⚡ XSOR L’INCUDINE DEL GIUDIZIO ⚡';
+function bullSectionLocation(section){
+  const location=section.location||'poteri';
+  return location==='equip' && section.group===BULL_XSOR_GROUP ? 'xsor' : location;
+}
+function renderXsor(){
+  const panel=document.getElementById('panel-xsor');if(!panel)return;
+  const masterOn=isMasterEditorOn();
+  const sections=(STATE.sourceSections||[]).map((s,i)=>({s,i})).filter(({s})=>bullSectionLocation(s)==='xsor'&&(masterOn||!s.hidden));
+  const counters=(STATE.risorse||[]).map((r,i)=>({r,i})).filter(({r})=>(masterOn||!r.hidden)&&
+    (['bull-uses-0','bull-uses-1'].includes(r.sourceId)||['Prisma della Lucidità','Peso Schiacciante','Fulmini Immagazzinati'].includes(r.nome)));
+  panel.innerHTML=`${counters.length?`<section class="card bull-xsor-console"><h2>Xsor · Risorse</h2>
+    <div class="bull-xsor-trackers">${counters.map(({r,i})=>`<div class="bull-xsor-tracker${r.hidden?' master-hidden-item':''}">
+      <h3>${esc(r.nome)}</h3><div class="rich">${formatTravellerRich(r.desc||'')}</div>
+      <div class="pips">${Array.from({length:r.max},(_,p)=>`<button type="button" class="pip ${p<r.used?'used':''}" data-xsor-pip="${i}-${p}" aria-label="${esc(r.nome)}: ${p+1}" aria-pressed="${p<r.used}"></button>`).join('')}</div>
+      <span class="bull-xsor-count">${r.used} / ${r.max} segnati</span></div>`).join('')}</div></section>`:''}
+    ${sections.length?`<nav class="power-index" aria-label="Regole di Xsor">${sections.map(({s,i})=>`<a href="#source-${i}">${esc(s.nome)}</a>`).join('')}</nav><section class="card bull-xsor-rules">${sourceSectionsHtml('xsor')}</section>`:''}`;
+  panel.querySelectorAll('[data-xsor-pip]').forEach(el=>el.addEventListener('click',()=>{
+    const [i,p]=el.dataset.xsorPip.split('-').map(Number), r=STATE.risorse[i];
+    r.used=p<r.used?p:p+1;renderPoteri();queueSave();
+  }));
+  bindMasterControls(panel);
+}
 function sourceSectionsHtml(location){
   const masterOn=isMasterEditorOn(); let lastGroup='';
   return (STATE.sourceSections||[]).map((s,i)=>{
-    if ((s.location||'poteri')!==location || (!masterOn && s.hidden)) return '';
+    if (bullSectionLocation(s)!==location || (!masterOn && s.hidden)) return '';
     const group=s.group && s.group!==lastGroup ? `<h2 class="source-group-title">${esc(s.group)}</h2>`:'';lastGroup=s.group||'';
     return `${group}<div class="subcard source-block${s.hidden?' master-hidden-item':''}" data-source-group="${esc(s.group||'')}" data-source-name="${esc(s.nome||'')}" id="source-${i}"${masterBoxStyle('sourceSections',i)}>
       ${masterOn?masterToolbarHtml('sourceSections',i,{noWidth:true}):''}
@@ -2175,6 +2210,7 @@ function renderPoteri(){
   panel.querySelector('#reset-slots').addEventListener('click',()=>{STATE.slots.forEach(s=>s.used=0);renderPoteri();queueSave();});
   panel.querySelector('#reset-risorse').addEventListener('click',()=>{STATE.risorse.forEach(r=>r.used=0);renderPoteri();queueSave();});
   bindMasterControls(panel);
+  renderXsor();
 }
 // Category changes use the common editor; these sheets do not have a separate
 // Divergenza tab. Keep Ambito/Campo visible inside Poteri & Risorse.

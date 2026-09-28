@@ -795,7 +795,7 @@
     width:100%;min-height:84px;resize:vertical;
     border:1px solid color-mix(in srgb,var(--identity) 28%,var(--border-soft));
     border-radius:8px;background:rgba(0,0,0,.16);color:var(--text);
-    padding:10px 11px;font:13px/1.5 var(--sans);
+    padding:10px 11px;font:16px/1.6 var(--sans);
   }
   body[data-sheet="vorkax"] .vorkax-research-pad textarea:focus{
     outline:none;border-color:var(--identity);
@@ -2189,12 +2189,12 @@ function migrateTravellerState(){
     const pIndex=sections.findIndex(s=>s.nome==="APPUNTI SUI GIOCATORI" && s.desc===VORKAX_PLAYERS_V2_DESC);
     if (pIndex>=0){
       const cards=(DEFAULT_STATE.sourceSections||[]).filter(s=>s.group==="APPUNTI SUI GIOCATORI").map(s=>JSON.parse(JSON.stringify(s)));
-      sections.splice(pIndex,1,...cards);
+      sections.splice(pIndex,1,...cards.map(card=>({...card,hidden:sections[pIndex].hidden ?? card.hidden})));
     }
     const nIndex=sections.findIndex(s=>s.nome==="NOTE" && s.desc===VORKAX_NOTES_V2_DESC);
     if (nIndex>=0){
       const cards=(DEFAULT_STATE.sourceSections||[]).filter(s=>s.group==="INDAGINI PERSONALI").map(s=>JSON.parse(JSON.stringify(s)));
-      sections.splice(nIndex,1,...cards);
+      sections.splice(nIndex,1,...cards.map(card=>({...card,hidden:sections[nIndex].hidden ?? card.hidden})));
     }
     STATE.travellerLayoutVersion = 5;
   }
@@ -2210,6 +2210,13 @@ function ensureVorkaxResearchNotes(){
   if (!STATE.researchNotes || typeof STATE.researchNotes !== "object" || Array.isArray(STATE.researchNotes)){
     STATE.researchNotes = {};
   }
+  // Persist the dossier identity before the Master edits its display title.
+  (STATE.sourceSections||[]).forEach(section=>{
+    if(section.group==='APPUNTI SUI GIOCATORI' && !section.researchKey){
+      const key=VORKAX_RESEARCH_KEYS[String(section.nome||'').trim()];
+      if(key)section.researchKey=key;
+    }
+  });
   Object.values(VORKAX_RESEARCH_KEYS).forEach(key=>{
     if (typeof STATE.researchNotes[key] !== "string") STATE.researchNotes[key] = "";
   });
@@ -2220,7 +2227,7 @@ function vorkaxResearchKey(name){
 }
 function vorkaxResearchPadHtml(section, location){
   if (location !== "note" || section.group !== "APPUNTI SUI GIOCATORI") return "";
-  const key = vorkaxResearchKey(section.nome);
+  const key = section.researchKey || vorkaxResearchKey(section.nome);
   if (!key) return "";
   const notes = ensureVorkaxResearchNotes();
   return `<div class="vorkax-research-pad">
@@ -2233,6 +2240,7 @@ function bindVorkaxResearchPads(root){
     el.addEventListener("input", ()=>{
       const notes = ensureVorkaxResearchNotes();
       notes[el.dataset.vorkaxResearch] = el.value;
+      updateVorkaxArchiveStats();
       queueSave();
     });
   });
@@ -2743,23 +2751,33 @@ function initPortraitResize(){
 /* ============================================================
    RENDER: NOTE
    ============================================================ */
+function vorkaxArchiveStats(){
+  const notes=ensureVorkaxResearchNotes(), masterOn=isMasterEditorOn();
+  const shown=(STATE.sourceSections||[]).filter(s=>(s.location||'poteri')==='note' && (masterOn||!s.hidden));
+  const dossiers=shown.filter(s=>s.group==='APPUNTI SUI GIOCATORI');
+  const keys=new Set(dossiers.map(s=>s.researchKey||vorkaxResearchKey(s.nome)).filter(Boolean));
+  return {dossierCount:dossiers.length, investigationCount:shown.filter(s=>s.group==='INDAGINI PERSONALI').length,
+    filledCount:[...keys].filter(k=>String(notes[k]||'').trim()).length};
+}
+function updateVorkaxArchiveStats(){
+  const count=document.getElementById('vorkax-filled-count');
+  if(count)count.textContent=vorkaxArchiveStats().filledCount;
+}
 function renderNote(){
   const notes = ensureVorkaxResearchNotes();
-  const dossierCount = (STATE.sourceSections||[]).filter(s=>s.group==="APPUNTI SUI GIOCATORI" && !s.hidden).length;
-  const investigationCount = (STATE.sourceSections||[]).filter(s=>s.group==="INDAGINI PERSONALI" && !s.hidden).length;
-  const filledCount = Object.values(notes).filter(v=>String(v||"").trim()).length;
+  const {dossierCount, investigationCount, filledCount} = vorkaxArchiveStats();
 
   document.getElementById("panel-note").innerHTML = `
     <div class="card vorkax-archive-head">
       <div class="vorkax-archive-copy">
         <div class="vorkax-archive-kicker">Archivio personale</div>
         <h2>Dossier di ricerca</h2>
-        <p>Le osservazioni originali della scheda restano separate e intatte. Ogni dossier dispone ora di un taccuino operativo personale, salvato nello stato condiviso della scheda.</p>
+        <p>Dossier sui compagni, piste da seguire e osservazioni da annotare durante il viaggio.</p>
       </div>
       <div class="vorkax-archive-stats" aria-label="Stato archivio">
         <div class="vorkax-archive-stat"><b>${dossierCount}</b><span>Dossier</span></div>
         <div class="vorkax-archive-stat"><b>${investigationCount}</b><span>Indagini</span></div>
-        <div class="vorkax-archive-stat"><b>${filledCount}</b><span>Taccuini usati</span></div>
+        <div class="vorkax-archive-stat"><b id="vorkax-filled-count" aria-live="polite">${filledCount}</b><span>Taccuini usati</span></div>
       </div>
     </div>
     <div class="card vorkax-free-notes">
