@@ -1526,8 +1526,8 @@ function makeImagePicker(currentSrc, onPick, onRemove, allowZoom, zoomLabel, rea
    ============================================================ */
 const TABS = [
   {id:"scheda", label:"Scheda"},
-  {id:"poteri", label:"Poteri & Risorse"},
-  {id:"equip", label:"Equip. & Inventario"},
+  {id:"poteri", label:"Magia & Rune"},
+  {id:"equip", label:"Artefatti & Inventario"},
   {id:"lore", label:"Ritratto & Lore"},
   {id:"note", label:"Archivio di Vorkax"},
   {id:"diario", label:"Diario di Sessione"}
@@ -2122,7 +2122,7 @@ function sourceSectionsHtml(location){
   return (STATE.sourceSections||[]).map((s,i)=>{
     if ((s.location||'poteri')!==location || (!masterOn && s.hidden)) return '';
     const group=s.group && s.group!==lastGroup ? `<h2 class="source-group-title">${esc(s.group)}</h2>`:'';lastGroup=s.group||'';
-    return `${group}<div class="subcard source-block${s.hidden?' master-hidden-item':''}" data-source-group="${esc(s.group||'')}" id="source-${i}"${masterBoxStyle('sourceSections',i)}>
+    return `${group}<div class="subcard source-block${s.hidden?' master-hidden-item':''}" data-source-group="${esc(s.group||'')}" data-source-name="${esc(s.nome||'')}" id="source-${i}"${masterBoxStyle('sourceSections',i)}>
       ${masterOn?masterToolbarHtml('sourceSections',i,{noWidth:true}):''}
       ${masterOn?`<input class="master-name-input" data-master-field="sourceSections|${i}|nome" value="${esc(s.nome)}">`:`<h3>${esc(s.nome)}</h3>`}
       <div class="rich" ${masterOn?'contenteditable="true"':''} data-master-field="sourceSections|${i}|desc">${formatTravellerRich(s.desc)}</div>
