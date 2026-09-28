@@ -79,3 +79,89 @@
  /* Desktop box heights must not constrain wrapped mobile source text. */
  .traveller-sheet .source-block{height:auto!important;}
 }
+
+
+/* ==========================================================================
+   BESPOKE CHARACTER PANELS
+   Le fonti personali diventano interfacce, non trascrizioni lineari.
+   ========================================================================== */
+.traveller-sheet .source-sections:has(.source-block[data-source-group="APPUNTI SUI GIOCATORI"]),
+.traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"]),
+.traveller-sheet .source-sections:has(.source-block[data-source-group="STRUMENTI DI MARY"]),
+.traveller-sheet .source-sections:has(.source-block[data-source-group="DETTAGLI EQUIPAGGIAMENTO"]){
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.traveller-sheet .source-sections:has(.source-block[data-source-group="APPUNTI SUI GIOCATORI"])>.source-group-title,
+.traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"])>.source-group-title,
+.traveller-sheet .source-sections:has(.source-block[data-source-group="STRUMENTI DI MARY"])>.source-group-title,
+.traveller-sheet .source-sections:has(.source-block[data-source-group="DETTAGLI EQUIPAGGIAMENTO"])>.source-group-title{
+  grid-column:1/-1;
+  margin-bottom:0;
+}
+
+/* Vorkax: quattro dossier leggibili come un archivio personale. */
+.traveller-sheet .source-block[data-source-group="APPUNTI SUI GIOCATORI"]{
+  min-height:230px;
+  margin:0;
+  background:
+    linear-gradient(145deg,color-mix(in srgb,var(--identity) 10%,var(--bg-panel-2)),var(--bg-panel-2));
+  border-color:color-mix(in srgb,var(--identity) 35%,var(--border-soft));
+}
+.traveller-sheet .source-block[data-source-group="APPUNTI SUI GIOCATORI"] h3{
+  font-size:18px;
+  letter-spacing:1px;
+}
+.traveller-sheet .source-block[data-source-group="INDAGINI PERSONALI"]{
+  grid-column:1/-1;
+  margin:0;
+  border-left:3px solid var(--identity);
+}
+
+/* Mary: strumenti 2x2, manuale leggibile, tattica in evidenza. */
+.traveller-sheet .source-block[data-source-group="STRUMENTI DI MARY"]{
+  margin:0;
+  border-color:color-mix(in srgb,var(--identity) 30%,var(--border-soft));
+}
+.traveller-sheet .source-block[data-source-group="VADEMECUM CREAZIONE"]{
+  margin:0;
+  min-height:180px;
+}
+.traveller-sheet .source-block[data-source-group="TACTICA DI MARY"]{
+  grid-column:1/-1;
+  margin:0;
+  border-left:3px solid var(--identity2,var(--identity));
+  background:
+    linear-gradient(90deg,color-mix(in srgb,var(--identity2,var(--identity)) 8%,var(--bg-panel-2)),var(--bg-panel-2));
+}
+.traveller-sheet .source-block[data-source-group="TACTICA DI MARY"] h3{
+  font-size:17px;
+}
+
+/* Un blocco personale non raggruppato (es. Rifugio) resta protagonista. */
+.traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"])>
+.source-block[data-source-group=""]{
+  grid-column:1/-1;
+  margin:0;
+  border-color:color-mix(in srgb,var(--identity) 38%,var(--border-soft));
+}
+
+@media(max-width:820px){
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="APPUNTI SUI GIOCATORI"]),
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"]),
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="STRUMENTI DI MARY"]),
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="DETTAGLI EQUIPAGGIAMENTO"]){
+    grid-template-columns:1fr;
+  }
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="APPUNTI SUI GIOCATORI"])>.source-group-title,
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"])>.source-group-title,
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="STRUMENTI DI MARY"])>.source-group-title,
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="DETTAGLI EQUIPAGGIAMENTO"])>.source-group-title,
+  .traveller-sheet .source-block[data-source-group="INDAGINI PERSONALI"],
+  .traveller-sheet .source-block[data-source-group="TACTICA DI MARY"],
+  .traveller-sheet .source-sections:has(.source-block[data-source-group="VADEMECUM CREAZIONE"])>.source-block[data-source-group=""]{
+    grid-column:1;
+  }
+  .traveller-sheet .source-block[data-source-group="APPUNTI SUI GIOCATORI"]{min-height:0;}
+}
