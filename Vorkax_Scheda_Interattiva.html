@@ -235,7 +235,7 @@
   /* ---------- HP ---------- */
   .hp-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .hp-track{flex:1;min-width:220px;height:22px;background:var(--bg-panel-3);border:1px solid var(--border-soft);border-radius:12px;overflow:hidden;position:relative;}
-  .hp-fill{height:100%;background:linear-gradient(90deg,#7a2a24,var(--bad));transition:width .3s;}
+  .hp-fill{height:100%;background:linear-gradient(90deg,#3f6a3a,var(--good));transition:width .3s;}
   .hp-numbers{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:15px;}
   .hp-numbers input{width:64px;text-align:center;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);border-radius:6px;padding:6px 2px;}
   .hp-row-temp{margin-top:6px;}
@@ -1851,7 +1851,7 @@ function renderScheda(){
     STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp;
     const pct = max>0 ? Math.max(0,Math.min(100, cur/max*100)) : 0;
     document.getElementById("hp-fill").style.width = pct+"%";
-    document.getElementById("hp-fill").style.background = pct<25 ? "linear-gradient(90deg,#7a2a24,var(--bad))" : (pct<60 ? "linear-gradient(90deg,#8a6a24,#c9a34e)" : "linear-gradient(90deg,#3f6a3a,var(--good))");
+    document.getElementById("hp-fill").style.background = "linear-gradient(90deg,#3f6a3a,var(--good))";
     const tempPct = max>0 ? Math.max(0,Math.min(100, temp/max*100)) : (temp>0 ? 100 : 0);
     document.getElementById("hp-fill-temp").style.width = tempPct+"%";
   }
