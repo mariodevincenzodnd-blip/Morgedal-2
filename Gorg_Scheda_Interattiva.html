@@ -609,6 +609,41 @@
   .caos-label{font-size:10.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--text-faint);text-align:center;margin-top:6px;}
   .caos-col{display:flex;flex-direction:column;align-items:center;}
 
+
+  /* ---------- MAPPA OPERATIVA DEL CAOS ---------- */
+  .gorg-chaos-console{
+    border-top:3px solid var(--identity2);
+    background:
+      radial-gradient(circle at 88% 10%, color-mix(in srgb,var(--identity2) 10%,transparent), transparent 32%),
+      linear-gradient(145deg,color-mix(in srgb,var(--identity) 7%,var(--bg-panel)),var(--bg-panel-3));
+  }
+  .gorg-chaos-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;}
+  .gorg-chaos-kicker{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;color:var(--text-faint);margin-bottom:4px;}
+  .gorg-chaos-head h2{margin:0!important;padding:0!important;border:0!important;font-size:21px!important;text-transform:none!important;color:var(--gold-bright)!important;}
+  .gorg-chaos-current{display:flex;align-items:baseline;gap:6px;padding:7px 12px;border:1px solid var(--border-soft);border-radius:18px;background:var(--bg-panel-2);color:var(--text-faint);font-size:10px;text-transform:uppercase;letter-spacing:.8px;}
+  .gorg-chaos-current b{font-family:var(--serif);font-size:20px;color:var(--gold-bright);}
+  .gorg-chaos-stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+  .gorg-chaos-stage{position:relative;min-width:0;padding:12px;border:1px solid var(--border-soft);border-radius:9px;background:var(--bg-panel-2);transition:border-color .15s,transform .15s,opacity .15s;}
+  .gorg-chaos-stage.is-locked{opacity:.58;}
+  .gorg-chaos-stage.is-unlocked{border-color:color-mix(in srgb,var(--identity) 55%,var(--border-soft));}
+  .gorg-chaos-stage.is-current{border-color:var(--identity2);box-shadow:0 0 0 1px color-mix(in srgb,var(--identity2) 38%,transparent),0 8px 24px rgba(0,0,0,.16);}
+  .gorg-chaos-stage-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .gorg-chaos-level{
+    width:30px;height:30px;border-radius:50%;border:2px solid #9450d8;background:transparent;color:var(--text);
+    font-family:var(--serif);font-weight:700;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s;
+  }
+  .gorg-chaos-level:hover,.gorg-chaos-level:focus-visible{transform:scale(1.08);outline:none;}
+  .gorg-chaos-stage.is-unlocked .gorg-chaos-level{background:radial-gradient(circle at 35% 30%,#ff8a4a,#c9463b);border-color:#ff8a4a;box-shadow:0 0 10px rgba(255,138,74,.45);}
+  .gorg-chaos-stage-state{font-size:9px;letter-spacing:.9px;text-transform:uppercase;color:var(--text-faint);}
+  .gorg-chaos-stage.is-current .gorg-chaos-stage-state{color:var(--identity2);}
+  .gorg-chaos-jump{display:block;width:100%;padding:0;border:0;background:none;text-align:left;color:inherit;cursor:pointer;}
+  .gorg-chaos-jump strong{display:block;font-family:var(--serif);font-size:14px;line-height:1.3;color:var(--gold-bright);margin-bottom:5px;}
+  .gorg-chaos-jump small{display:block;font-size:10.5px;line-height:1.35;color:var(--text-faint);}
+  .gorg-chaos-jump:hover strong,.gorg-chaos-jump:focus-visible strong{color:var(--identity2);}
+  .gorg-chaos-jump:focus-visible{outline:1px dashed var(--identity2);outline-offset:4px;}
+  @media(max-width:900px){.gorg-chaos-stages{grid-template-columns:repeat(2,minmax(0,1fr));}.gorg-chaos-stage:last-child{grid-column:1/-1;}}
+  @media(max-width:520px){.gorg-chaos-head{align-items:flex-start;flex-direction:column;}.gorg-chaos-stages{grid-template-columns:1fr;}.gorg-chaos-stage:last-child{grid-column:auto;}}
+
   /* ---------- SCHERMATA DI ACCESSO ---------- */
   #lock-screen{
     position:fixed;inset:0;z-index:9999;
@@ -2554,21 +2589,82 @@ function renderGroupedSubcards(arr, tagLabel, tagClass, fieldName){
     return `<div class="subcard subcard-grouped"><span class="tag ${tagClass}">${tagLabel}</span><h3>${grp.key}</h3>${body}</div>`;
   }).join("");
 }
+const GORG_CHAOS_STAGES = [
+  [1,"Furto con Spasso"],
+  [2,"Ma che ca....os??"],
+  [3,"Che botta di c...aos!!"],
+  [4,"Bukkake"],
+  [5,"Sakar l'Avido"]
+];
+
+function renderGorgChaosConsole(){
+  const current = Number(STATE.livelloCaos || 0);
+  const stages = GORG_CHAOS_STAGES.map(([lvl,nome])=>{
+    const unlocked = current >= lvl, active = current === lvl;
+    return `<article class="gorg-chaos-stage ${unlocked?'is-unlocked':'is-locked'} ${active?'is-current':''}">
+      <div class="gorg-chaos-stage-top">
+        <button type="button" class="gorg-chaos-level" data-gorg-chaos-level="${lvl}" title="Imposta Caos ${lvl}">${lvl}</button>
+        <span class="gorg-chaos-stage-state">${active?'livello attuale':(unlocked?'sbloccato':'da sbloccare')}</span>
+      </div>
+      <button type="button" class="gorg-chaos-jump" data-gorg-chaos-jump="${esc(nome)}">
+        <strong>${esc(nome)}</strong>
+        <small>${lvl===5?'Manifestazione di Sakar':'Abilità del livello '+lvl}</small>
+      </button>
+    </article>`;
+  }).join("");
+  return `<section class="card gorg-chaos-console" id="gorg-chaos-map">
+    <div class="gorg-chaos-head">
+      <div><div class="gorg-chaos-kicker">Progressione personale</div><h2>Mappa del Caos</h2></div>
+      <div class="gorg-chaos-current"><span>Caos attuale</span><b>${current}/${STATE.livelloCaosMax || 5}</b></div>
+    </div>
+    <div class="gorg-chaos-stages">${stages}</div>
+  </section>`;
+}
+
+function bindGorgChaosConsole(){
+  document.querySelectorAll("[data-gorg-chaos-level]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const n=Number(btn.dataset.gorgChaosLevel);
+      STATE.livelloCaos = STATE.livelloCaos === n ? n-1 : n;
+      const tracker=document.querySelector("#panel-scheda .caos-tracker");
+      if(tracker){ tracker.outerHTML=renderCaosTracker(); bindCaosTracker(); }
+      renderDivergenza();
+      queueSave();
+    });
+  });
+  document.querySelectorAll("[data-gorg-chaos-jump]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const nome=btn.dataset.gorgChaosJump;
+      const tab=document.querySelector('.tab-btn[data-tab="poteri"]');
+      if(tab) tab.click();
+      setTimeout(()=>{
+        const target=document.getElementById("anchor-"+slugify(nome));
+        if(target){
+          target.scrollIntoView({behavior:"smooth",block:"start"});
+          target.classList.add("anchor-flash");
+          setTimeout(()=>target.classList.remove("anchor-flash"),1500);
+        }
+      },80);
+    });
+  });
+}
+
 function renderDivergenza(){
   const masterOn = isMasterEditorOn();
   const ambiti = renderGroupedSubcards(STATE.ambiti, "Ambito", "tag-ambito", "ambiti");
   const campi = renderGroupedSubcards(STATE.campiAttiva, "Campo", "tag-campo", "campiAttiva");
   document.getElementById("panel-divergenza").innerHTML = `
+    ${renderGorgChaosConsole()}
     <div class="card" id="anchor-divergenza-top">
       <h2>Il Caos</h2>
       <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich="divergenzaIntro">${STATE.divergenzaIntro}</div>
       ${(masterOn || STATE.ambiti.length) ? `<div class="divider-label">Ambiti della Divergenza</div><div class="grid grid-3">${ambiti}</div>${masterOn ? masterNewBoxBtn("ambiti", "Ambito") : ""}` : ""}
     </div>
 
-    <div class="card">
+    ${(masterOn || STATE.divergenzaPassiva) ? `<div class="card">
       <h2>Note Aggiuntive</h2>
       <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich="divergenzaPassiva">${STATE.divergenzaPassiva}</div>
-    </div>
+    </div>` : ""}
 
     ${(masterOn || STATE.campiAttiva.length || STATE.divergenzaAttivaNote) ? `<div class="card">
       <h2>Divergenza Attiva</h2>
@@ -2578,6 +2674,7 @@ function renderDivergenza(){
     </div>` : ""}
   `;
   bindRich();
+  bindGorgChaosConsole();
   bindMasterControls(document.getElementById("panel-divergenza"));
 }
 
