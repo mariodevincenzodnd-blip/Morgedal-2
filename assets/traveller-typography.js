@@ -85,3 +85,96 @@ window.formatTravellerRich = (() => {
     if(cache.size>400)cache.clear();cache.set(cacheKey,result);return result;
   };
 })();
+
+
+/* === CHARACTER IDENTITY CONSOLES === */
+(() => {
+  const SHEETS = new Set(["jhaggork","niger","mary"]);
+  const textOf = el => (el?.querySelector("h3")?.textContent || el?.querySelector(".master-name-input")?.value || "").trim();
+  const jump = (target) => {
+    if (!target) return;
+    const panel = target.closest(".panel");
+    const tab = panel?.id?.replace(/^panel-/,"");
+    if (tab){
+      const btn = document.querySelector('.tab-btn[data-tab="'+tab+'"]');
+      if (btn && !btn.classList.contains("active")) btn.click();
+    }
+    setTimeout(() => {
+      target.scrollIntoView({behavior:"smooth",block:"start"});
+      target.classList.add("anchor-flash");
+      setTimeout(() => target.classList.remove("anchor-flash"), 1500);
+    }, 90);
+  };
+  const button = (label, detail, target, tone) => {
+    const b=document.createElement("button");
+    b.type="button"; b.className="character-console-link";
+    if (tone) b.dataset.tone=tone;
+    b.innerHTML="<strong></strong><small></small>";
+    b.querySelector("strong").textContent=label;
+    b.querySelector("small").textContent=detail;
+    b.addEventListener("click",()=>jump(target));
+    return b;
+  };
+  const makeShell = (title, kicker, meta) => {
+    const section=document.createElement("section");
+    section.className="card character-console";
+    section.innerHTML='<div class="character-console-kicker"></div><div class="character-console-title"><h2></h2><span></span></div><div class="character-console-grid"></div>';
+    section.querySelector(".character-console-kicker").textContent=kicker;
+    section.querySelector("h2").textContent=title;
+    section.querySelector(".character-console-title span").textContent=meta;
+    return section;
+  };
+  const installJhaggork = () => {
+    const panel=document.getElementById("panel-poteri");
+    if(!panel || panel.querySelector(".character-console")) return;
+    const blocks=[...panel.querySelectorAll('.source-block[data-source-group="TOMO MULTIELEMENTALE"]')];
+    if(!blocks.length) return;
+    const shell=makeShell("Tomo Multielementale","Sistema personale",blocks.length+" elementi");
+    const grid=shell.querySelector(".character-console-grid");
+    blocks.forEach(el=>{
+      const full=textOf(el), label=full.replace(/^ELEMENTO\s+/i,"");
+      grid.append(button(label,"Apri elemento",el,label.toLowerCase()));
+    });
+    panel.prepend(shell);
+  };
+  const installNiger = () => {
+    const panel=document.getElementById("panel-poteri");
+    if(!panel || panel.querySelector(".character-console")) return;
+    const blocks=[...panel.querySelectorAll('.source-block[data-source-group="REGOLE DEL NINJA"]')];
+    if(!blocks.length) return;
+    const shell=makeShell("Regole del Ninja","Disciplina personale",blocks.length+" sezioni");
+    const grid=shell.querySelector(".character-console-grid");
+    blocks.forEach(el=>grid.append(button(textOf(el),"Apri regola",el)));
+    panel.prepend(shell);
+  };
+  const installMary = () => {
+    const panel=document.getElementById("panel-note");
+    if(!panel || panel.querySelector(".character-console")) return;
+    const all=[...document.querySelectorAll(".source-block")];
+    const specs=[
+      ["Rifugio", all.find(el=>textOf(el).includes("RIFUGIO")), "Spazio personale"],
+      ["Vademecum", all.find(el=>el.dataset.sourceGroup==="VADEMECUM CREAZIONE"), "Creazione delle rune"],
+      ["Tattica", all.find(el=>el.dataset.sourceGroup==="TACTICA DI MARY"), "Gestione in combattimento"],
+      ["Strumenti", all.find(el=>el.dataset.sourceGroup==="STRUMENTI DI MARY"), "Equipaggiamento creativo"]
+    ].filter(x=>x[1]);
+    if(!specs.length) return;
+    const shell=makeShell("Atelier Runico","Centro operativo",specs.length+" aree");
+    const grid=shell.querySelector(".character-console-grid");
+    specs.forEach(([label,target,detail])=>grid.append(button(label,detail,target)));
+    panel.prepend(shell);
+  };
+  const install = () => {
+    const sheet=document.body?.dataset?.sheet;
+    if(!SHEETS.has(sheet)) return;
+    if(sheet==="jhaggork") installJhaggork();
+    if(sheet==="niger") installNiger();
+    if(sheet==="mary") installMary();
+  };
+  const start=()=>{
+    install();
+    const observer=new MutationObserver(()=>queueMicrotask(install));
+    observer.observe(document.getElementById("panels")||document.body,{childList:true,subtree:true});
+  };
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start,{once:true});
+  else start();
+})();
