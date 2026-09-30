@@ -877,10 +877,7 @@ const DEFAULT_STATE = {
 
   equipDettagli: "<p><b>Tunica del Monaco Difensore:</b> la tunica ha la capacità di rendere invisibile il possessore, per 30 minuti o per 2 turni (se viene colpito l'invisibilità svanisce). In più fornisce automaticamente dei bonus alla furtività +1 (se invisibile +2), alla destrezza +1 (se invisibile +2), acrobazie +2 (se invisibile +3).</p><p><b>Maschera di Anubis:</b> maschera che consente di assorbire anime dei nemici e tramutarle in energia e PF; i nemici uccisi da questa abilità saranno al comando del possessore fino alla fine dello scontro. Danno maschera variabile a turno a seconda del nemico e della potenza da assorbire. CD 17.</p><p><b>Scudo Bastilante di Luce:</b> apparentemente uno scudo normale, se impugnato da un soggetto con forza superiore a 17 lo scudo si frammenta in tre parti aprendosi e illuminandosi sulla parte superiore di colore giallo acceso. Lo scudo ha una particolare abilità di allontanamento dei nemici: infatti tutti i nemici con CA inferiore a 15 non si possono avvicinare allo scudo per volontà, tutti quelli con CA superiore dovranno effettuare un CD Destrezza 16. Lo scudo può essere usato come arma per colpire, spintonare o spazzare via un nemico con la sua abilità di allontanamento 10 caselle + danno eventuale minimo 1d10; chiunque colpisca il PG subisce 1d6 danni elettrici.</p><p><b>Guanti del Monaco Difensore</b> (inventario): +2 ai danni da corpo a corpo. I guanti hanno la capacità di attrarre a sé tutti gli oggetti di qualsiasi lega metallica, in più presentano dei piccoli aculei sui palmi che favoriscono l'arrampicata.<br><b>1 x Scontro</b> Durante il turno nemico il giocatore può effettuare un tiro di “parata dell'attacco” con un d20 opposto al tiro per colpire del suo nemico. Se il dado dovesse essere più alto del nemico allora il giocatore parerebbe il colpo senza subire danni, in caso contrario se dovesse essere inferiore subirebbe solamente la metà dei danni.<br><b>1 x Scontro</b> il giocatore può evocare una barriera protettiva di medie dimensioni dai guanti, costituita interamente in plasma, praticamente indistruttibile. Quest'ultima può essere utilizzata come azione bonus se il giocatore presenta meno di 20 PF, essa coprirà una zona massima di 3 caselle e permetterà al PG di scappare o parare qualcosa di molto forte se necessario (durata 3 turni). CD 15; <b>3P</b>.</p>",
 
-  inventario: [
-    ["\u2713","Guanti del Monaco Difensore","3","+2 ai danni da corpo a corpo, i guanti hanno la capacit\u00e0 di attrarre a s\u00e9 tutti gli oggetti di qualsiasi lega metallica, in pi\u00f9 presentano dei piccoli aculei sui palmi che favoriscono l'arrampicata.<br><br>1 x Scontro Durante il turno nemico il giocatore pu\u00f2 effettuare un tiro di \"parata dell'attacco\" con un d20 opposto al tiro per colpire del suo nemico. Se il dado dovesse essere pi\u00f9 alto del nemico allora il giocatore parerebbe il colpo senza subire danni, in caso contrario se dovesse essere inferiore subirebbe solamente la met\u00e0 dei danni.<br><br>1 x Scontro il giocatore pu\u00f2 evocare una barriera protettiva di medie dimensioni dai guanti , costituita interamente in plasma, praticamente indistruttibile. Quest'ultima pu\u00f2 essere utilizzata come azione bonus se il giocatore presenta meno di 20 PF, essa coprir\u00e0 una zona massima di 3 caselle e permetter\u00e0 al pg di scappare o parare qualcosa di molto forte se necessario. (durata 3 turni) CD 15.",""],
-    ["\u2713","1 Moneta","0","Sporca e leggermente arrugginita.",""]
-  ],
+  inventario: [["✓","GUANTI DEL MONACO DIFENSORE","3","+2 ai danni da corpo a corpo,I guanti hanno la capacità di attrarre a sé tutti gli oggetti di qualsiasi lega metallica, in più presentano dei piccoli aculei sui palmi che favoriscono l'arrampicata. \n1 x Scontro Durante il turno nemico il giocatore può effettuare un tiro di \"parata dell'attacco\" con un d20 opposto al tiro per colpire del suo nemico. Se il dado dovesse essere più alto del nemico allora il giocatore parerebbe il colpo senza subire danni, in caso contrario se dovesse essere inferiore subirebbe solamente la metà dei danni.\n1 x Scontro il giocatore può evocare una barriera protettiva di medie dimensioni dai guanti , costituita interamente in plasma, praticamente indistruttibile. Quest’ultima può essere utilizzata come azione bonus se il giocatore presenta meno di 20 PF, essa coprirà una zona massima di 3 caselle e permetterà al pg di scappare o parare qualcosa di molto forte se necessario. (durata 3 turni) CD 15;",""],["✓","1 Moneta. (sporca e leggermente arrugginita)","0","",""]],
   capacitaMax: 50,
 
   passive: [
@@ -3166,7 +3163,27 @@ function migrateInventoryPoint12(){
   if (changed) queueSave();
 }
 
+/* Punto 12 — Inventario canonico dalla scheda originale Drive.
+   Migra solo le voci ancora identiche al vecchio default: eventuali modifiche
+   reali del giocatore restano intatte. Immagini e checkbox vengono preservate. */
+const INVENTORY_SOURCE_PATCHES = [{"old":["✓","Guanti del Monaco Difensore","3","+2 ai danni da corpo a corpo, i guanti hanno la capacità di attrarre a sé tutti gli oggetti di qualsiasi lega metallica, in più presentano dei piccoli aculei sui palmi che favoriscono l'arrampicata.<br><br>1 x Scontro Durante il turno nemico il giocatore può effettuare un tiro di \"parata dell'attacco\" con un d20 opposto al tiro per colpire del suo nemico. Se il dado dovesse essere più alto del nemico allora il giocatore parerebbe il colpo senza subire danni, in caso contrario se dovesse essere inferiore subirebbe solamente la metà dei danni.<br><br>1 x Scontro il giocatore può evocare una barriera protettiva di medie dimensioni dai guanti , costituita interamente in plasma, praticamente indistruttibile. Quest'ultima può essere utilizzata come azione bonus se il giocatore presenta meno di 20 PF, essa coprirà una zona massima di 3 caselle e permetterà al pg di scappare o parare qualcosa di molto forte se necessario. (durata 3 turni) CD 15.",""],"next":["✓","GUANTI DEL MONACO DIFENSORE","3","+2 ai danni da corpo a corpo,I guanti hanno la capacità di attrarre a sé tutti gli oggetti di qualsiasi lega metallica, in più presentano dei piccoli aculei sui palmi che favoriscono l'arrampicata. \n1 x Scontro Durante il turno nemico il giocatore può effettuare un tiro di \"parata dell'attacco\" con un d20 opposto al tiro per colpire del suo nemico. Se il dado dovesse essere più alto del nemico allora il giocatore parerebbe il colpo senza subire danni, in caso contrario se dovesse essere inferiore subirebbe solamente la metà dei danni.\n1 x Scontro il giocatore può evocare una barriera protettiva di medie dimensioni dai guanti , costituita interamente in plasma, praticamente indistruttibile. Quest’ultima può essere utilizzata come azione bonus se il giocatore presenta meno di 20 PF, essa coprirà una zona massima di 3 caselle e permetterà al pg di scappare o parare qualcosa di molto forte se necessario. (durata 3 turni) CD 15;",""]},{"old":["✓","1 Moneta","0","Sporca e leggermente arrugginita.",""],"next":["✓","1 Moneta. (sporca e leggermente arrugginita)","0","",""]}];
+function migrateInventorySourceFromOriginal(){
+  if (!STATE || !Array.isArray(STATE.inventario)) return;
+  for (const patch of INVENTORY_SOURCE_PATCHES){
+    const old = patch.old, next = patch.next;
+    const idx = STATE.inventario.findIndex(it => Array.isArray(it)
+      && String(it[1] ?? "") === String(old[1] ?? "")
+      && String(it[2] ?? "") === String(old[2] ?? "")
+      && String(it[3] ?? "") === String(old[3] ?? ""));
+    if (idx < 0) continue;
+    if (!next){ STATE.inventario.splice(idx,1); continue; }
+    const cur = STATE.inventario[idx];
+    STATE.inventario[idx] = [cur[0], next[1], next[2], next[3], cur[4] || next[4] || ""];
+  }
+}
+
 function renderAll(){
+  migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
   renderPoteri();
