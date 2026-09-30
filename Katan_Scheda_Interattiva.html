@@ -3146,6 +3146,12 @@ function migrateKatanPowerStructure(){
     changed = true;
   }
 
+  const bastioneAbility = STATE.abilita.find(x=>slugify(x && x.nome).startsWith("bastione-della-volonta"));
+  if (bastioneAbility && bastioneAbility.nome !== "Bastione della Volontà"){
+    bastioneAbility.nome = "Bastione della Volontà";
+    changed = true;
+  }
+
   const ensureLimited = (nome, desc, max)=>{
     const idx = STATE.risorse.findIndex(r=>slugify(r && r.nome) === slugify(nome));
     if (idx < 0){
@@ -3172,6 +3178,11 @@ function migrateKatanPowerStructure(){
     "1 utilizzo ogni 2 riposi lunghi.",
     1
   );
+  const superResource = STATE.risorse.find(r=>slugify(r && r.nome) === "superabilita");
+  if (superResource && superResource.desc === "Potenzia simultaneamente tutte le caratteristiche in un'unica forma (vedi Poteri Speciali per il dettaglio completo)."){
+    superResource.desc = "1 utilizzo ogni 2 riposi lunghi. Potenzia simultaneamente tutte le caratteristiche; il dettaglio completo resta nella macro-card SUPERABILITÀ.";
+    changed = true;
+  }
 
   const morningStarMicro = "<p><u>Stella del Mattino Armato:</u> Arma Livelliana di luce perpetua, 3d6+2 danni per attacco; in presenza del sole può aggiungere 1d6 danni incendiari per 2 utilizzi a scontro. Per gli effetti completi vedi Equipaggiamento.</p>";
   if (!/Stella del Mattino Armato/i.test(String(STATE.attacchi || ""))){
