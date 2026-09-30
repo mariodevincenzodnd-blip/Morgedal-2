@@ -846,8 +846,8 @@ function canonicalizeTrucchettoCategorySpelling(){
 
 /* BLOCCO 3 · LUX — migrazione una tantum, non distruttiva.
    La scheda primaria Drive identifica esplicitamente queste voci come ABILITÀ.
-   ARMATURA WAIKU resta esclusa: la fonte primaria aggiornata dice ABILITÀ,
-   mentre la checklist storica la richiede come INCANTESIMO; la decisione resta a Mario. */
+   ARMATURA WAIKU è esclusa da questo gruppo perché Mario ha stabilito come
+   canonica per il sito la categoria INCANTESIMO. */
 function luxPlainName(value){
   const holder = document.createElement("div");
   holder.innerHTML = String(value || "");
@@ -921,6 +921,57 @@ function migrateLuxBlock3SourceCategories(){
   STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
   STATE._migrations.block3LuxSourceCategories = true;
   return true || changed;
+}
+
+/* BLOCCO 3 · LUX — decisione canonica di Mario: ARMATURA WAIKU = INCANTESIMO.
+   La migrazione preserva ID, larghezza, visibilità e testo regolistico; cambia
+   soltanto la sede/categoria e l'etichetta iniziale di categoria nella card. */
+function migrateLuxBlock3WaikuAsSpell(){
+  if (!STATE || (STATE._migrations && STATE._migrations.block3LuxWaikuAsSpell)) return false;
+  let changed = false;
+  if (!Array.isArray(STATE.abilita)) STATE.abilita = [];
+  if (!Array.isArray(STATE.incantesimo)) STATE.incantesimo = [];
+
+  let waiku = null;
+  const keptAbilities = [];
+  for (const item of STATE.abilita){
+    if (!waiku && luxPlainName(item && item.nome) === "armatura waiku"){
+      waiku = item;
+      changed = true;
+    } else {
+      keptAbilities.push(item);
+    }
+  }
+  STATE.abilita = keptAbilities;
+
+  const existingIndex = STATE.incantesimo.findIndex(item=>luxPlainName(item && item.nome) === "armatura waiku");
+  if (existingIndex >= 0){
+    waiku = waiku || STATE.incantesimo[existingIndex];
+  }
+  if (waiku){
+    waiku.tag = "Incantesimo";
+    if (typeof waiku.desc === "string"){
+      const normalized = waiku.desc.replace(
+        /(<div class="canonical-text">)ABILIT(?:À|A’|A')(s*)/i,
+        "$1INCANTESIMO$2"
+      );
+      if (normalized !== waiku.desc){
+        waiku.desc = normalized;
+        changed = true;
+      }
+    }
+    if (existingIndex < 0){
+      STATE.incantesimo.push(waiku);
+      changed = true;
+    } else if (STATE.incantesimo[existingIndex] !== waiku){
+      STATE.incantesimo[existingIndex] = waiku;
+      changed = true;
+    }
+  }
+
+  STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
+  STATE._migrations.block3LuxWaikuAsSpell = true;
+  return true;
 }
 
 /* BLOCCO 3 · LUX — contatori e deduplicazione operativa.
@@ -3278,6 +3329,7 @@ function migrateInventorySourceFromOriginal(){
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   if (migrateLuxBlock3SourceCategories()) queueSave();
+  if (migrateLuxBlock3WaikuAsSpell()) queueSave();
   if (migrateLuxBlock3OperationalTrackers()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
