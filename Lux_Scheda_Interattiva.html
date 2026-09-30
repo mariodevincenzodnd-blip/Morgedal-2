@@ -857,51 +857,70 @@ function luxPlainName(value){
     .trim()
     .toLowerCase();
 }
-const LUX_BLOCK3_ABILITY_NAMES = new Set([
-  "evocazione ancestrale",
-  "livelli di evocazione",
-  "totem lucente",
-  "armatura lucente",
-  "imposizione delle mani",
-  "aura di protezione",
-  "marchio del cacciatore",
-  "punizione divina"
-]);
+/* BLOCCO 3 · LUX — decisione canonica di Mario:
+   Lux NON possiede la categoria "Abilità". Le capacità attive sono soltanto
+   INCANTESIMI oppure TRUCCHETTI; le passive restano PASSIVE.
+   La migrazione è non distruttiva: eventuali vecchie card finite in abilita[]
+   vengono riportate negli Incantesimi preservando ID, testo, larghezza e visibilità. */
 function migrateLuxBlock3SourceCategories(){
-  if (!STATE || (STATE._migrations && STATE._migrations.block3LuxSourceCategories)) return false;
+  if (!STATE) return false;
+  STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
+  if (STATE._migrations.block3LuxNoAbilities) return false;
+
   let changed = false;
   if (!Array.isArray(STATE.abilita)) STATE.abilita = [];
   if (!Array.isArray(STATE.incantesimo)) STATE.incantesimo = [];
   if (!Array.isArray(STATE.truccetti)) STATE.truccetti = [];
 
-  const abilityKeys = new Set(STATE.abilita.map(x=>luxPlainName(x && x.nome)));
-  const keptIncantesimi = [];
-  for (const item of STATE.incantesimo){
-    const key = luxPlainName(item && item.nome);
-    if (LUX_BLOCK3_ABILITY_NAMES.has(key)){
-      if (!abilityKeys.has(key)){
-        item.tag = "Abilit\u00e0";
-        STATE.abilita.push(item);
-        abilityKeys.add(key);
-      }
+  const normalizeSpell = (item)=>{
+    if (!item || typeof item !== "object") return item;
+    if (item.tag !== "Incantesimo"){
+      item.tag = "Incantesimo";
       changed = true;
-    } else {
-      keptIncantesimi.push(item);
     }
+    if (typeof item.desc === "string"){
+      const normalized = item.desc.replace(
+        /(<div class="canonical-text">)ABILIT(?:À|A’|A')(\s*)/i,
+        "$1INCANTESIMO$2"
+      );
+      if (normalized !== item.desc){
+        item.desc = normalized;
+        changed = true;
+      }
+    }
+    return item;
+  };
+
+  // Riporta qualsiasi vecchia card Abilità negli Incantesimi.
+  for (const item of STATE.abilita){
+    normalizeSpell(item);
+    const id = item && item._id ? String(item._id) : "";
+    const key = luxPlainName(item && item.nome);
+    const existingIndex = STATE.incantesimo.findIndex(x=>
+      (id && x && String(x._id||"") === id) ||
+      (!id && luxPlainName(x && x.nome) === key)
+    );
+    if (existingIndex >= 0) STATE.incantesimo[existingIndex] = item;
+    else STATE.incantesimo.push(item);
+    changed = true;
   }
-  if (keptIncantesimi.length !== STATE.incantesimo.length){
-    STATE.incantesimo = keptIncantesimi;
+  if (STATE.abilita.length){
+    STATE.abilita = [];
     changed = true;
   }
 
+  // Tutto ciò che appartiene alla collezione Incantesimi viene reso coerente.
+  STATE.incantesimo.forEach(normalizeSpell);
+
+  // Mantiene le informazioni operative dei Trucchetti già consolidate nel Blocco 3.
   const usageByName = new Map([
     ["prigione divina", "2 x Riposo Lungo"],
-    ["percezione del divino", "3 x Riposo Lungo \u00b7 CD 15"],
-    ["benedizione", "3 x Riposo Lungo \u00b7 CD 15"],
+    ["percezione del divino", "3 x Riposo Lungo · CD 15"],
+    ["benedizione", "3 x Riposo Lungo · CD 15"],
     ["aiuto divino", "1 x 2 Riposi Lunghi"],
-    ["scheletro demoniaco", "Non consuma slot \u2014 solo quando Ervork \u00e8 presente sul campo di battaglia."],
-    ["gennaro \u2014 scheletro demoniaco elettrificato", "Avanzato \u2014 non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."],
-    ["scheletro demoniaco elettrificato gennaro", "Avanzato \u2014 non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."]
+    ["scheletro demoniaco", "Non consuma slot — solo quando Ervork è presente sul campo di battaglia."],
+    ["gennaro — scheletro demoniaco elettrificato", "Avanzato — non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."],
+    ["scheletro demoniaco elettrificato gennaro", "Avanzato — non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."]
   ]);
   for (const t of STATE.truccetti){
     const key = luxPlainName(t && t.nome);
@@ -909,7 +928,7 @@ function migrateLuxBlock3SourceCategories(){
       t.uso = usageByName.get(key);
       changed = true;
     }
-    if ((key.includes("gennaro") && key.includes("scheletro demoniaco elettrificato"))){
+    if (key.includes("gennaro") && key.includes("scheletro demoniaco elettrificato")){
       const canonicalTitle = 'Scheletro Demoniaco Elettrificato <span style="color:var(--red-glow);">“</span><span style="color:var(--violet);">GENNARO</span><span style="color:var(--red-glow);">”</span>';
       if (String(t.nome) !== canonicalTitle){
         t.nome = canonicalTitle;
@@ -918,9 +937,8 @@ function migrateLuxBlock3SourceCategories(){
     }
   }
 
-  STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
-  STATE._migrations.block3LuxSourceCategories = true;
-  return true || changed;
+  STATE._migrations.block3LuxNoAbilities = true;
+  return true;
 }
 
 /* BLOCCO 3 · LUX — decisione canonica di Mario: ARMATURA WAIKU = INCANTESIMO.
@@ -2091,7 +2109,7 @@ function renderScheda(){
    MASTER EDITOR
    Modalità di modifica strutturale riservata al Master: categoria,
    titolo/etichetta, testo, larghezza e ordine dei riquadri di
-   Passive/Truccetti/Risorse/Ambiti/Campi. Nessuna auto-correzione:
+   Passive/Trucchetti/Incantesimi/Risorse/Ambiti/Campi. Per Lux non esiste la categoria Abilità. Nessuna auto-correzione:
    il testo inserito viene salvato esattamente com'è scritto.
    Attivabile SOLO da chi ha già sbloccato la modalità Master
    (password Master), ed è completamente invisibile/inattiva in
@@ -2102,7 +2120,6 @@ const MASTER_CATS = [
   { key:"passive", label:"Passiva" },
   { key:"truccetti", label:"Trucchetto" },
   { key:"incantesimo", label:"Incantesimo" },
-  { key:"abilita", label:"Abilità" },
   { key:"risorse", label:"Risorsa" },
   { key:"ambiti", label:"Ambito" },
   { key:"campiAttiva", label:"Campo" }
@@ -2499,7 +2516,6 @@ function renderPoteri(){
         ${masterOn ? masterNewBoxBtn("trucchetti", "Trucchetto") : ""}
       </div>
     </div>
-    ${(masterOn || STATE.abilita.some(x=>!x.hidden)) ? `<div class="card"><h2>Abilità</h2>${abilitaHtml}${masterOn ? masterNewBoxBtn("abilita", "Abilità") : ""}</div>` : ""}
     ${(masterOn || STATE.incantesimo.some(x=>!x.hidden)) ? `<div class="card"><h2>Incantesimi</h2>${incantesimoHtml}${masterOn ? masterNewBoxBtn("incantesimo", "Incantesimo") : ""}</div>` : ""}
   `;
 
