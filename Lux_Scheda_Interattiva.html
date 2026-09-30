@@ -923,6 +923,63 @@ function migrateLuxBlock3SourceCategories(){
   return true || changed;
 }
 
+/* BLOCCO 3 · LUX — contatori e deduplicazione operativa.
+   GENNARO conserva il vincolo di 1 utilizzo ogni 2 riposi lunghi.
+   Bastone Santificato resta nella sua sede Equipaggiamento e non viene duplicato
+   tra gli Incantesimi quando è ancora presente nel vecchio stato importato. */
+function migrateLuxBlock3OperationalTrackers(){
+  if (!STATE || (STATE._migrations && STATE._migrations.block3LuxOperationalTrackers)) return false;
+  if (!Array.isArray(STATE.risorse)) STATE.risorse = [];
+  if (!Array.isArray(STATE.truccetti)) STATE.truccetti = [];
+  if (!Array.isArray(STATE.incantesimo)) STATE.incantesimo = [];
+
+  const hasGennaro = STATE.truccetti.some(t=>{
+    const k = luxPlainName(t && t.nome);
+    return k.includes("gennaro") && k.includes("scheletro demoniaco elettrificato");
+  });
+  const hasGennaroTracker = STATE.risorse.some(r=>{
+    const k = luxPlainName(r && r.nome);
+    return k.includes("gennaro") && k.includes("scheletro demoniaco elettrificato");
+  });
+  if (hasGennaro && !hasGennaroTracker){
+    STATE.risorse.push({
+      nome:"Scheletro Demoniaco Elettrificato GENNARO",
+      desc:"",
+      max:1,
+      used:0,
+      resetEvery:2,
+      restProgress:0,
+      _id:"lux-risorse-gennaro"
+    });
+  }
+
+  const hasBastoneInEquip = !!(
+    (STATE.equip && /bastone\s+santificato/i.test(String(STATE.equip.arma1 || ""))) ||
+    /bastone\s+(?:santificato|divino)/i.test(String(STATE.equipDettagli || ""))
+  );
+  if (hasBastoneInEquip){
+    STATE.incantesimo = STATE.incantesimo.filter(x=>luxPlainName(x && x.nome) !== "bastone santificato");
+  }
+
+  STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
+  STATE._migrations.block3LuxOperationalTrackers = true;
+  return true;
+}
+function advanceLuxLongRest(resource){
+  if (!resource) return;
+  const every = Math.max(1, Number(resource.resetEvery || 1));
+  if (every <= 1){
+    resource.used = 0;
+    resource.restProgress = 0;
+    return;
+  }
+  resource.restProgress = Math.max(0, Number(resource.restProgress || 0)) + 1;
+  if (resource.restProgress >= every){
+    resource.used = 0;
+    resource.restProgress = 0;
+  }
+}
+
 const ATTACCHI_LINKS = [{"label": "Bastone Santificato", "tab": "equip", "anchor": "anchor-bastone-santificato-arma-livelliana"}];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -2376,7 +2433,14 @@ function renderPoteri(){
     </div>` : ""}
 
     <div class="card"><h2>Capacit\u00e0 Passive</h2>${passiveHtml}${masterOn ? masterNewBoxBtn("passive", "Passiva") : ""}</div>
-    <div class="card"><h2>Truccetti \u2014 Dettagli</h2>${truccettiHtml}${masterOn ? masterNewBoxBtn("truccetti", "Trucchetto") : ""}</div>
+    <div class="card">
+      <h2>Trucchetti \u2014 Dettagli</h2>
+      ${truccettiHtml}
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn primary" id="reset-trucchetti">Riposo Lungo \u2014 aggiorna utilizzi Trucchetti</button>
+        ${masterOn ? masterNewBoxBtn("trucchetti", "Trucchetto") : ""}
+      </div>
+    </div>
     ${(masterOn || STATE.abilita.some(x=>!x.hidden)) ? `<div class="card"><h2>Abilità</h2>${abilitaHtml}${masterOn ? masterNewBoxBtn("abilita", "Abilità") : ""}</div>` : ""}
     ${(masterOn || STATE.incantesimo.some(x=>!x.hidden)) ? `<div class="card"><h2>Incantesimi</h2>${incantesimoHtml}${masterOn ? masterNewBoxBtn("incantesimo", "Incantesimo") : ""}</div>` : ""}
   `;
@@ -2412,7 +2476,15 @@ function renderPoteri(){
   });
   const resetRisorseBtn = document.getElementById("reset-risorse");
   if (resetRisorseBtn) resetRisorseBtn.addEventListener("click", ()=>{
-    STATE.risorse.forEach(r=>r.used=0); renderPoteri(); queueSave();
+    STATE.risorse.forEach(r=>{
+      if (!linkedResourceByKey.has(luxPlainName(r && r.nome))) advanceLuxLongRest(r);
+    });
+    renderPoteri(); queueSave();
+  });
+  const resetTrucchettiBtn = document.getElementById("reset-trucchetti");
+  if (resetTrucchettiBtn) resetTrucchettiBtn.addEventListener("click", ()=>{
+    linkedResourceByKey.forEach(({resource})=>advanceLuxLongRest(resource));
+    renderPoteri(); queueSave();
   });
 
   document.querySelectorAll('[data-rich-arr]').forEach(el=>{
@@ -3199,6 +3271,7 @@ function migrateInventorySourceFromOriginal(){
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   if (migrateLuxBlock3SourceCategories()) queueSave();
+  if (migrateLuxBlock3OperationalTrackers()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
