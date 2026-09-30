@@ -825,6 +825,25 @@ function canonicalizeTrucchettoCategorySpelling(){
   return changed;
 }
 
+/* BLOCCO 4 · PUNTO 2 — pulizia non distruttiva della Prima Utilità.
+   Rimuove soltanto i tre paragrafi legacy riconoscibili che sono già
+   ricollocati nelle sezioni corrette: Traduttore e Branchie tra le Passive,
+   Corpo da Lumaca nei Corredi Genetici. Eventuali altri testi personali
+   presenti in STATE.attacchi restano invariati. */
+function migrateOlaBlock4Point2QuickUtility(){
+  if (!STATE || typeof STATE.attacchi !== "string") return false;
+  const legacyBlocks = [
+    '<p><b>Traduttore (+3):</b> da utilizzare quando sento una lingua che non conosco, per provare a tradurla e a usarla.</p>',
+    '<p><b>Branchie</b></p>',
+    '<p><b>Corpo da Lumaca</b> (vedi Risorse)</p>'
+  ];
+  let next = STATE.attacchi;
+  legacyBlocks.forEach(block => { next = next.replace(block, ""); });
+  if (next === STATE.attacchi) return false;
+  STATE.attacchi = next.trim() || '<p><b>Attacchi Fisici:</b> 3d6 + 2</p>';
+  return true;
+}
+
 const ATTACCHI_LINKS = [{"label": "Guanti del Monaco Difensore", "tab": "equip", "anchor": "anchor-guanti-del-monaco-difensore"}];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -3221,6 +3240,7 @@ function migrateInventorySourceFromOriginal(){
 
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
+  if (migrateOlaBlock4Point2QuickUtility()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
