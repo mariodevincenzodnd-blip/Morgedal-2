@@ -2929,7 +2929,27 @@ function migrateInventoryPoint12(){
   if (changed) queueSave();
 }
 
+/* Punto 12 — Inventario canonico dalla scheda originale Drive.
+   Migra solo le voci ancora identiche al vecchio default: eventuali modifiche
+   reali del giocatore restano intatte. Immagini e checkbox vengono preservate. */
+const INVENTORY_SOURCE_PATCHES = [];
+function migrateInventorySourceFromOriginal(){
+  if (!STATE || !Array.isArray(STATE.inventario)) return;
+  for (const patch of INVENTORY_SOURCE_PATCHES){
+    const old = patch.old, next = patch.next;
+    const idx = STATE.inventario.findIndex(it => Array.isArray(it)
+      && String(it[1] ?? "") === String(old[1] ?? "")
+      && String(it[2] ?? "") === String(old[2] ?? "")
+      && String(it[3] ?? "") === String(old[3] ?? ""));
+    if (idx < 0) continue;
+    if (!next){ STATE.inventario.splice(idx,1); continue; }
+    const cur = STATE.inventario[idx];
+    STATE.inventario[idx] = [cur[0], next[1], next[2], next[3], cur[4] || next[4] || ""];
+  }
+}
+
 function renderAll(){
+  migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
