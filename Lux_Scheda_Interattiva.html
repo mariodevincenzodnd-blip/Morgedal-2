@@ -817,7 +817,7 @@ function slugify(s){
 }
 
 /* Colore funzionale del "tag" di una capacit\u00e0, dedotto dal testo del tag stesso
-   (non dall'array di appartenenza): Passiva = viola, Trucchetto = blu, Abilit\u00e0/Incantesimo = rosso. */
+   (non dall'array di appartenenza): Passiva = arancione, Trucchetto = blu, Abilit\u00e0 = rosso, Incantesimo = viola. */
 function tagColorClass(tag){
   const t = String(tag || "");
   if (/^passiva/i.test(t)) return "tag-passiva";
@@ -842,6 +842,85 @@ function canonicalizeTrucchettoCategorySpelling(){
   };
   walk(STATE);
   return changed;
+}
+
+/* BLOCCO 3 · LUX — migrazione una tantum, non distruttiva.
+   La scheda primaria Drive identifica esplicitamente queste voci come ABILITÀ.
+   ARMATURA WAIKU resta esclusa: la fonte primaria aggiornata dice ABILITÀ,
+   mentre la checklist storica la richiede come INCANTESIMO; la decisione resta a Mario. */
+function luxPlainName(value){
+  const holder = document.createElement("div");
+  holder.innerHTML = String(value || "");
+  return (holder.textContent || holder.innerText || "")
+    .replace(/[“”"']/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+const LUX_BLOCK3_ABILITY_NAMES = new Set([
+  "evocazione ancestrale",
+  "livelli di evocazione",
+  "totem lucente",
+  "armatura lucente",
+  "imposizione delle mani",
+  "aura di protezione",
+  "marchio del cacciatore",
+  "punizione divina"
+]);
+function migrateLuxBlock3SourceCategories(){
+  if (!STATE || (STATE._migrations && STATE._migrations.block3LuxSourceCategories)) return false;
+  let changed = false;
+  if (!Array.isArray(STATE.abilita)) STATE.abilita = [];
+  if (!Array.isArray(STATE.incantesimo)) STATE.incantesimo = [];
+  if (!Array.isArray(STATE.truccetti)) STATE.truccetti = [];
+
+  const abilityKeys = new Set(STATE.abilita.map(x=>luxPlainName(x && x.nome)));
+  const keptIncantesimi = [];
+  for (const item of STATE.incantesimo){
+    const key = luxPlainName(item && item.nome);
+    if (LUX_BLOCK3_ABILITY_NAMES.has(key)){
+      if (!abilityKeys.has(key)){
+        item.tag = "Abilit\u00e0";
+        STATE.abilita.push(item);
+        abilityKeys.add(key);
+      }
+      changed = true;
+    } else {
+      keptIncantesimi.push(item);
+    }
+  }
+  if (keptIncantesimi.length !== STATE.incantesimo.length){
+    STATE.incantesimo = keptIncantesimi;
+    changed = true;
+  }
+
+  const usageByName = new Map([
+    ["prigione divina", "2 x Riposo Lungo"],
+    ["percezione del divino", "3 x Riposo Lungo \u00b7 CD 15"],
+    ["benedizione", "3 x Riposo Lungo \u00b7 CD 15"],
+    ["aiuto divino", "1 x 2 Riposi Lunghi"],
+    ["scheletro demoniaco", "Non consuma slot \u2014 solo quando Ervork \u00e8 presente sul campo di battaglia."],
+    ["gennaro \u2014 scheletro demoniaco elettrificato", "Avanzato \u2014 non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."],
+    ["scheletro demoniaco elettrificato gennaro", "Avanzato \u2014 non consuma slot, 1x ogni 2 riposi lunghi (richiede Ola ed Ervork presenti insieme)."]
+  ]);
+  for (const t of STATE.truccetti){
+    const key = luxPlainName(t && t.nome);
+    if ((!t.uso || !String(t.uso).trim()) && usageByName.has(key)){
+      t.uso = usageByName.get(key);
+      changed = true;
+    }
+    if ((key.includes("gennaro") && key.includes("scheletro demoniaco elettrificato"))){
+      const canonicalTitle = 'Scheletro Demoniaco Elettrificato <span style="color:var(--red-glow);">“</span><span style="color:var(--violet);">GENNARO</span><span style="color:var(--red-glow);">”</span>';
+      if (String(t.nome) !== canonicalTitle){
+        t.nome = canonicalTitle;
+        changed = true;
+      }
+    }
+  }
+
+  STATE._migrations = (STATE._migrations && typeof STATE._migrations === "object") ? STATE._migrations : {};
+  STATE._migrations.block3LuxSourceCategories = true;
+  return true || changed;
 }
 
 const ATTACCHI_LINKS = [{"label": "Bastone Santificato", "tab": "equip", "anchor": "anchor-bastone-santificato-arma-livelliana"}];
@@ -2179,8 +2258,19 @@ function renderPoteri(){
   const slotRefsHtml = slotRefs.length ? `<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">${slotRefs.map(r=>`<div style="font-size:10.5px;font-style:italic;color:${r.color};">${esc(r.mark)} ${esc(r.note)}</div>`).join("")}</div>` : "";
 
   const masterOn = isMasterEditorOn();
+  const trucchettoKeys = new Set((STATE.truccetti || []).map(t=>luxPlainName(t && t.nome)));
+  const linkedResourceByKey = new Map();
+  (STATE.risorse || []).forEach((r,i)=>{
+    const key = luxPlainName(r && r.nome);
+    if (trucchettoKeys.has(key) && !linkedResourceByKey.has(key)) linkedResourceByKey.set(key,{resource:r,index:i});
+  });
+  const hasStandaloneResources = (STATE.risorse || []).some(r=>{
+    const key = luxPlainName(r && r.nome);
+    return !linkedResourceByKey.has(key) && (masterOn || !r.hidden);
+  });
 
   const risorseHtml = STATE.risorse.map((r,i)=>{
+    if (linkedResourceByKey.has(luxPlainName(r && r.nome))) return "";
     if (!masterOn && r.hidden) return "";
     const pips = Array.from({length:r.max}).map((_,p)=>`<button class="pip ${p<r.used?'used':''}" data-respip="${i}-${p}"></button>`).join("");
     const nameField = masterOn
@@ -2244,6 +2334,13 @@ function renderPoteri(){
       ${usoField}
       ${nameField}
       <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich-arr="truccetti-${i}">${t.desc}</div>
+      ${(()=>{
+        const linked = linkedResourceByKey.get(luxPlainName(t && t.nome));
+        if (!linked) return "";
+        const r = linked.resource, ri = linked.index;
+        const pips = Array.from({length:r.max}).map((_,p)=>`<button class="pip ${p<r.used?'used':''}" data-respip="${ri}-${p}"></button>`).join("");
+        return `<div style="margin-top:10px;"><div class="pips">${pips}</div></div>`;
+      })()}
     </div>`;
   }).join("");
 
@@ -2269,14 +2366,14 @@ function renderPoteri(){
       <div style="margin-top:12px;"><button class="btn primary" id="reset-slots">Riposo Lungo \u2014 recupera tutti gli slot</button></div>
     </div>
 
-    <div class="card">
-      <h2>Risorse & Truccetti <small>clic sui cerchi per registrare un utilizzo</small></h2>
+    ${(hasStandaloneResources || masterOn) ? `<div class="card">
+      <h2>Risorse Operative <small>clic sui cerchi per registrare un utilizzo</small></h2>
       ${risorseHtml}
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn primary" id="reset-risorse">Riposo Lungo \u2014 recupera le risorse</button>
         ${masterOn ? masterNewBoxBtn("risorse", "Risorsa") : ""}
       </div>
-    </div>
+    </div>` : ""}
 
     <div class="card"><h2>Capacit\u00e0 Passive</h2>${passiveHtml}${masterOn ? masterNewBoxBtn("passive", "Passiva") : ""}</div>
     <div class="card"><h2>Truccetti \u2014 Dettagli</h2>${truccettiHtml}${masterOn ? masterNewBoxBtn("truccetti", "Trucchetto") : ""}</div>
@@ -2313,7 +2410,8 @@ function renderPoteri(){
       renderPoteri(); queueSave();
     });
   });
-  document.getElementById("reset-risorse").addEventListener("click", ()=>{
+  const resetRisorseBtn = document.getElementById("reset-risorse");
+  if (resetRisorseBtn) resetRisorseBtn.addEventListener("click", ()=>{
     STATE.risorse.forEach(r=>r.used=0); renderPoteri(); queueSave();
   });
 
@@ -3100,6 +3198,7 @@ function migrateInventorySourceFromOriginal(){
 
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
+  if (migrateLuxBlock3SourceCategories()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
