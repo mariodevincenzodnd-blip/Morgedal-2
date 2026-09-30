@@ -808,15 +808,33 @@ function slugify(s){
 }
 
 /* Colore funzionale del "tag" di una capacit\u00e0, dedotto dal testo del tag stesso
-   (non dall'array di appartenenza): Passiva = viola, Truccetto = blu, Abilit\u00e0/Incantesimo = rosso. */
+   (non dall'array di appartenenza): Passiva = viola, Trucchetto = blu, Abilit\u00e0/Incantesimo = rosso. */
 function tagColorClass(tag){
   const t = String(tag || "");
   if (/^passiva/i.test(t)) return "tag-passiva";
-  if (/^truccetto/i.test(t)) return "tag-truccetto";
+  if (/^trucc(?:h)?etto/i.test(t)) return "tag-truccetto";
   if (/incantesimo/i.test(t)) return "tag-incantesimo";
   if (/abilit/i.test(t)) return "tag-abilita";
   return "";
 }
+
+/* Migrazione strutturale non distruttiva:
+   corregge soltanto il vecchio valore di categoria "Truccetto" -> "Trucchetto".
+   Le descrizioni e gli altri testi canonici non vengono modificati. */
+function canonicalizeTrucchettoCategorySpelling(){
+  let changed = false;
+  const walk = (value)=>{
+    if (!value || typeof value !== "object") return;
+    if (!Array.isArray(value) && value.tag === "Truccetto"){
+      value.tag = "Trucchetto";
+      changed = true;
+    }
+    Object.keys(value).forEach(k=>walk(value[k]));
+  };
+  walk(STATE);
+  return changed;
+}
+
 const ATTACCHI_LINKS = [];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -1861,7 +1879,7 @@ function renderScheda(){
 const MASTER_EDITOR_KEY = "morgedal-master-editor";
 const MASTER_CATS = [
   { key:"passive", label:"Passiva" },
-  { key:"truccetti", label:"Truccetto" },
+  { key:"truccetti", label:"Trucchetto" },
   { key:"incantesimo", label:"Incantesimo" },
   { key:"abilita", label:"Abilità" },
   { key:"risorse", label:"Risorsa" },
@@ -1894,7 +1912,7 @@ function masterFromCanonical(cat, c){
     return [c.nome||"Nuovo elemento", c.desc||"", "", c.width||1];
   }
   if (cat === "passive") return { nome:c.nome||"Nuova Passiva", tag:c.tag||"Passiva", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
-  if (cat === "truccetti") return { nome:c.nome||"Nuovo Truccetto", uso:c.uso||"?", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
+  if (cat === "truccetti") return { nome:c.nome||"Nuovo Trucchetto", uso:c.uso||"?", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
   if (cat === "abilita") return { nome:c.nome||"Nuova Abilità", tag:c.tag||"Abilità", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
   if (cat === "risorse") return { nome:c.nome||"Nuova Risorsa", desc:c.desc||"", max:c.max||1, used:0, width:c.width||1, hidden:!!c.hidden };
   if (cat === "incantesimo") return { nome:c.nome||"Nuovo Incantesimo", tag:c.tag||"Incantesimo", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
@@ -2183,8 +2201,8 @@ function renderPoteri(){
     if (!masterOn && t.hidden) return "";
     const toolbar = masterOn ? masterToolbarHtml("truccetti", i) : "";
     const usoField = masterOn
-      ? `<span class="tag ${tagColorClass('Truccetto')}">Truccetto \u2014 <input type="text" class="master-uso-input" data-master-field="truccetti|${i}|uso" value="${esc(t.uso)}"></span>`
-      : `<span class="tag ${tagColorClass('Truccetto')}">Truccetto \u2014 ${esc(t.uso)}</span>`;
+      ? `<span class="tag ${tagColorClass('Trucchetto')}">Trucchetto \u2014 <input type="text" class="master-uso-input" data-master-field="truccetti|${i}|uso" value="${esc(t.uso)}"></span>`
+      : `<span class="tag ${tagColorClass('Trucchetto')}">Trucchetto \u2014 ${esc(t.uso)}</span>`;
     const nameField = masterOn
       ? `<input type="text" class="master-name-input" data-master-field="truccetti|${i}|nome" value="${esc(t.nome)}">`
       : `<h3>${t.nome}</h3>`;
@@ -2227,7 +2245,7 @@ function renderPoteri(){
     </div>
 
     <div class="card"><h2>Capacit\u00e0 Passive</h2>${passiveHtml}${masterOn ? masterNewBoxBtn("passive", "Passiva") : ""}</div>
-    <div class="card"><h2>Truccetti \u2014 Dettagli</h2>${truccettiHtml}${masterOn ? masterNewBoxBtn("truccetti", "Truccetto") : ""}</div>
+    <div class="card"><h2>Truccetti \u2014 Dettagli</h2>${truccettiHtml}${masterOn ? masterNewBoxBtn("truccetti", "Trucchetto") : ""}</div>
     ${(masterOn || STATE.abilita.some(x=>!x.hidden)) ? `<div class="card"><h2>Abilità</h2>${abilitaHtml}${masterOn ? masterNewBoxBtn("abilita", "Abilità") : ""}</div>` : ""}
     ${(masterOn || STATE.incantesimo.some(x=>!x.hidden)) ? `<div class="card"><h2>Incantesimi</h2>${incantesimoHtml}${masterOn ? masterNewBoxBtn("incantesimo", "Incantesimo") : ""}</div>` : ""}
   `;
@@ -3033,6 +3051,7 @@ function migrateInventorySourceFromOriginal(){
 }
 
 function renderAll(){
+  if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
