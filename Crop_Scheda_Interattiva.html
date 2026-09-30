@@ -2957,7 +2957,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"BASTONCINO","oldWeight":1,"oldDesc":"BASTONCINO : Un semplice rametto carino 1P","newName":"BASTONCINO","newWeight":1,"newDesc":"Un semplice rametto carino"},{"oldName":"FOGLIE DA SGRANOCCHIARE","oldWeight":1,"oldDesc":"FOGLIE DA SGRANOCCHIARE : Le foglie sono un ottimo spuntino 1P","newName":"FOGLIE DA SGRANOCCHIARE","newWeight":1,"newDesc":"Le foglie sono un ottimo spuntino"},{"oldName":"SASSO LISCIO","oldWeight":1,"oldDesc":"SASSO LISCIO : estremamente liscio, Crop lo adora, sembra un uovo. 1P","newName":"SASSO LISCIO","newWeight":1,"newDesc":"estremamente liscio, Crop lo adora, sembra un uovo."},{"oldName":"SACCHETTO DI PAPARELLE{GHIANDE} CADUTE","oldWeight":1,"oldDesc":"SACCHETTO DI PAPARELLE{GHIANDE} CADUTE : Raccolte senza un vero motivo. Insieme sembravano ordinate. 1P","newName":"SACCHETTO DI PAPARELLE{GHIANDE} CADUTE","newWeight":1,"newDesc":"Raccolte senza un vero motivo. Insieme sembravano ordinate."},{"oldName":"PEZZETTO DI CORTECCIA STORTA","oldWeight":1,"oldDesc":"PEZZETTO DI CORTECCIA STORTA : la sua curva ricorda qualcosa, ma Crop non capisce cosa. 1P","newName":"PEZZETTO DI CORTECCIA STORTA","newWeight":1,"newDesc":"la sua curva ricorda qualcosa, ma Crop non capisce cosa."},{"oldName":"BATUFFOLO DI MUSCHIO MORBIDISSIMO","oldWeight":1,"oldDesc":"BATUFFOLO DI MUSCHIO MORBIDISSIMO : Salvato da terra perché era troppo soffice per essere calpestato. 1P","newName":"BATUFFOLO DI MUSCHIO MORBIDISSIMO","newWeight":1,"newDesc":"Salvato da terra perché era troppo soffice per essere calpestato."},{"oldName":"ERNESTO","oldWeight":1,"oldDesc":"ERNESTO : Ernesto detto Erny non è una semplice lumaca. È un frammento vivente della volontà di Yggdrasil, una creatura antica e pacifica che accompagna Crop sin dal suo primo respiro. Anche se non parla e non risponde mai, Crop gli si rivolge come a un amico intimo: tra loro esiste un legame spirituale puro, fatto di sensazioni, intuizioni e piccole vibrazioni della natura. Ernesto rappresenta la parte più quieta della linfa sacra: segue Crop ovunque e osserva il mondo senza giudizio, come se percepisse realtà e spiriti allo stesso tempo. Se Ernesto viene schiacciato, ferito mortalmente o minacciato direttamente, se Crop si trova in imminente e reale pericolo di morte, Ernesto rivela la sua vera natura: una trasformazione improvvisa e travolgente, in cui si espande in una gigantesca creatura spiritica simile a una lumaca colossale, avvolta da energia naturale primordiale. In questa forma antica e furiosa. Il suo unico scopo diventa proteggere Crop a costo della sua stessa vita. 1P","newName":"ERNESTO","newWeight":1,"newDesc":"Ernesto detto Erny non è una semplice lumaca. È un frammento vivente della volontà di Yggdrasil, una creatura antica e pacifica che accompagna Crop sin dal suo primo respiro. Anche se non parla e non risponde mai, Crop gli si rivolge come a un amico intimo: tra loro esiste un legame spirituale puro, fatto di sensazioni, intuizioni e piccole vibrazioni della natura. Ernesto rappresenta la parte più quieta della linfa sacra: segue Crop ovunque e osserva il mondo senza giudizio, come se percepisse realtà e spiriti allo stesso tempo. Se Ernesto viene schiacciato, ferito mortalmente o minacciato direttamente, se Crop si trova in imminente e reale pericolo di morte, Ernesto rivela la sua vera natura: una trasformazione improvvisa e travolgente, in cui si espande in una gigantesca creatura spiritica simile a una lumaca colossale, avvolta da energia naturale primordiale. In questa forma antica e furiosa. Il suo unico scopo diventa proteggere Crop a costo della sua stessa vita."}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
   renderPoteri();

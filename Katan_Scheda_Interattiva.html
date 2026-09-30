@@ -3013,7 +3013,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"Lazo Corda con Finitura Dorata","oldWeight":"3","oldDesc":"Può facilmente addomesticare qualunque essere, 3m.","newName":"Lazo Corda con Finitura Dorata","newWeight":"3","newDesc":"può facilmente addomesticare qualunque essere, 3m."},{"oldName":"9 Coltelli Bilama","oldWeight":"9","oldDesc":"Possono colpire due volte se lanciati bene, 1D8.","newName":"9 Coltelli Bilama","newWeight":"9","newDesc":"possono colpire due volte se lanciati bene, 1D8;"},{"oldName":"3 Coltelli da Lancio","oldWeight":"3","oldDesc":"1D4.","newName":"3 Coltelli da Lancio","newWeight":"3","newDesc":"1D4;"},{"oldName":"Bussola Nera","oldWeight":"1","oldDesc":"Pergamena con scritto “Addio mondo crudele”: apparentemente strana.","newName":"Bussola Nera","newWeight":"1","newDesc":"(pergamena con scritto “Addio mondo crudele”): apparentemente strana;"},{"oldName":"Lettera Ordini del Re","oldWeight":"1","oldDesc":"Rubata dal capitano.","newName":"Lettera Ordini del Re","newWeight":"1","newDesc":"rubata dal capitano;"},{"oldName":"8000 Monete d'Oro","oldWeight":"8","oldDesc":"Da dividere iniquamente, perché tanto gli altri non sanno neanche che le ho sgraffignate (eheheh).","newName":"8000 Monete d'Oro","newWeight":"8","newDesc":"da dividere iniquamente, perché tanto gli altri non sanno neanche che le ho sgraffignate (eheheh);"},{"oldName":"Pezzo di Stoffa d'Armatura (rosso/bordeau)","oldWeight":"0","oldDesc":"","newName":"PEZZO DI STOFFA","newWeight":"0","newDesc":"di armatura di colore rosso/bordeau"},{"oldName":"10 Scorte da Campo (coda di pesce con sale)","oldWeight":"0","oldDesc":"Necessità, 5+5+5 (+10 se fa freddo).","newName":"10 SCORTE DA CAMPO","newWeight":"5","newDesc":"coda pesce con sale necessità, 5+5+5 (+10 se fa freddo)"},{"oldName":"3 Pietre Focaie","oldWeight":"0","oldDesc":"","newName":"3 Pietre Focaie","newWeight":"1","newDesc":""}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   renderScheda();
   renderPoteri();
   renderEquip();

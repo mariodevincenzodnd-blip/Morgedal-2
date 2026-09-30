@@ -2937,7 +2937,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"3 DITA DI GOBLIN ESSICCATE","oldWeight":1,"oldDesc":"3 DITA DI GOBLIN ESSICCATE : Portafortuna (secondo lui). Hanno un odore tremendo; 1P","newName":"3 DITA DI GOBLIN ESSICCATE","newWeight":1,"newDesc":"Portafortuna (secondo lui). Hanno un odore tremendo;"},{"oldName":"STRACCIO UNTO","oldWeight":1,"oldDesc":"STRACCIO UNTO : Usato per pulire Xsor. È più sporco della lama; 1P","newName":"STRACCIO UNTO","newWeight":1,"newDesc":"Usato per pulire Xsor. È più sporco della lama;"},{"oldName":"CORNO SPEZZATO DI CINGHIALE","oldWeight":1,"oldDesc":"CORNO SPEZZATO DI CINGHIALE : Souvenir. Ci beve, ci urla dentro o lo lancia; 1P","newName":"CORNO SPEZZATO DI CINGHIALE","newWeight":1,"newDesc":"Souvenir. Ci beve, ci urla dentro o lo lancia;"},{"oldName":"PIETRA TONDA  (“PIETRA PENSANTE”) DI NOME WILSON","oldWeight":3,"oldDesc":"PIETRA TONDA  (“PIETRA PENSANTE”) DI NOME WILSON : Bull la consulta prima di prendere decisioni importanti, ci sono incisi due occhi e una bocca felice (2D6); 3P","newName":"PIETRA TONDA  (“PIETRA PENSANTE”) DI NOME WILSON","newWeight":3,"newDesc":"Bull la consulta prima di prendere decisioni importanti, ci sono incisi due occhi e una bocca felice (2D6);"},{"oldName":"MANO MUMMIFICATA","oldWeight":1,"oldDesc":"MANO MUMMIFICATA : Nessuno sa da dove venga. Bull dice che “si muove quando è buio”; 1P","newName":"MANO MUMMIFICATA","newWeight":1,"newDesc":"Nessuno sa da dove venga. Bull dice che “si muove quando è buio”;"},{"oldName":"FOGLIO DI PERGAMENA VUOTO","oldWeight":1,"oldDesc":"FOGLIO DI PERGAMENA VUOTO : Macchiato. Bull sostiene che la macchia sembri un orso; 1P","newName":"FOGLIO DI PERGAMENA VUOTO","newWeight":1,"newDesc":"Macchiato. Bull sostiene che la macchia sembri un orso;"},{"oldName":"2 OSSA LUCIDE DI CAVALLO","oldWeight":1,"oldDesc":"2 OSSA LUCIDE DI CAVALLO :Usate come “dadi degli dei”. Nessuna regola comprensibile ; 1P","newName":"2 OSSA LUCIDE DI CAVALLO","newWeight":1,"newDesc":"Usate come “dadi degli dei”. Nessuna regola comprensibile ;"},{"oldName":"PEZZO DI FORMAGGIO FOSSILIZZATO","oldWeight":1,"oldDesc":"PEZZO DI FORMAGGIO FOSSILIZZATO : In teoria è cibo. In pratica, arma contundente (1d8); 1P","newName":"PEZZO DI FORMAGGIO FOSSILIZZATO","newWeight":1,"newDesc":"In teoria è cibo. In pratica, arma contundente (1d8);"},{"oldName":"CUSCINETTO DI PELLE CON CHIODI ARRUGGINITI “Scaccia fantasmi”","oldWeight":1,"oldDesc":"CUSCINETTO DI PELLE CON CHIODI ARRUGGINITI “Scaccia fantasmi” : Bull lo appoggia vicino al letto; 1P","newName":"CUSCINETTO DI PELLE CON CHIODI ARRUGGINITI “Scaccia fantasmi”","newWeight":1,"newDesc":"Bull lo appoggia vicino al letto;"},{"oldName":"OCCHIALI DA INTELLETTUALE","oldWeight":1,"oldDesc":"OCCHIALI DA INTELLETTUALE : Quando Bull utilizza l'abilità di Xsor che lo rende molto più intelligente “Prisma della Lucidità” indossa questi occhiali, diventando Professor Bull. 1P","newName":"OCCHIALI DA INTELLETTUALE","newWeight":1,"newDesc":"Quando Bull utilizza l'abilità di Xsor che lo rende molto più intelligente “Prisma della Lucidità” indossa questi occhiali, diventando Professor Bull."}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
   renderPoteri();

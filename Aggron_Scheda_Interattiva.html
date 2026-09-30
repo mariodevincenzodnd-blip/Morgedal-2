@@ -2993,7 +2993,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"Moneta della Decisione","oldWeight":"0","oldDesc":"Grazie a questa moneta, le due teste di Aggron stabiliscono quale delle due debba prendere il controllo nei momenti in cui entrambe vorrebbero imporre una scelta differente. La testa più razionale ha accettato questo sistema come parte di un accordo con quella più istintiva: lasciare che sia il caso a decidere rappresenta il metodo più imparziale per evitare che entrambe tentino contemporaneamente di controllare lo stesso corpo. La testa istintiva invece, è convinta che non sia realmente il caso a scegliere, ma la Dea della Fortuna stessa. Per una, quindi, la moneta rappresenta un compromesso neutrale; per l'altra, rappresenta la manifestazione della volontà della propria dea. Entrambe, seppur per ragioni completamente differenti, ne rispettano sempre il risultato.<br>Fuori dal combattimento: ogni volta che Aggron deve affrontare una scelta realmente importante e le due teste non riescono a raggiungere un accordo, viene utilizzata la Moneta della Decisione. Il risultato stabilisce quale delle due menti avrà il diritto di decidere come agire in quella determinata situazione.<br>In combattimento: prima di determinare l'iniziativa viene lanciata la Moneta della Decisione, stabilendo quale delle due teste inizierà lo scontro al controllo di Aggron. Successivamente, all'inizio di ogni suo turno, la moneta viene lanciata nuovamente e il risultato determina quale delle due menti controllerà il corpo per l'intera durata di quel turno.","newName":"Moneta della Decisione","newWeight":"1","newDesc":"Grazie a questa moneta, le due teste di Aggron stabiliscono quale delle due debba prendere il controllo nei momenti in cui entrambe vorrebbero imporre una scelta differente. La testa più razionale ha accettato questo sistema come parte di un accordo con quella più istintiva: lasciare che sia il caso a decidere rappresenta il metodo più imparziale per evitare che entrambe tentino contemporaneamente di controllare lo stesso corpo. La testa istintiva invece, è convinta che non sia realmente il caso a scegliere, ma la Dea della Fortuna stessa. Per una, quindi, la moneta rappresenta un compromesso neutrale; per l'altra, rappresenta la manifestazione della volontà della propria dea. Entrambe, seppur per ragioni completamente differenti, ne rispettano sempre il risultato.\n\n- Fuori dal combattimento: ogni volta che Aggron deve affrontare una scelta realmente importante e le due teste non riescono a raggiungere un accordo, viene utilizzata la Moneta della Decisione. Il risultato stabilisce quale delle due menti avrà il diritto di decidere come agire in quella determinata situazione\n\n- In combattimento: prima di determinare l'iniziativa viene lanciata la Moneta della Decisione, stabilendo quale delle due teste inizierà lo scontro al controllo di Aggron. Successivamente, all'inizio di ogni suo turno, la moneta viene lanciata nuovamente e il risultato determina quale delle due menti controllerà il corpo per l'intera durata di quel turno."}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   renderScheda();
   renderPoteri();
   renderEquip();

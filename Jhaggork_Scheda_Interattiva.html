@@ -2910,7 +2910,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"OTRE","oldWeight":4,"oldDesc":"OTRE. 4P","newName":"OTRE","newWeight":4,"newDesc":""},{"oldName":"PICCOLO AMULETO ELEMENTALE","oldWeight":1,"oldDesc":"PICCOLO AMULETO ELEMENTALE. 1P","newName":"PICCOLO AMULETO ELEMENTALE","newWeight":1,"newDesc":""},{"oldName":"CARBONCINO/GESSETTO","oldWeight":1,"oldDesc":"CARBONCINO/GESSETTO. 1P","newName":"CARBONCINO/GESSETTO","newWeight":1,"newDesc":""},{"oldName":"CARTA","oldWeight":1,"oldDesc":"CARTA : 1O Fogli. 1P","newName":"CARTA","newWeight":1,"newDesc":"1O Fogli."},{"oldName":"MAPPA SADARILL","oldWeight":1,"oldDesc":"MAPPA SADARILL. 1P","newName":"MAPPA SADARILL","newWeight":1,"newDesc":""},{"oldName":"MINIMERIDIANA","oldWeight":1,"oldDesc":"MINIMERIDIANA. 1P","newName":"MINIMERIDIANA","newWeight":1,"newDesc":""},{"oldName":"LIBRO SU MORGEDAL","oldWeight":1,"oldDesc":"LIBRO SU MORGEDAL. 1P","newName":"LIBRO SU MORGEDAL","newWeight":1,"newDesc":""},{"oldName":"ERBA MEDICA SUPERIORE","oldWeight":4,"oldDesc":"ERBA MEDICA SUPERIORE : Erbe in grado di ristabilire 1d10 ad utilizzo, utilizzabili max due contemporaneamente (x4). 4P","newName":"ERBA MEDICA SUPERIORE","newWeight":4,"newDesc":"Erbe in grado di ristabilire 1d10 ad utilizzo, utilizzabili max due contemporaneamente (x4)."},{"oldName":"BRACCIALE D’ORO","oldWeight":1,"oldDesc":"BRACCIALE D’ORO : Bracciale avuto in dono da Tod, fedele compagno di Rodgard(il suo utilizzo è ancora sconosciuto). 1P","newName":"BRACCIALE D’ORO","newWeight":1,"newDesc":"Bracciale avuto in dono da Tod, fedele compagno di Rodgard(il suo utilizzo è ancora sconosciuto)."},{"oldName":"BOMBE","oldWeight":3,"oldDesc":"BOMBE : Esplosivi di forma sferica con innesto da circa 3sec, 1d10. (x3) 3P","newName":"BOMBE","newWeight":3,"newDesc":"Esplosivi di forma sferica con innesto da circa 3sec, 1d10. (x3)"},{"oldName":"TAVOLO DA COSTRUZIONE BASE","oldWeight":4,"oldDesc":"TAVOLO DA COSTRUZIONE BASE : Un tavolo di piccolissime dimensioni ripiegabile su se stesso, dagli utilizzi limitati, che fornisce bonus sulla costruzione di oggetti o piccole forgiature. Utilizzi max 12, bonus +5. 4P","newName":"TAVOLO DA COSTRUZIONE BASE","newWeight":4,"newDesc":"Un tavolo di piccolissime dimensioni ripiegabile su se stesso, dagli utilizzi limitati, che fornisce bonus sulla costruzione di oggetti o piccole forgiature. Utilizzi max 12, bonus +5."},{"oldName":"MAPPE VARIE","oldWeight":1,"oldDesc":"MAPPE VARIE. 1P","newName":"MAPPE VARIE","newWeight":1,"newDesc":""},{"oldName":"EPIDOTO","oldWeight":2,"oldDesc":"EPIDOTO. 2P","newName":"EPIDOTO","newWeight":2,"newDesc":""},{"oldName":"BROCHURE CRISTALLI","oldWeight":1,"oldDesc":"BROCHURE CRISTALLI. 1P","newName":"BROCHURE CRISTALLI","newWeight":1,"newDesc":""},{"oldName":"11800","oldWeight":11,"oldDesc":"11800 Monete. 11P","newName":"11800 Monete","newWeight":11,"newDesc":""}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
   renderPoteri();

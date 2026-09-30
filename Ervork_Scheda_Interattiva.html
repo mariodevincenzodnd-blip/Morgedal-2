@@ -3080,7 +3080,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"Anello di Fey","oldWeight":"1","oldDesc":"+1 Intelligenza se usi altri oggetti o indumenti Arcani.","newName":"ANELLO DI FEY","newWeight":"1","newDesc":"+1 INTELLIGENZA se usi altri oggetti o indumenti Arcani."},{"oldName":"Fodero Spade","oldWeight":"3","oldDesc":"+1 Tiri per colpire.","newName":"FODERO SPADE","newWeight":"3","newDesc":"+1 Tiri per colpire."},{"oldName":"Meridiana","oldWeight":"2","oldDesc":"Una comune bussola che indica il nord (leggermente danneggiata).","newName":"MARIDIANA","newWeight":"2","newDesc":"Una comune bussola che indica il nord.(leggermente danneggiata)"},{"oldName":"I Conquistatori (libro)","oldWeight":"1","oldDesc":"","newName":"I CONQUISTATORI (libro dei)","newWeight":"1","newDesc":""},{"oldName":"Erbe Mediche x5","oldWeight":"4","oldDesc":"Erbe in grado di ristabilire 1d6 ad utilizzo, utilizzabili max due contemporaneamente (x5).","newName":"ERBE MEDICHE","newWeight":"4","newDesc":"Erbe in grado di ristabilire 1d6 ad utilizzo, utilizzabili max due contemporaneamente (x5)."},{"oldName":"Gemma Rossa (Demoniaca)","oldWeight":"1","oldDesc":"Gemma rossa, dai poteri sconosciuti, ottenuta alla fine del combattimento contro l'essere Aboleth, sul vulcano Zola sito a Sadarill, opera di Malakit.","newName":"GEMMA ROSSA (DEMONIACA)","newWeight":"1","newDesc":"Gemma rossa, dai poteri sconosciuti, ottenuta alla fine del combattimento contro l’essere Aboleth, sul vulcano Zola sito a Sadarill, opera di Malakit."},{"oldName":"Gemma Gialla (Demoniaca)","oldWeight":"1","oldDesc":"Gemma gialla, dai poteri sconosciuti, ottenuta alla fine del combattimento contro gli esseri Ra e Anubis, nelle antiche Piramidi di Nogdrim site a Sadarill, opera di Malakit.","newName":"GEMMA GIALLA (DEMONIACA)","newWeight":"1","newDesc":"Gemma gialla, dai poteri sconosciuti, ottenuta alla fine del combattimento contro gli esseri Ra e Anubis, nelle antiche Piramidi di Nogdrim site a Sadarill, opera di Malakit."},{"oldName":"Lancia e Avambraccio","oldWeight":"10","oldDesc":"Pezzi di essere(C1P110) ritrovato a fine combattimento nei fondali marini di Sadarill, composti in materiale ferroso di colore tendente al bronzo, molto pesante.","newName":"LANCIA E AVAMBRACCIO","newWeight":"10","newDesc":"Pezzi di essere(C1P110) ritrovato a fine combattimento nei fondali marini di Sadarill, composti in materiale ferroso di colore tendente al bronzo, molto pesante."},{"oldName":"Pendaglio di Anulax","oldWeight":"1","oldDesc":"Un antico pendente crato dal corpo di un demone minore noto come Anulax, forgiato per contenere energie oscure fuori controllo. Il cristallo incastonato al centro vibra leggermente quando è vicino o percepisce fonti di potere instabile, il pendaglio assorbe parte dell'energia instabile, riducendo il rischio di effetti collaterali pericolosi e diminuendo nettamente la forza dell'abilità usata. Una volta per riposo lungo, può essere usato per neutralizzare un fallimento critico legato all'uso di questi poteri (permette di fieffettuare il tiro se estemanebte necessario, avendo un bonus di + 5 sul tiro).","newName":"PENDAGLIO DI ANULAX","newWeight":"1","newDesc":"Un antico pendente crato dal corpo di un demone minore noto come Anulax, forgiato per contenere energie oscure fuori controllo. Il cristallo incastonato al centro vibra leggermente quando è vicino o percepisce fonti di potere instabile, il pendaglio assorbe parte dell’energia instabile, riducendo il rischio di effetti collaterali pericolosi e diminuendo nettamente la forza dell’abilità usata. Una volta per riposo lungo, può essere usato per neutralizzare un fallimento critico legato all’uso di questi poteri (permette di fieffettuare il tiro se estemanebte necessario, avendo un bonus di + 5 sul tiro)."},{"oldName":"Bussola di Davy Jones","oldWeight":"1","oldDesc":"Questa bussola magica non punta verso il nord, ma verso qualsiasi luogo scelto dal possessore solo se esso è ciò che realmente desidera raggiungere. È un oggetto raro e ricercato dai pirati e malfattori con buone conoscenze esoteriche.","newName":"BUSSOLA DI DAVY JONES","newWeight":"1","newDesc":"Questa bussola magica non punta verso il nord, ma verso qualsiasi luogo scelto dal possessore solo se esso è ciò che realmente desidera raggiungere. È un oggetto raro e ricercato dai pirati e malfattori con buone conoscenze esoteriche."},{"oldName":"Scorte da campo","oldWeight":"0","oldDesc":"","newName":"SCORTE DA CAMPO","newWeight":"0","newDesc":""}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   renderScheda();
   renderPoteri();
   renderEquip();

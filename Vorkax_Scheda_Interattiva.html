@@ -3047,7 +3047,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"POZIONE RIVITALIZZANTE x 2 Consente di recuperare 15 PF","oldWeight":2,"oldDesc":"POZIONE RIVITALIZZANTE x 2 Consente di recuperare 15 PF. 2P","newName":"POZIONE RIVITALIZZANTE x 2","newWeight":2,"newDesc":"Consente di recuperare 15 PF."},{"oldName":"POZIONE DI ENERGIA x 2 Consente di recuperare 3 slot lvl 1 o 2 lvl 2 o 1 lvl 3","oldWeight":2,"oldDesc":"POZIONE DI ENERGIA x 2 Consente di recuperare 3 slot lvl 1 o 2 lvl 2 o 1 lvl 3. 2P","newName":"POZIONE DI ENERGIA x 2","newWeight":2,"newDesc":"Consente di recuperare 3 slot lvl 1 o 2 lvl 2 o 1 lvl 3."},{"oldName":"AMULETO D’ARGENTO","oldWeight":2,"oldDesc":"AMULETO D’ARGENTO  Un piccolo oggetto incantato che nasconde una magia di teletrasporto, qualora il PG dovesse essere in reale pericolo di morte si attiverebbe in automatico per trasportarlo nella sua prigione temporale prima del previsto (avvisare il master). 2P","newName":"AMULETO D’ARGENTO","newWeight":2,"newDesc":"Un piccolo oggetto incantato che nasconde una magia di teletrasporto, qualora il PG dovesse essere in reale pericolo di morte si attiverebbe in automatico per trasportarlo nella sua prigione temporale prima del previsto (avvisare il master)."},{"oldName":"PUGNALE CERIMONIALE","oldWeight":2,"oldDesc":"PUGNALE CERIMONIALE Una lama sottile e affilata, usata per rituali, incisioni di simboli magici o autodifesa 1d4.(Vorkax lo usa per incidersi il corpo di magie). 2P","newName":"PUGNALE CERIMONIALE","newWeight":2,"newDesc":"Una lama sottile e affilata, usata per rituali, incisioni di simboli magici o autodifesa 1d4.(Vorkax lo usa per incidersi il corpo di magie)."},{"oldName":"CORDA INCANTATA","oldWeight":5,"oldDesc":"CORDA INCANTATA Una corda leggera ma magica che può allungarsi, agganciarsi o immobilizzare un nemico con un comando. x 10 MT.  5P","newName":"CORDA INCANTATA","newWeight":5,"newDesc":"Una corda leggera ma magica che può allungarsi, agganciarsi o immobilizzare un nemico con un comando. x 10 MT."},{"oldName":"PIETRA DEL RICHIAMO un oggetto che consente di tracciare il possessore, velato da una micro magia di elusione (PIETRA DE","oldWeight":1,"oldDesc":"PIETRA DEL RICHIAMO un oggetto che consente di tracciare il possessore, velato da una micro magia di elusione (PIETRA DEL LADRO una pietra che conferisce al suo possessore la possibilità di segnare diversi oggetti come se fosse un gesso, così da sentirne la presenza qualora si dovessero allontanare ex ladri o perdite involontarie, conferisce un + 1 su furtività e Acrobazia) 1P","newName":"PIETRA DEL RICHIAMO","newWeight":1,"newDesc":"un oggetto che consente di tracciare il possessore, velato da una micro magia di elusione (PIETRA DEL LADRO una pietra che conferisce al suo possessore la possibilità di segnare diversi oggetti come se fosse un gesso, così da sentirne la presenza qualora si dovessero allontanare ex ladri o perdite involontarie, conferisce un + 1 su furtività e Acrobazia)"},{"oldName":"PEZZO DI ASTROFILITE 2P (Cristallo usato per assorbire magia) (L. sotto al robot) magia + meccanica ????","oldWeight":0,"oldDesc":"PEZZO DI ASTROFILITE 2P (Cristallo usato per assorbire magia) (L. sotto al robot) magia + meccanica ????","newName":"PEZZO DI ASTROFILITE","newWeight":2,"newDesc":"(Cristallo usato per assorbire magia) (L. sotto al robot) magia + meccanica ????"}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
   renderPoteri();

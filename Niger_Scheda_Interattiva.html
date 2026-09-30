@@ -2880,7 +2880,27 @@ function initHeroDrag(){
 /* ============================================================
    RESET SCHEDA
    ============================================================ */
+
+/* BLOCCO 1 · PUNTO 12 — migrazione inventario non distruttiva.
+   Corregge soltanto le righe ancora identiche all'importazione precedente;
+   eventuali modifiche manuali del Master restano intatte. */
+const POINT12_INVENTORY_FIXES = [{"oldName":"PENNELLO PER DISEGNI","oldWeight":1,"oldDesc":"PENNELLO PER DISEGNI; 1P","newName":"PENNELLO PER DISEGNI","newWeight":1,"newDesc":""},{"oldName":"CORDA SOTTILE 15","oldWeight":3,"oldDesc":"CORDA SOTTILE 15; 3P","newName":"CORDA SOTTILE 15","newWeight":3,"newDesc":""},{"oldName":"4 anelli simili a fedi nuziali con spine nascoste e spesso velenose, tipicamente indossate dalle kunoichi, e che consent","oldWeight":2,"oldDesc":"4 anelli simili a fedi nuziali con spine nascoste e spesso velenose, tipicamente indossate dalle kunoichi, e che consentono ai ninja di strangolare silenziosamente i nemici con le estremità appuntite contro il collo o la gola + 1 DANNI CAC; 2P","newName":"4 anelli simili a fedi nuziali","newWeight":2,"newDesc":"con spine nascoste e spesso velenose, tipicamente indossate dalle kunoichi, e che consentono ai ninja di strangolare silenziosamente i nemici con le estremità appuntite contro il collo o la gola + 1 DANNI CAC;"},{"oldName":"MAKIBISHI 40 sono oggetti appuntiti usati per rallentare gli inseguitori o nella difesa delle fortificazioni","oldWeight":4,"oldDesc":"MAKIBISHI 40 sono oggetti appuntiti usati per rallentare gli inseguitori o nella difesa delle fortificazioni; 4P","newName":"MAKIBISHI 40","newWeight":4,"newDesc":"sono oggetti appuntiti usati per rallentare gli inseguitori o nella difesa delle fortificazioni;"},{"oldName":"RAMPINO PER SCALARE + 2 in attività che richiedono l'attività di scalare o Arrampicata","oldWeight":1,"oldDesc":"RAMPINO PER SCALARE + 2 in attività che richiedono l'attività di scalare o Arrampicata; 1P","newName":"RAMPINO PER SCALARE","newWeight":1,"newDesc":"+ 2 in attività che richiedono l'attività di scalare o Arrampicata;"},{"oldName":"30 SHURIKEN piccolissime armi da lancio (se ne possono lanciare fino a 4 per attacco (1d4)","oldWeight":3,"oldDesc":"30 SHURIKEN piccolissime armi da lancio (se ne possono lanciare fino a 4 per attacco (1d4); 3P","newName":"30 SHURIKEN","newWeight":3,"newDesc":"piccolissime armi da lancio (se ne possono lanciare fino a 4 per attacco (1d4);"},{"oldName":"4 FIALE PER VELENO","oldWeight":2,"oldDesc":"4 FIALE PER VELENO; 2P","newName":"4 FIALE PER VELENO","newWeight":2,"newDesc":""},{"oldName":"CARNE ESSICCATA (10","oldWeight":5,"oldDesc":"CARNE ESSICCATA (10 Scorte da Campo); 5P","newName":"CARNE ESSICCATA (10 Scorte da Campo)","newWeight":5,"newDesc":""},{"oldName":"INCHIOSTRO PER DISEGNI","oldWeight":1,"oldDesc":"INCHIOSTRO PER DISEGNI; 1P","newName":"INCHIOSTRO PER DISEGNI","newWeight":1,"newDesc":""},{"oldName":"MAPPA TIBSTINA CON CONFINI EVIDENZIATI","oldWeight":1,"oldDesc":"MAPPA TIBSTINA CON CONFINI EVIDENZIATI; 1P","newName":"MAPPA TIBSTINA CON CONFINI EVIDENZIATI","newWeight":1,"newDesc":""},{"oldName":"1000 MONETE D’ORO","oldWeight":1,"oldDesc":"1000 MONETE D’ORO; 1P","newName":"1000 MONETE D’ORO","newWeight":1,"newDesc":""}];
+function migrateInventoryPoint12(){
+  const inv = STATE && Array.isArray(STATE.inventario) ? STATE.inventario : [];
+  let changed = false;
+  for (const fix of POINT12_INVENTORY_FIXES){
+    const item = inv.find(it => it && it[1] === fix.oldName && String(it[2]) === String(fix.oldWeight) && String(it[3] || "") === fix.oldDesc);
+    if (!item) continue;
+    item[1] = fix.newName;
+    item[2] = fix.newWeight;
+    item[3] = fix.newDesc;
+    changed = true;
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
+  migrateInventoryPoint12();
   migrateTravellerState();
   renderScheda();
   renderPoteri();
