@@ -3105,10 +3105,79 @@ function migrateInventorySourceFromOriginal(){
   }
 }
 
+
+/* BLOCCO 2 · KATAN — migrazione strutturale dei poteri.
+   Unifica Velo Telecinetico nella categoria ABILITÀ senza perdere testo
+   e aggiunge i soli contatori operativi esplicitamente ricavabili dalle
+   descrizioni canoniche. */
+function migrateKatanPowerStructure(){
+  if (!STATE) return;
+  let changed = false;
+  STATE.passive = Array.isArray(STATE.passive) ? STATE.passive : [];
+  STATE.abilita = Array.isArray(STATE.abilita) ? STATE.abilita : [];
+  STATE.risorse = Array.isArray(STATE.risorse) ? STATE.risorse : [];
+
+  const veloPassiveIdx = STATE.passive.findIndex(x=>slugify(x && x.nome) === "velo-telecinetico");
+  const veloAbilityIdx = STATE.abilita.findIndex(x=>{
+    const s = slugify(x && x.nome);
+    return s === "velo-telecinetico-potenziato" || s === "velo-telecinetico";
+  });
+  if (veloPassiveIdx >= 0 && veloAbilityIdx >= 0){
+    const passiveText = String(STATE.passive[veloPassiveIdx].desc || "").trim();
+    const ability = STATE.abilita[veloAbilityIdx];
+    const activeText = String(ability.desc || "").trim();
+    if (passiveText && !activeText.includes(passiveText)){
+      ability.desc = passiveText + "<br><br>" + activeText;
+    }
+    ability.nome = "Velo Telecinetico";
+    STATE.passive.splice(veloPassiveIdx, 1);
+    changed = true;
+  } else if (veloAbilityIdx >= 0 && STATE.abilita[veloAbilityIdx].nome !== "Velo Telecinetico"){
+    STATE.abilita[veloAbilityIdx].nome = "Velo Telecinetico";
+    changed = true;
+  }
+
+  const superAbility = STATE.abilita.find(x=>slugify(x && x.nome) === "superabilita");
+  if (superAbility && superAbility.nome !== "SUPERABILITÀ"){
+    superAbility.nome = "SUPERABILITÀ";
+    changed = true;
+  }
+
+  const ensureLimited = (nome, desc, max)=>{
+    const idx = STATE.risorse.findIndex(r=>slugify(r && r.nome) === slugify(nome));
+    if (idx < 0){
+      STATE.risorse.push({nome, desc, max, used:0});
+      changed = true;
+      return;
+    }
+    const r = STATE.risorse[idx];
+    if (r.nome !== nome){ r.nome = nome; changed = true; }
+  };
+
+  ensureLimited(
+    "Implosione Telecinetica",
+    "2 utilizzi per riposo lungo; entrambe le cariche possono essere concentrate nell'Abilità Specifica.",
+    2
+  );
+  ensureLimited(
+    "Velo Telecinetico",
+    "Potenziamento del Velo: 1 utilizzo per riposo lungo.",
+    1
+  );
+  ensureLimited(
+    "SUPERABILITÀ",
+    "1 utilizzo ogni 2 riposi lunghi.",
+    1
+  );
+
+  if (changed) queueSave();
+}
+
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
+  migrateKatanPowerStructure();
   renderScheda();
   renderPoteri();
   renderEquip();
