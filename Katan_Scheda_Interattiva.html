@@ -3193,11 +3193,45 @@ function migrateKatanPowerStructure(){
   if (changed) queueSave();
 }
 
+
+/* BLOCCO 2 · KATAN — fedeltà testuale alla scheda primaria Drive.
+   Corregge soltanto vecchi default del sito chiaramente riassunti/riordinati;
+   eventuali modifiche manuali del Player/Master restano intatte. */
+const KATAN_BLOCK2_CANON_RECUPERARE = "1D20 o 2d10.<br>CD 13";
+const KATAN_BLOCK2_OLD_RECUPERARE = "Recupera 1d20 o 2d10 punti ferita.";
+const KATAN_BLOCK2_CANON_BASTIONE = "Il personaggio modella la propria telecinesi in una barriera solida, plasmabile e mobile, condensando la propria forza mentale in una difesa concreta capace di adattarsi al campo di battaglia. Il Bastione può essere generato su sé stesso oppure attribuito a un alleato, così da proteggerlo direttamente anche durante lo spostamento o in un punto da difendere, rendendo l’abilità utile sia in difesa personale sia nella protezione di un soggetto prioritario. E’ una difesa molto potente, ma non assoluta: attacchi troppo forti, magie avanzate, energie penetranti o effetti superiori alla capacità di contenimento della telecinesi possono incrinarlo, oltrepassarlo o ridurne l’efficacia.                                                                                                                 ASSETTO PORTATILE: Il Bastione assume una forma più compatta e flessibile. Se applicato a sé stesso o a un alleato, si manifesta come uno scudo telecinetico mobile che segue il bersaglio e conferisce +2 CA. In alternativa può essere collocato sul terreno o nello spazio circostante come riparo fisso o semimobile, assumendo liberamente la forma di muro, arco, mezzaluna, quadrato, cerchio o altre configurazioni difensive, anche suddivise in più sezioni, purché rientrino nell’estensione massima consentita. In questa configurazione il personaggio può dedicare uno o più turni di concentrazione per aumentare progressivamente la grandezza dello scudo posto sul terreno; in questa forma da copertura il Bastione conferisce +3 CA a chi ne beneficia.                                                                ASSETTO BASTIONE: Il personaggio comprime ulteriormente la telecinesi e crea una cupola difensiva a 360 gradi, più densa, stabile e resistente, applicabile a sé stesso, a un alleato o a un punto preciso del campo. Se la cupola viene mantenuta addosso a un soggetto e si muove insieme a lui, garantisce +4 CA; se invece viene fissata in un punto e lasciata statica, conferisce +5 CA. Questa configurazione è più potente ma anche più ristretta, quindi può proteggere solo un numero limitato di creature o uno spazio contenuto.                                                                                 Una volta per scontro, quando il personaggio attiva Bastione della Volontà, può decidere che la barriera non si limiti a fermare l’impatto ma respinga verso l’esterno i colpi ricevuti; frecce, dardi, proiettili, urti fisici e forme di offesa semplici che non abbiano una potenza eccessiva o una natura magica superiore possono quindi essere deviati o rigettati.";
+const KATAN_BLOCK2_OLD_BASTIONE = "Il personaggio modella la propria telecinesi in una barriera solida, plasmabile e mobile, condensando la propria forza mentale in una difesa concreta capace di adattarsi al campo di battaglia. Il Bastione può essere generato su sé stesso oppure attribuito a un alleato, così da proteggerlo direttamente anche durante lo spostamento o in un punto da difendere, rendendo l'abilità utile sia in difesa personale sia nella protezione di un soggetto prioritario.<br><br><b>Assetto Portatile:</b> Il Bastione assume una forma più compatta e flessibile. Se applicato a sé stesso o a un alleato, si manifesta come uno scudo telecinetico mobile che segue il bersaglio e conferisce +2 CA. In alternativa può essere collocato sul terreno o nello spazio circostante come riparo fisso o semimobile, assumendo liberamente la forma di muro, arco, mezzaluna, quadrato, cerchio o altre configurazioni difensive, anche suddivise in più sezioni, purché rientrino nell'estensione massima consentita. In questa configurazione il personaggio può dedicare uno o più turni di concentrazione per aumentare progressivamente la grandezza dello scudo posto sul terreno; in questa forma da copertura il Bastione conferisce +3 CA a chi ne beneficia.<br><b>Assetto Bastione:</b> Il personaggio comprime ulteriormente la telecinesi e crea una cupola difensiva a 360 gradi, più densa, stabile e resistente, applicabile a sé stesso, a un alleato o a un punto preciso del campo. Se la cupola viene mantenuta addosso a un soggetto e si muove insieme a lui, garantisce +4 CA; se invece viene fissata in un punto e lasciata statica, conferisce +5 CA. Questa configurazione è più potente ma anche più ristretta, quindi può proteggere solo un numero limitato di creature o uno spazio contenuto.<br><b>Riflesso Cinetico:</b> una volta per scontro, quando il personaggio attiva Bastione della Volontà, può decidere che la barriera non si limiti a fermare l'impatto ma respinga verso l'esterno i colpi ricevuti; frecce, dardi, proiettili, urti fisici e forme di offesa semplici che non abbiano una potenza eccessiva o una natura magica superiore possono quindi essere deviati o rigettati.<br><br>Bastione della Volontà è una difesa molto potente, ma non assoluta: attacchi troppo forti, magie avanzate, energie penetranti o effetti superiori alla capacità di contenimento della telecinesi possono incrinarlo, oltrepassarlo o ridurne l'efficacia.";
+function migrateKatanBlock2SourceText(){
+  if (!STATE) return;
+  let changed = false;
+  const rec = (STATE.truccetti || []).find(x=>slugify(x && x.nome) === "recuperare-energie");
+  if (rec){
+    if (rec.desc === KATAN_BLOCK2_OLD_RECUPERARE || rec.desc === "Recupera 1d20 o 2d10 PF. CD 13."){
+      rec.desc = KATAN_BLOCK2_CANON_RECUPERARE;
+      changed = true;
+    }
+    if (rec.uso === "3 x Riposo Lungo, CD 13"){
+      rec.uso = "Quantità - 3 -";
+      changed = true;
+    }
+  }
+  const bast = (STATE.abilita || []).find(x=>slugify(x && x.nome).startsWith("bastione-della-volonta"));
+  if (bast){
+    if (bast.nome !== "Bastione della Volontà"){ bast.nome = "Bastione della Volontà"; changed = true; }
+    if (bast.desc === KATAN_BLOCK2_OLD_BASTIONE || /Riflesso Cinetico/i.test(String(bast.desc || ""))){
+      bast.desc = KATAN_BLOCK2_CANON_BASTIONE;
+      changed = true;
+    }
+  }
+  if (changed) queueSave();
+}
+
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   migrateKatanPowerStructure();
+  migrateKatanBlock2SourceText();
   renderScheda();
   renderPoteri();
   renderEquip();
