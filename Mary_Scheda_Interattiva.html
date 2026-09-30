@@ -398,6 +398,10 @@
     white-space:nowrap;
   }
   .master-color-picker.show{display:flex;}
+  .master-type-select{
+    background:var(--bg-panel-3);border:1px solid var(--border-soft);color:var(--text);
+    border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer;
+  }
   .master-color-picker input[type=color]{
     width:30px;height:22px;border:none;border-radius:6px;padding:0;
     background:none;cursor:pointer;
@@ -763,7 +767,12 @@
 <div class="wrap" id="panels"></div>
 
 <button class="master-editor-toggle" id="master-editor-toggle" type="button" title="Attiva/disattiva la modalità di modifica strutturale (solo Master): categorie, titoli, riquadri">🛠️ Editor Master</button>
-<div class="master-color-picker" id="master-color-picker" title="Colore identitario di questo personaggio (solo Master)">
+<div class="master-color-picker" id="master-color-picker" title="Impostazioni identitarie del personaggio (solo Master)">
+  <label for="master-type-select">Tipo</label>
+  <select id="master-type-select" class="master-type-select">
+    <option value="PRINCIPALE">Principale</option>
+    <option value="VIAGGIATORE">Viaggiatore</option>
+  </select>
   <label for="master-color-input">Colore</label>
   <input type="color" id="master-color-input">
   <label for="master-color-input-2" title="Secondo colore opzionale: la striscia superiore diventa un gradiente tra i due (es. Gorg)">Colore 2</label>
@@ -2817,6 +2826,14 @@ function initColorPicker(){
   const input = document.getElementById("master-color-input");
   const input2 = document.getElementById("master-color-input-2");
   const clearBtn = document.getElementById("master-color-2-clear");
+  const typeSelect = document.getElementById("master-type-select");
+  if (typeSelect){
+    typeSelect.addEventListener("change", ()=>{
+      STATE.tipo = typeSelect.value === "PRINCIPALE" ? "PRINCIPALE" : "VIAGGIATORE";
+      syncHeroChips();
+      queueSave();
+    });
+  }
   if (!input) return;
   input.addEventListener("input", ()=>{
     document.documentElement.style.setProperty("--identity", input.value);
@@ -2847,9 +2864,11 @@ function refreshColorPicker(){
   const wrap = document.getElementById("master-color-picker");
   const input = document.getElementById("master-color-input");
   const input2 = document.getElementById("master-color-input-2");
+  const typeSelect = document.getElementById("master-type-select");
   if (!wrap || !input) return;
   const show = isMasterUnlocked() && isMasterEditorOn();
   wrap.classList.toggle("show", show);
+  if (typeSelect) typeSelect.value = STATE.tipo === "PRINCIPALE" ? "PRINCIPALE" : "VIAGGIATORE";
   input.value = STATE.identityColor || "#c9a34e";
   if (input2) input2.value = STATE.identityColor2 || input.value;
 }
