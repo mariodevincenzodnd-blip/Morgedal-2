@@ -844,7 +844,9 @@ function canonicalizeTrucchettoCategorySpelling(){
   return changed;
 }
 
-const ATTACCHI_LINKS = [];
+const ATTACCHI_LINKS = [
+  {label:"Stella del Mattino Armato", tab:"equip", anchor:"anchor-stella-del-mattino-armato"}
+];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
   return `<div class="quicknav">${ATTACCHI_LINKS.map(l=>`<span class="quicknav-pill" data-jump-tab="${l.tab}" data-jump-anchor="${l.anchor}">${l.label}</span>`).join("")}</div>`;
@@ -2400,6 +2402,7 @@ function renderEquipSlots(){
   EQUIP_SLOTS.forEach(([key,label])=>{
     const box = document.createElement("div");
     box.className = "equip-slot";
+    if (slugify(STATE.equip[key]) === "stella-del-mattino-armato") box.id = "anchor-stella-del-mattino-armato";
     box.innerHTML = `<label>${label}</label><input type="text" data-equip="${key}" value="${esc(STATE.equip[key])}">`;
     const picker = makeImagePicker(
       STATE.equipImages[key],
@@ -3169,6 +3172,12 @@ function migrateKatanPowerStructure(){
     "1 utilizzo ogni 2 riposi lunghi.",
     1
   );
+
+  const morningStarMicro = "<p><u>Stella del Mattino Armato:</u> Arma Livelliana di luce perpetua, 3d6+2 danni per attacco; in presenza del sole può aggiungere 1d6 danni incendiari per 2 utilizzi a scontro. Per gli effetti completi vedi Equipaggiamento.</p>";
+  if (!/Stella del Mattino Armato/i.test(String(STATE.attacchi || ""))){
+    STATE.attacchi = String(STATE.attacchi || "") + morningStarMicro;
+    changed = true;
+  }
 
   if (changed) queueSave();
 }
