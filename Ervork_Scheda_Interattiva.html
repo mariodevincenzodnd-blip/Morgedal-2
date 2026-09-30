@@ -817,7 +817,7 @@ function slugify(s){
 }
 
 /* Colore funzionale del "tag" di una capacit\u00e0, dedotto dal testo del tag stesso
-   (non dall'array di appartenenza): Passiva = viola, Trucchetto = blu, Abilit\u00e0/Incantesimo = rosso. */
+   (non dall'array di appartenenza): Passiva = arancione, Trucchetto = blu, Abilit\u00e0 = rosso, Incantesimo = viola. */
 function tagColorClass(tag){
   const t = String(tag || "");
   if (/^passiva/i.test(t)) return "tag-passiva";
@@ -2218,8 +2218,11 @@ function renderPoteri(){
   }).join("");
 
   const masterOn = isMasterEditorOn();
+  const trucchettoNames = new Set((STATE.truccetti || []).map(t=>slugify(t.nome)));
 
+  /* Blocco 2 / Ervork: i veri Trucchetti non vengono duplicati nei tracker operativi. */
   const risorseHtml = STATE.risorse.map((r,i)=>{
+    if (trucchettoNames.has(slugify(r.nome))) return "";
     if (!masterOn && r.hidden) return "";
     const pips = Array.from({length:r.max}).map((_,p)=>`<button class="pip ${p<r.used?'used':''}" data-respip="${i}-${p}"></button>`).join("");
     const nameField = masterOn
@@ -2278,11 +2281,17 @@ function renderPoteri(){
     const nameField = masterOn
       ? `<input type="text" class="master-name-input" data-master-field="truccetti|${i}|nome" value="${esc(t.nome)}">`
       : `<h3>${t.nome}</h3>`;
+    const risorsaIdx = STATE.risorse.findIndex(r=>slugify(r.nome) === slugify(t.nome));
+    const risorsa = risorsaIdx >= 0 ? STATE.risorse[risorsaIdx] : null;
+    const trickPips = risorsa
+      ? `<div class="pips" style="margin-top:10px;">${Array.from({length:risorsa.max}).map((_,p)=>`<button class="pip ${p<risorsa.used?'used':''}" data-respip="${risorsaIdx}-${p}" title="Registra utilizzo"></button>`).join("")}</div>`
+      : "";
     return `<div class="subcard${masterOn && t.hidden ? ' master-hidden-item' : ''}" id="anchor-${slugify(t.nome)}"${masterBoxStyle("truccetti", i)}>
       ${toolbar}
       ${usoField}
       ${nameField}
       <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich-arr="truccetti-${i}">${t.desc}</div>
+      ${trickPips}
     </div>`;
   }).join("");
 
@@ -2300,6 +2309,8 @@ function renderPoteri(){
     </div>`;
   }).join("");
 
+  const hasLimitedUses = STATE.risorse.some(r=>!trucchettoNames.has(slugify(r.nome)) && (masterOn || !r.hidden));
+
   document.getElementById("panel-poteri").innerHTML = `
     <div class="card">
       <h2>SLOT <small>clic sui cerchi per usare/recuperare uno slot</small></h2>
@@ -2308,17 +2319,22 @@ function renderPoteri(){
     </div>
 
     <div class="card">
-      <h2>Risorse & Truccetti <small>clic sui cerchi per registrare un utilizzo</small></h2>
-      ${risorseHtml}
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn primary" id="reset-risorse">Riposo Lungo \u2014 recupera le risorse</button>
-        ${masterOn ? masterNewBoxBtn("risorse", "Risorsa") : ""}
-      </div>
+      <h2>TRUCCHETTI <small>clic sui cerchi sotto ogni testo per registrare un utilizzo</small></h2>
+      ${truccettiHtml}
+      ${masterOn ? masterNewBoxBtn("truccetti", "Trucchetto") : ""}
     </div>
 
-    <div class="card"><h2>Capacit\u00e0 Passive</h2>${passiveHtml}${masterOn ? masterNewBoxBtn("passive", "Passiva") : ""}</div>
-    <div class="card"><h2>Truccetti \u2014 Dettagli</h2>${truccettiHtml}${masterOn ? masterNewBoxBtn("truccetti", "Trucchetto") : ""}</div>
-    ${(masterOn || STATE.abilita.some(x=>!x.hidden)) ? `<div class="card"><h2>Abilità</h2>${abilitaHtml}${masterOn ? masterNewBoxBtn("abilita", "Abilità") : ""}</div>` : ""}
+    ${hasLimitedUses ? `<div class="card">
+      <h2>Utilizzi Limitati <small>tracker operativi, senza duplicare la descrizione delle abilità</small></h2>
+      ${risorseHtml}
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn primary" id="reset-risorse">Azzera contatori utilizzi</button>
+        ${masterOn ? masterNewBoxBtn("risorse", "Risorsa") : ""}
+      </div>
+    </div>` : ""}
+
+    ${(masterOn || STATE.abilita.some(x=>!x.hidden)) ? `<div class="card"><h2>ABILITÀ</h2>${abilitaHtml}${masterOn ? masterNewBoxBtn("abilita", "Abilità") : ""}</div>` : ""}
+    <div class="card"><h2>PASSIVE</h2>${passiveHtml}${masterOn ? masterNewBoxBtn("passive", "Passiva") : ""}</div>
     ${(masterOn || STATE.incantesimo.some(x=>!x.hidden)) ? `<div class="card"><h2>Incantesimi</h2>${incantesimoHtml}${masterOn ? masterNewBoxBtn("incantesimo", "Incantesimo") : ""}</div>` : ""}
   `;
 
@@ -2351,7 +2367,8 @@ function renderPoteri(){
       renderPoteri(); queueSave();
     });
   });
-  document.getElementById("reset-risorse").addEventListener("click", ()=>{
+  const resetRisorse = document.getElementById("reset-risorse");
+  if (resetRisorse) resetRisorse.addEventListener("click", ()=>{
     STATE.risorse.forEach(r=>r.used=0); renderPoteri(); queueSave();
   });
 
@@ -3191,6 +3208,21 @@ function migrateErvorkBlock2SourceText(){
     if (cordial.nome !== cordialSpec.name){ cordial.nome = cordialSpec.name; changed = true; }
     if (cordialSpec.old.includes(String(cordial.desc || ""))){ cordial.desc = cordialSpec.desc; changed = true; }
   }
+
+  /* BLOCCO 2 / tracker operativi compatti: solo frequenza, nessun secondo testo dell'abilità. */
+  const compactTracker = (name, desc, legacyMarkers=[])=>{
+    const r = STATE.risorse.find(x=>slugify(x && x.nome) === slugify(name));
+    if (!r) return;
+    const cur = String(r.desc || "");
+    if (cur === desc) return;
+    if (!cur || legacyMarkers.some(m=>cur === m || cur.includes(m))){
+      r.desc = desc;
+      changed = true;
+    }
+  };
+  compactTracker("Trappola Mentale di Ameth", "1 x Scontro · CD 16", ["Effetto legato alla Croce di Ameth", "intrappola il nemico in pene"]);
+  compactTracker("Armatura Infernale", "Max 1 x 2 Rip.Lun", ["Il corpo si avvolge interamente di fuoco", "Forma demoniaca completa"]);
+
   if (changed) queueSave();
 }
 
