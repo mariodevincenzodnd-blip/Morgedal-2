@@ -817,7 +817,7 @@ function slugify(s){
 }
 
 /* Colore funzionale del "tag" di una capacit\u00e0, dedotto dal testo del tag stesso
-   (non dall'array di appartenenza): Passiva = viola, Trucchetto = blu, Abilit\u00e0/Incantesimo = rosso. */
+   (non dall'array di appartenenza): Passiva = arancione, Trucchetto = blu, Abilit\u00e0 = rosso, Incantesimo = viola. */
 function tagColorClass(tag){
   const t = String(tag || "");
   if (/^passiva/i.test(t)) return "tag-passiva";
@@ -2274,7 +2274,7 @@ function renderPoteri(){
       <h2>Utilizzi Limitati <small>azioni operative che non sono Trucchetti</small></h2>
       ${risorseHtml}
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn primary" id="reset-risorse">Riposo Lungo \u2014 recupera gli utilizzi</button>
+        <button class="btn primary" id="reset-risorse">Azzera contatori utilizzi</button>
         ${masterOn ? masterNewBoxBtn("risorse", "Risorsa") : ""}
       </div>
     </div>` : ""}
@@ -3165,12 +3165,12 @@ function migrateKatanPowerStructure(){
 
   ensureLimited(
     "Implosione Telecinetica",
-    "2 utilizzi per riposo lungo; entrambe le cariche possono essere concentrate nell'Abilità Specifica.",
+    "2 utilizzi per riposo lungo.",
     2
   );
   ensureLimited(
     "Velo Telecinetico",
-    "Potenziamento del Velo: 1 utilizzo per riposo lungo.",
+    "1 utilizzo per riposo lungo.",
     1
   );
   ensureLimited(
@@ -3178,6 +3178,24 @@ function migrateKatanPowerStructure(){
     "1 utilizzo ogni 2 riposi lunghi.",
     1
   );
+  /* BLOCCO 2 / tracker compatti: nel pannello operativo resta solo la frequenza,
+     mentre il testo completo vive una sola volta nella card dell'abilità. */
+  const compactTracker = (name, desc, legacyMarkers=[])=>{
+    const r = STATE.risorse.find(x=>slugify(x && x.nome) === slugify(name));
+    if (!r) return;
+    const cur = String(r.desc || "");
+    if (cur === desc) return;
+    if (!cur || legacyMarkers.some(m=>cur === m || cur.includes(m))){
+      r.desc = desc;
+      changed = true;
+    }
+  };
+  compactTracker("Cintura Telecinetica", "Max 1", ["Evoca una cintura orbitante con 6 slot"]);
+  compactTracker("Bastione della Volontà", "1 x Scontro", ["Barriera telecinetica solida e plasmabile"]);
+  compactTracker("Implosione Telecinetica", "2 utilizzi per riposo lungo.", ["2 utilizzi per riposo lungo;"]);
+  compactTracker("Velo Telecinetico", "1 utilizzo per riposo lungo.", ["Potenziamento del Velo:"]);
+  compactTracker("SUPERABILITÀ", "1 utilizzo ogni 2 riposi lunghi.", ["Potenzia simultaneamente tutte le caratteristiche", "1 utilizzo ogni 2 riposi lunghi. Potenzia"]);
+
   const superResource = STATE.risorse.find(r=>slugify(r && r.nome) === "superabilita");
   if (superResource && superResource.desc === "Potenzia simultaneamente tutte le caratteristiche in un'unica forma (vedi Poteri Speciali per il dettaglio completo)."){
     superResource.desc = "1 utilizzo ogni 2 riposi lunghi. Potenzia simultaneamente tutte le caratteristiche; il dettaglio completo resta nella macro-card SUPERABILITÀ.";
