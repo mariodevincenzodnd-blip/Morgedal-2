@@ -896,26 +896,7 @@ const DEFAULT_STATE = {
 
   equipDettagli: "<p><b>Stella del Mattino Armato (Arma Livelliana):</b> Arma di luce perpetua Danni 3d6+2 ad attacco <u>(se usata in presenza del sole in aggiunta 1d6 danni incendiari 2 volte a scontro, che possono essere usati anche tutti in un singolo attacco)</u>. Evoca casualmente dal cielo un fascio di luce che colpisce il nemico pesantemente fuoco immortale di Ra(ogni tanto avvisare il DM). Chiunque colpisca il pg subisce 1d4 danni incendiari di giorno x 5 turni, di notte x 2 turni.</p><p><b>Armatura di Garadet:</b> L'armatura del grande Garadet, non ha peculiarità particolari è solo fatta di Adamantio uno dei metalli più spessi mai visti nel mondo di Morgedal. Si narra però che nelle sue battaglie, Garadet sembrasse quasi essere aiutato dalla natura e i suoi derivati, quasi come se fossero un tutt'uno, ma nessuno ha mai potuto constatare con certezza se questo dipendesse dalle sue abilità di Ranger Druido o dal suo equipaggiamento. + 4 alla CA</p>",
 
-  inventario: [
-    ["\u2713","Bifocali del Basilisco","2","Permettono di vedere fino a 100mt anche in condizioni avverse (nebbia,notte).",""],
-    ["\u2713","Razziario Moregddaliano (libro)","2","",""],
-    ["\u2713","Usi e Costumi Apaci (libro)","1","",""],
-    ["\u2713","Lazo Corda con Finitura Dorata","3","Pu\u00f2 facilmente addomesticare qualunque essere, 3m.",""],
-    ["\u2713","Mini Meridiana","2","",""],
-    ["\u2713","5 Erbe Mediche Superiori","2","",""],
-    ["\u2713","9 Coltelli Bilama","9","Possono colpire due volte se lanciati bene, 1D8.",""],
-    ["\u2713","3 Coltelli da Lancio","3","1D4.",""],
-    ["\u2713","Bussola Nera","1","Pergamena con scritto \u201cAddio mondo crudele\u201d: apparentemente strana.",""],
-    ["\u2713","6 Pergamene Magiche","1","",""],
-    ["\u2713","Pergamena del Capitano","1","",""],
-    ["\u2713","Lettera Ordini del Re","1","Rubata dal capitano.",""],
-    ["\u2713","Pietre Preziose Rosse (Rubini)","5","Valore stimato: circa 4000 monete d'oro (custodite nell'armadio C.Oesis).",""],
-    ["\u2713","8000 Monete d'Oro","8","Da dividere iniquamente, perch\u00e9 tanto gli altri non sanno neanche che le ho sgraffignate (eheheh).",""],
-    ["\u2713","6794 Monete d'Oro","6","",""],
-    ["\u2713","Pezzo di Stoffa d'Armatura (rosso/bordeau)","0","",""],
-    ["\u2713","10 Scorte da Campo (coda di pesce con sale)","0","Necessit\u00e0, 5+5+5 (+10 se fa freddo).",""],
-    ["\u2713","3 Pietre Focaie","0","",""]
-  ],
+  inventario: [["✓","BIFOCALI DEL BASILISCO","2","Permettono di vedere fino a 100mt anche in condizioni avverse (nebbia,notte).",""],["✓","RAZZIARIO MOREGDDALIANO(libro)","2","",""],["✓","USI E COSTUMI APACI (libro)","1","",""],["✓","LAZO CORDA CON FINITURA DORATA","3","può facilmente addomesticare qualunque essere, 3m.",""],["✓","MINI MERIDIANA","2","",""],["✓","5 ERBE MEDICHE SUPERIORI","2","",""],["✓","9 COLTELLI BILAMA","9","possono colpire due volte se lanciati bene, 1D8;",""],["✓","3 COLTELLI DA LANCIO","3","1D4;",""],["✓","BUSSOLA NERA (pergamena con scritto “Addio mondo crudele”)","1","apparentemente strana;",""],["✓","6 PERGAMENE MAGICHE","1","",""],["✓","PERGAMENA DEL CAPITANO","1","",""],["✓","LETTERA ORDINI DEL RE","1","rubata dal capitano;",""],["✓","8000 MONETE D’ORO","8","da dividere iniquamente, perché tanto gli altri non sanno neanche che le ho sgraffignate (eheheh);",""],["✓","6794 MONETE D’ORO","6","",""],["✓","PEZZO DI STOFFA di armatura di colore rosso/bordeau","0","",""],["✓","10 SCORTE DA CAMPO coda pesce con sale necessità, 5+5+5 (+10 se fa freddo)","5","",""],["✓","3 PIETRE FOCAIE","1","",""]],
   capacitaMax: 50,
 
   passive: [
@@ -3032,7 +3013,27 @@ function migrateInventoryPoint12(){
   if (changed) queueSave();
 }
 
+/* Punto 12 — Inventario canonico dalla scheda originale Drive.
+   Migra solo le voci ancora identiche al vecchio default: eventuali modifiche
+   reali del giocatore restano intatte. Immagini e checkbox vengono preservate. */
+const INVENTORY_SOURCE_PATCHES = [{"old":["✓","Bifocali del Basilisco","2","Permettono di vedere fino a 100mt anche in condizioni avverse (nebbia,notte).",""],"next":["✓","BIFOCALI DEL BASILISCO","2","Permettono di vedere fino a 100mt anche in condizioni avverse (nebbia,notte).",""]},{"old":["✓","Razziario Moregddaliano (libro)","2","",""],"next":["✓","RAZZIARIO MOREGDDALIANO(libro)","2","",""]},{"old":["✓","Usi e Costumi Apaci (libro)","1","",""],"next":["✓","USI E COSTUMI APACI (libro)","1","",""]},{"old":["✓","Lazo Corda con Finitura Dorata","3","Può facilmente addomesticare qualunque essere, 3m.",""],"next":["✓","LAZO CORDA CON FINITURA DORATA","3","può facilmente addomesticare qualunque essere, 3m.",""]},{"old":["✓","Mini Meridiana","2","",""],"next":["✓","MINI MERIDIANA","2","",""]},{"old":["✓","5 Erbe Mediche Superiori","2","",""],"next":["✓","5 ERBE MEDICHE SUPERIORI","2","",""]},{"old":["✓","9 Coltelli Bilama","9","Possono colpire due volte se lanciati bene, 1D8.",""],"next":["✓","9 COLTELLI BILAMA","9","possono colpire due volte se lanciati bene, 1D8;",""]},{"old":["✓","3 Coltelli da Lancio","3","1D4.",""],"next":["✓","3 COLTELLI DA LANCIO","3","1D4;",""]},{"old":["✓","Bussola Nera","1","Pergamena con scritto “Addio mondo crudele”: apparentemente strana.",""],"next":["✓","BUSSOLA NERA (pergamena con scritto “Addio mondo crudele”)","1","apparentemente strana;",""]},{"old":["✓","6 Pergamene Magiche","1","",""],"next":["✓","6 PERGAMENE MAGICHE","1","",""]},{"old":["✓","Pergamena del Capitano","1","",""],"next":["✓","PERGAMENA DEL CAPITANO","1","",""]},{"old":["✓","Lettera Ordini del Re","1","Rubata dal capitano.",""],"next":["✓","LETTERA ORDINI DEL RE","1","rubata dal capitano;",""]},{"old":["✓","Pietre Preziose Rosse (Rubini)","5","Valore stimato: circa 4000 monete d'oro (custodite nell'armadio C.Oesis).",""],"next":null},{"old":["✓","8000 Monete d'Oro","8","Da dividere iniquamente, perché tanto gli altri non sanno neanche che le ho sgraffignate (eheheh).",""],"next":["✓","8000 MONETE D’ORO","8","da dividere iniquamente, perché tanto gli altri non sanno neanche che le ho sgraffignate (eheheh);",""]},{"old":["✓","6794 Monete d'Oro","6","",""],"next":["✓","6794 MONETE D’ORO","6","",""]},{"old":["✓","Pezzo di Stoffa d'Armatura (rosso/bordeau)","0","",""],"next":["✓","PEZZO DI STOFFA di armatura di colore rosso/bordeau","0","",""]},{"old":["✓","10 Scorte da Campo (coda di pesce con sale)","0","Necessità, 5+5+5 (+10 se fa freddo).",""],"next":["✓","10 SCORTE DA CAMPO coda pesce con sale necessità, 5+5+5 (+10 se fa freddo)","5","",""]},{"old":["✓","3 Pietre Focaie","0","",""],"next":["✓","3 PIETRE FOCAIE","1","",""]}];
+function migrateInventorySourceFromOriginal(){
+  if (!STATE || !Array.isArray(STATE.inventario)) return;
+  for (const patch of INVENTORY_SOURCE_PATCHES){
+    const old = patch.old, next = patch.next;
+    const idx = STATE.inventario.findIndex(it => Array.isArray(it)
+      && String(it[1] ?? "") === String(old[1] ?? "")
+      && String(it[2] ?? "") === String(old[2] ?? "")
+      && String(it[3] ?? "") === String(old[3] ?? ""));
+    if (idx < 0) continue;
+    if (!next){ STATE.inventario.splice(idx,1); continue; }
+    const cur = STATE.inventario[idx];
+    STATE.inventario[idx] = [cur[0], next[1], next[2], next[3], cur[4] || next[4] || ""];
+  }
+}
+
 function renderAll(){
+  migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
   renderPoteri();
