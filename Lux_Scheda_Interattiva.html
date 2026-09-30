@@ -973,6 +973,10 @@ function advanceLuxLongRest(resource){
     resource.restProgress = 0;
     return;
   }
+  if (Math.max(0, Number(resource.used || 0)) <= 0){
+    resource.restProgress = 0;
+    return;
+  }
   resource.restProgress = Math.max(0, Number(resource.restProgress || 0)) + 1;
   if (resource.restProgress >= every){
     resource.used = 0;
@@ -2396,7 +2400,10 @@ function renderPoteri(){
         if (!linked) return "";
         const r = linked.resource, ri = linked.index;
         const pips = Array.from({length:r.max}).map((_,p)=>`<button class="pip ${p<r.used?'used':''}" data-respip="${ri}-${p}"></button>`).join("");
-        return `<div style="margin-top:10px;"><div class="pips">${pips}</div></div>`;
+        const restInfo = Number(r.resetEvery || 1) > 1 && Number(r.used || 0) > 0
+          ? `<div class="sub" style="margin-top:5px;">Riposi lunghi completati: ${Math.max(0,Number(r.restProgress||0))}/${Number(r.resetEvery)}</div>`
+          : "";
+        return `<div style="margin-top:10px;"><div class="pips">${pips}</div>${restInfo}</div>`;
       })()}
     </div>`;
   }).join("");
