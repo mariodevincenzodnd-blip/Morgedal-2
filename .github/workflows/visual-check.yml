@@ -45,6 +45,31 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Bypass sheet auth only in CI copy
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gate = 'document.addEventListener("DOMContentLoaded", initLock);'
+          bypass = 'document.addEventListener("DOMContentLoaded", ()=>{ try{ setMasterEditorOn(false); }catch(e){} hideLockScreen(); init(); });'
+
+          patched = []
+          for path in sorted(Path(".").glob("*_Scheda_Interattiva.html")):
+              text = path.read_text(encoding="utf-8")
+              if gate not in text:
+                  continue
+              path.write_text(text.replace(gate, bypass), encoding="utf-8")
+              patched.append(path.name)
+
+          if not patched:
+              raise SystemExit("Nessuna scheda interattiva patchata: hook initLock non trovato")
+
+          print("Auth bypass CI applicato a:")
+          for name in patched:
+              print(" -", name)
+          PY
+
       - name: Install Playwright
         run: |
           npm init -y >/dev/null 2>&1
