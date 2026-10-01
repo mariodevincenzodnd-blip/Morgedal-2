@@ -906,7 +906,7 @@ function migrateOlaBlock4Point4CorpoDaLumaca(){
       || /^Corpo da Lumaca$/i.test(nome);
   });
   if (!item) return false;
-  const canonicalName = "CORREDO GENETICO ANIMALE: CORPO DA LUMACA";
+  const canonicalName = "CORREDO GENETICO ANIMALE: LUMACA COMBATTENTE";
   if (item.nome === canonicalName) return false;
   item.nome = canonicalName;
   return true;
@@ -979,42 +979,66 @@ function migrateOlaBlock4Points17To23(){
 
   const defs = [
     {
-      canonical:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA",
-      match:/^(?:CORREDO\s+GENETICO\s+ANIMALE\s*:\s*)?CORPO\s+DA\s+LUMACA$/i,
-      spazi:0, max:2
+      canonical:"CORREDO GENETICO ANIMALE: LUMACA COMBATTENTE",
+      match:/^(?:CORREDO\s+GENETICO\s+ANIMALE\s*:\s*)?(?:CORPO\s+DA\s+LUMACA|LUMACA\s+COMBATTENTE)$/i,
+      spazi:0, max:2, uso:"2 x Riposo Lungo", width:1, desc:"<div class=\"canonical-text\"><b>CORPO GELATINOSO:</b> il PG può mutare completamente il proprio corpo trasformandolo in una melma gelatinosa capace di solidificarsi istantaneamente. Durante questo stato il PG rinuncia a compiere attacchi. Qualsiasi nemico che entri in contatto diretto con la gelatina deve superare un TS 17 per evitare una solidificazione parziale o totale.<br><b>ADERENZA MUCOSA:</b> il PG può aderire naturalmente a pareti, soffitti e superfici verticali, riuscendo a muoversi senza effettuare normali prove di arrampicata.<br><b>CORPO COMPRIMIBILE:</b> il PG può deformare e comprimere il proprio corpo per attraversare aperture e passaggi normalmente troppo stretti. Velocità di Movimento: 1 / CA: +3 /</div>"
+    },
+    {
+      canonical:"CORREDO GENETICO ANIMALE: SQUALO",
+      match:/^(?:CORREDO\s+GENETICO\s+ANIMALE\s*:\s*)?SQUALO$/i,
+      spazi:0, max:2, uso:"2 x Riposo Lungo", width:2, desc:"<div class=\"canonical-text\"><b>RESPIRAZIONE SUBACQUEA:</b> il PG sviluppa branchie perfettamente funzionanti e può respirare sott’acqua senza limiti di tempo finché mantiene il corredo attivo.<br><b>NUOTO PREDATORIO:</b> il corpo assume una conformazione idrodinamica. In acqua la Velocità di Movimento diventa 20 e il PG non subisce penalità normalmente legate al movimento subacqueo.<br><b>VISIONE ABISSALE:</b> una membrana trasparente protegge gli occhi e la retina viene adattata alla rifrazione acquatica. Il PG vede sott’acqua con la stessa chiarezza con cui vedrebbe sulla terraferma, anche in condizioni di luce molto ridotta.<br><b>LINEA LATERALE:</b> il PG percepisce vibrazioni, movimenti e variazioni di pressione nell’acqua. Entro 20 caselle può individuare la presenza e la posizione approssimativa di creature in movimento anche senza poterle vedere direttamente.<br><b>ELETTROPERCEZIONE:</b> a distanza ravvicinata può percepire i deboli impulsi elettrici prodotti dagli organismi viventi. Entro 10 caselle sott’acqua, creature vive difficilmente possono occultare completamente la propria presenza tramite semplice furtività o oscurità.</div>"
+    },
+    {
+      canonical:"CORREDO GENETICO ANIMALE: ORSO",
+      match:/^(?:CORREDO\s+GENETICO\s+ANIMALE\s*:\s*)?ORSO$/i,
+      spazi:0, max:2, uso:"2 x Riposo Lungo", width:2, desc:"<div class=\"canonical-text\"><b>ARTIGLI:</b> il PG può generare artigli capaci di essere utilizzati come armi naturali. 2d6 + probabilità di sanguinamento BONUS.<br><b>PRESA DELL’ORSO:</b> il PG ottiene +5 alle prove di Atletica effettuate per afferrare, trattenere, sollevare o contrastare fisicamente una creatura.<br><b>STABILITÀ:</b> la grande massa e la conformazione dell’orso rendono il PG particolarmente difficile da spostare. Ottiene +5 ai tiri effettuati per resistere a spinte, atterramenti o spostamenti forzati.<br><b>OLFATTO SVILUPPATO:</b> + 5 alle prove di Percezione basate sull’olfatto e possibilità di seguire tracce odorose anche quando la vista non è utilizzabile.</div>"
     },
     {
       canonical:"CORREDO GENETICO ANCESTRALE",
-      match:/^CORREDO\s+GENETICO\s*:?[\s-]*ANCESTRALE(?:\s*\([^)]*\))?$/i,
+      match:/^CORREDO\s+GENETICO\s*:?[s-]*ANCESTRALE(?:\s*\([^)]*\))?$/i,
       spazi:3, max:0
     },
     {
       canonical:"CORREDO GENETICO DEMONIACO",
-      match:/^CORREDO\s+GENETICO\s*:?[\s-]*DEMONIACO(?:\s*\([^)]*\))?$/i,
+      match:/^CORREDO\s+GENETICO\s*:?[s-]*DEMONIACO(?:\s*\([^)]*\))?$/i,
       spazi:3, max:0
     },
     {
       canonical:"CORREDO GENETICO DRAGONIDE",
-      match:/^CORREDO\s+GENETICO\s*:?[\s-]*DRAGONIDE(?:\s*\([^)]*\))?$/i,
+      match:/^CORREDO\s+GENETICO\s*:?[s-]*DRAGONIDE(?:\s*\([^)]*\))?$/i,
       spazi:1, max:0
     },
     {
       canonical:"CORREDO GENETICO NUMA",
-      match:/^CORREDO\s+GENETICO\s*:?[\s-]*NUMA(?:\s*\([^)]*\))?$/i,
+      match:/^CORREDO\s+GENETICO\s*:?[s-]*NUMA(?:\s*\([^)]*\))?$/i,
       spazi:1, max:0
     }
   ];
 
   defs.forEach(def=>{
-    const item = STATE.corredi.find(x=>def.match.test(String(x && x.nome || "").trim()));
+    let item = STATE.corredi.find(x=>def.match.test(String(x && x.nome || "").trim()));
+    if (!item && def.desc){
+      item = {nome:def.canonical, tag:"Trucchetto", width:def.width || 1, hidden:false, spazi:def.spazi, max:def.max, used:0, uso:def.uso || "", desc:def.desc};
+      STATE.corredi.push(item);
+      changed = true;
+    }
     if (!item) return;
     if (item.nome !== def.canonical){ item.nome = def.canonical; changed = true; }
     if (item.tag !== "Trucchetto"){ item.tag = "Trucchetto"; changed = true; }
     if (Number(item.spazi || 0) !== def.spazi){ item.spazi = def.spazi; changed = true; }
     if (Number(item.max || 0) !== def.max){ item.max = def.max; changed = true; }
+    if (def.uso && item.uso !== def.uso){ item.uso = def.uso; changed = true; }
+    if (def.desc && item.desc !== def.desc){ item.desc = def.desc; changed = true; }
     const safeUsed = Math.max(0, Math.min(def.max, Number(item.used || 0)));
     if (Number(item.used || 0) !== safeUsed){ item.used = safeUsed; changed = true; }
   });
+
+  const canonicalOrder = defs.map(x=>x.canonical);
+  const known = STATE.corredi.filter(x=>canonicalOrder.includes(String(x && x.nome || "").trim()));
+  const custom = STATE.corredi.filter(x=>!canonicalOrder.includes(String(x && x.nome || "").trim()));
+  known.sort((a,b)=>canonicalOrder.indexOf(a.nome)-canonicalOrder.indexOf(b.nome));
+  const reordered = known.concat(custom);
+  if (reordered.some((x,i)=>x !== STATE.corredi[i])){ STATE.corredi = reordered; changed = true; }
 
   if (!STATE.corredoUtilizzi || typeof STATE.corredoUtilizzi !== "object" || Array.isArray(STATE.corredoUtilizzi)){
     STATE.corredoUtilizzi = {};
@@ -1306,7 +1330,9 @@ const DEFAULT_STATE = {
     {nome:"Alterazione: Numa", tag:"Abilità", width:1, hidden:true, desc:"<p><b>ALTERAZIONE FISICA: NUMA</b> PF +10 (Temporanei)</p>\n<p>MOD. FORZA + 3 · MOD. DESTREZZA + 5 · VELOCITÀ MOV. 15 · BONUS ATT. PER COLPIRE + 4 · PERCEZIONE PASSIVA + 4 · CA + 1</p>\n<p>Danni corpo a corpo: 3d12 + 3 danni sanguinamento (probabilità di causare sanguinamento con ogni colpo). Il pg usufruisce di 3 attacchi o di uno unico da 5d6 + 4, ad ogni colpo il pg lancera' una moneta e se dovesse uscire il risultato prescelto affibbiera' un + 1 sanguinamento al nemico fino alla fine dello scontro. Questo effetto e' cumulabile fino a + 10 danni grazie ai suoi lunghi artigli e denti aguzzi.<br>Il pg sviluppa la capacità di mutare la sua stazza in quello della razza felina Numa, una sottorazza dei Tabaxi, esclusivamente rappresentante pantere.<br>Il pg sviluppa azione costante, avendo la possibilit' di avere un'azione bonus per turno.<br>Il pg ha specifici bonus sui tiri di acrobazie e furtivita' ove in alcuni casi non e' necessario lanciare i dadi (chiedere al master). Bonus + 10<br>Grazie ai suoi affilatissimi artigli il pg puo' arrampicarsi sulla maggior parte delle superfici e rimanerne attaccato per diverso tempo (discrezione master).<br>Il pg ha un olfatto molto sviluppato oltre che l'udito, grazie a questi benefici ha molti vantaggi tattici.<br><b>Abilità Specifica :</b> Il pg utilizza la sua rabbia selvaggia per regredire a essere della foresta, il suo spostamento arriva a un tot di 20 i danni diventano 4d12 o 8d6 e puo' attaccare nemici vicini tra loro. Ogni attacco fatto con mosrsi recupera 5pft per un max di 20 pft. <b>Quantità - 2 -</b></p>"}
   ],
   corredi: [
-    {nome:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, desc:"<div class=\"canonical-text\">Il Pg ha la possibilità di mutare il proprio corpo in melma gelatinosa con solidificazione istantanea (lumaca combattente). Alterando il proprio stato fisico, da solido a melmoso, il pg rinuncia a compiere attacchi considerando il suo stato, ma, se dovesse esserne oggetto, il nemico una volta venuto a contatto con la sua gelatina sarà costretto a superare dei TS per evitare la solidificazione istantanea, parziale o totale. Velocità di movimento 1, CA +3, TS Nemico 17, Durata 4 turni, Quantità  -2-</div>"},
+    {nome:"CORREDO GENETICO ANIMALE: LUMACA COMBATTENTE", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, uso:"2 x Riposo Lungo", desc:"<div class=\"canonical-text\"><b>CORPO GELATINOSO:</b> il PG può mutare completamente il proprio corpo trasformandolo in una melma gelatinosa capace di solidificarsi istantaneamente. Durante questo stato il PG rinuncia a compiere attacchi. Qualsiasi nemico che entri in contatto diretto con la gelatina deve superare un TS 17 per evitare una solidificazione parziale o totale.<br><b>ADERENZA MUCOSA:</b> il PG può aderire naturalmente a pareti, soffitti e superfici verticali, riuscendo a muoversi senza effettuare normali prove di arrampicata.<br><b>CORPO COMPRIMIBILE:</b> il PG può deformare e comprimere il proprio corpo per attraversare aperture e passaggi normalmente troppo stretti. Velocità di Movimento: 1 / CA: +3 /</div>"},
+    {nome:"CORREDO GENETICO ANIMALE: SQUALO", tag:"Trucchetto", width:2, hidden:false, spazi:0, max:2, used:0, uso:"2 x Riposo Lungo", desc:"<div class=\"canonical-text\"><b>RESPIRAZIONE SUBACQUEA:</b> il PG sviluppa branchie perfettamente funzionanti e può respirare sott’acqua senza limiti di tempo finché mantiene il corredo attivo.<br><b>NUOTO PREDATORIO:</b> il corpo assume una conformazione idrodinamica. In acqua la Velocità di Movimento diventa 20 e il PG non subisce penalità normalmente legate al movimento subacqueo.<br><b>VISIONE ABISSALE:</b> una membrana trasparente protegge gli occhi e la retina viene adattata alla rifrazione acquatica. Il PG vede sott’acqua con la stessa chiarezza con cui vedrebbe sulla terraferma, anche in condizioni di luce molto ridotta.<br><b>LINEA LATERALE:</b> il PG percepisce vibrazioni, movimenti e variazioni di pressione nell’acqua. Entro 20 caselle può individuare la presenza e la posizione approssimativa di creature in movimento anche senza poterle vedere direttamente.<br><b>ELETTROPERCEZIONE:</b> a distanza ravvicinata può percepire i deboli impulsi elettrici prodotti dagli organismi viventi. Entro 10 caselle sott’acqua, creature vive difficilmente possono occultare completamente la propria presenza tramite semplice furtività o oscurità.</div>"},
+    {nome:"CORREDO GENETICO ANIMALE: ORSO", tag:"Trucchetto", width:2, hidden:false, spazi:0, max:2, used:0, uso:"2 x Riposo Lungo", desc:"<div class=\"canonical-text\"><b>ARTIGLI:</b> il PG può generare artigli capaci di essere utilizzati come armi naturali. 2d6 + probabilità di sanguinamento BONUS.<br><b>PRESA DELL’ORSO:</b> il PG ottiene +5 alle prove di Atletica effettuate per afferrare, trattenere, sollevare o contrastare fisicamente una creatura.<br><b>STABILITÀ:</b> la grande massa e la conformazione dell’orso rendono il PG particolarmente difficile da spostare. Ottiene +5 ai tiri effettuati per resistere a spinte, atterramenti o spostamenti forzati.<br><b>OLFATTO SVILUPPATO:</b> + 5 alle prove di Percezione basate sull’olfatto e possibilità di seguire tracce odorose anche quando la vista non è utilizzabile.</div>"},
     {nome:"CORREDO GENETICO ANCESTRALE", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"<div class=\"canonical-text\">CURA : Possibilità di utilizzare o distribuire un max di 50 Cure.  Quantità 2<br>VISIONE CREPUSCOLARE : I suoi occhi possono vedere in qualsiasi condizione di buio come se fosse giorno. Quantità 2<br>SAGGEZZA PREDOMINANTE : L’anima di un ARCANGELO  è molto potente e riesce a convogliare molta energia spirituale nel corpo di chi lo ospita. Il PG guadagna un + 4 sulla caratteristica di SAGGEZZA. Quantità 2 <br>LUCE : Il PG può generare luce  come elemento di difesa o attacco. Ogni volta che verra’ utilizzata il danno guadagnera’ un + 3 per ogni colpo inferto. Il pg puo’ in alternativa creare delle piccole creazioni di luce come oggetti o famigli da 1d6 danni / 10pf / 4 mov / 14 CA di qualsiasi entita’ di piccole dimensioni, esse sono interconnesse con la mente del PG, dunque puo’ vedere e sentire le stesse cose delle evocazioni. Quantità 2<br>LEVITAZIONE : Il PG puo’ levitare per un max di 6 turni / 6h. non puo’ volare ma grazie alla levitazione puo’ planare se necessario.Quantità 2</div>"},
     {nome:"CORREDO GENETICO DEMONIACO", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"<div class=\"canonical-text\">ASSORBIMENTO VITALE : Possibilità di Assorbire la linfa vitale dai nemici (6D6).  Quantità 2<br>VISIONE CREPUSCOLARE : I suoi occhi possono vedere in qualsiasi condizione di buio come se fosse giorno. Quantità 2<br>COSTITUZIONE POSSENTE : Il corpo di un DEMONE SUPERIORE è molto potente e riesce a sprigionare molta energia come un catalizzatore. Il PG guadagna un + 4 sulla caratteristica di FORZA. Quantità 2 <br>FUOCO : Il PG può generare  fuoco come  attacco. Ogni volta che verra’ utilizzato il fuoco come attacco il danno guadagnera’ un + 3 per ogni colpo inferto. Se utilizzato come colpo a distanza 7d6. Quantità 2<br>CALORE : Il pg non ha problemi di temperature basse e glaciali che potrebbero influire negativamente sui suoi sistemi. Quantità 2  <br>FUMO DEMONIACO : Il PG viene ricoperto da un fumo denso e nero che lo avvolge per max 4 caselle di distanza. Qualsiasi nemico in questo raggio dovra’ effettuare un TS Destrezza di 18 per potervi vedere attraverso. Tutti gli attacchi all’interno guadagnano un + 5 .Quantità 2</div>"},
     {nome:"CORREDO GENETICO DRAGONIDE", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"<div class=\"canonical-text\">DENTI AGUZZI : Possibilità di infliggere ingenti danni con morsi 5d6 + 2 sanguinamento. Quantità 2<br>VISIONE SUBACQUEA : I suoi occhi vengono ricoperti di una sottilissima membrana che gli permette di vedere con chiarezza sott'acqua fino a un massimo di 6 Turni o 6h Quantità 2<br>INTELLIGENZA SPICCATA : Il cervello di un DRAGONIDE è una delle armi terrene più potenti mai esistite se utilizzato con criterio. Il PG guadagna un + 4 sulla caratteristica di INTELLIGENZA.Quantità 2<br>FUOCO/FULMINI : Il PG può eiettare  fuoco o fulmini dalla bocca fino ad una distanza massima di 5 Caselle. Più vicino è il nemico più danno subirà. Danno max 8d6 a scalare di una casella fino a 4d6 dalla massima.Quantità 2<br>PELLE A SCAGLIE : Il PG viene ricoperto da scaglie che rendono la sua pelle più dura. + 2 CA fino alla fine dello scontro.Quantità 2</div>"},
@@ -2666,7 +2692,7 @@ function renderPoteri(){
       const values = Array.from(new Set([current, "Trucchetto", "Passiva", "Abilità", "Incantesimo"]));
       return `<select class="master-corredo-tag master-transform-tag" data-master-field="corredi|${i}|tag" title="Categoria del Corredo">${values.map(v=>`<option value="${esc(v)}"${v===current?" selected":""}>${esc(v)}</option>`).join("")}</select>`;
     })() : `<span class="tag ${tagColorClass(c.tag)}">${c.tag}</span>`;
-    const pipsHtml = (c.max>0) ? `<div class="specific-usage-block corredo-card-usage"><div class="specific-usage-row"><div class="specific-usage-copy"><div class="specific-usage-name">UTILIZZI DEL CORREDO</div><div class="specific-usage-rule">Quantità ${c.max}</div></div><div class="pips">${Array.from({length:c.max}).map((_,p)=>`<button class="pip ${p<c.used?'used':''}" data-corredopip="${i}-${p}"></button>`).join("")}</div></div></div>` : "";
+    const pipsHtml = (c.max>0) ? `<div class="specific-usage-block corredo-card-usage"><div class="specific-usage-row"><div class="specific-usage-copy"><div class="specific-usage-name">UTILIZZI DEL CORREDO</div><div class="specific-usage-rule">${esc(c.uso || ("Quantità "+c.max))}</div></div><div class="pips">${Array.from({length:c.max}).map((_,p)=>`<button class="pip ${p<c.used?'used':''}" data-corredopip="${i}-${p}"></button>`).join("")}</div></div></div>` : "";
     const internalUsesHtml = renderCorredoSpecificUses(c);
     const maxField = masterOn
       ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Quantità/utilizzi: <input type="number" min="0" class="master-uso-input" style="width:52px;" data-master-field="corredi|${i}|max" value="${c.max||0}"></div>`
