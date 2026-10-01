@@ -916,7 +916,7 @@ function migrateOlaBlock4Point4CorpoDaLumaca(){
    - Velocità/Forza/Volo/Mini restano ABILITÀ.
    - Le trasformazioni lunghe occupano tutta la riga.
    - Gli utilizzi delle Abilità Specifiche derivano SOLO dalla fonte OLA.
-   - Energia Pura (Passiva) resta distinta da Alterazione: Pura Energia.
+   - Energia Pura resta distinta da Alterazione: Pura Energia.
    - Gli slot temporanei restano proprietà delle singole trasformazioni. */
 function migrateOlaBlock4Points8To12(){
   if (!STATE || !Array.isArray(STATE.trasformazioni)) return false;
@@ -932,11 +932,6 @@ function migrateOlaBlock4Points8To12(){
     const t = byName(name);
     if (t && t.width !== 3){ t.width = 3; changed = true; }
   });
-
-  const energiaPura = Array.isArray(STATE.passive)
-    ? STATE.passive.find(p => /^Energia Pura$/i.test(String(p && p.nome || "").trim()))
-    : null;
-  if (energiaPura && energiaPura.tag !== "Passiva"){ energiaPura.tag = "Passiva"; changed = true; }
 
   const puraEnergia = byName("Alterazione: Pura Energia");
   if (puraEnergia && puraEnergia.tag !== "Abilità"){ puraEnergia.tag = "Abilità"; changed = true; }
@@ -964,6 +959,86 @@ function migrateOlaBlock4Points8To12(){
     const safeUsed = Math.max(0, Math.min(def.max, Number(cur.used || 0)));
     if (cur.used !== safeUsed){ cur.used = safeUsed; changed = true; }
   });
+  return changed;
+}
+
+/* BLOCCO 4 · PUNTO 24 — categorie canoniche dalla fonte primaria OLA.
+   Il Google Documento OLA è prevalente sul vecchio checklist operativo:
+   queste voci sono ABILITÀ; Contrasti resta TRUCCHETTO.
+   La migrazione sposta le card tra le sezioni senza perdere ID, visibilità o larghezza. */
+function migrateOlaBlock4Point24CanonicalAbilities(){
+  if (!STATE) return false;
+  if (!Array.isArray(STATE.abilita)) STATE.abilita = [];
+  if (!Array.isArray(STATE.passive)) STATE.passive = [];
+  if (!Array.isArray(STATE.truccetti)) STATE.truccetti = [];
+  let changed = false;
+  const defs = [
+    {canonical:"Modificatore Fisico", match:/^Modificatore\\s+Fisico(?:\\s*\\(Lvl\\s*6\\))?$/i, width:2, desc:"Il pg acquisisce la capacità di mutare la forma del suo fisico e poterlo modellare a sua scelta, essendo malleabile il corpo del pg può avere diverse applicazioni sia in combattimento che no, ex braccio tagliente.(da discutere con il Dm)"},
+    {canonical:"Potenza Elettrica", match:/^Potenza\\s+Elettrica$/i, width:2, desc:"Il PG ha la possibilità di sprigionare energia compiendo attacchi ad area, a lungo e corto raggio. (ex. raggi laser, palle di energia, colpi paralizzanti etc.etc.) Danni 6D6. . Una volta per riposo lungo il PG può concentrare un colpo attraverso la potenza accumulata per un totale di 20d6"},
+    {canonical:"Energia Pura", match:/^Energia\\s+Pura(?:\\s*\\(Lvl\\s*7\\))?$/i, width:2, desc:"Il corpo dell'ibrido si evolve a tal punto da riuscire a immagazzinare l'energia in esubero, tutte le azioni e le entrate in combattimento del pg consumano solo ed esclusivamente 1 di energia, rimangono però a 5 le trasformazioni."},
+    {canonical:"Rig. Cell. Superiore", match:/^(?:Rig\\.\\s*Cell\\.\\s*Superiore|Rigenerazione\\s+Cellulare\\s+Superiore)(?:\\s*\\(Lvl\\s*7\\))?$/i, width:2, desc:"Ogni turno di combattimento il pg rigenera 1PV, esclusi i combattimenti il pg ha la capacità di rigenerare 1PV per ora. In caso di perdita di arti, la loro ricrescita avverrebbe per metà, risultando più piccoli  del normale come se fossero di fanciulli. (la ricrescita effettiva non sarebbe sicura al 100%, pertanto il PG potrebbe tornare alle sue complete funzioni motorie come  no.)"},
+    {canonical:"Alimentazione Costante", match:/^Alimentazione\\s+Costante(?:\\s*\\(Lvl\\s*7\\))?$/i, width:1, desc:"70 azioni al giorno"},
+    {canonical:"Corazza Rinforzata", match:/^Corazza\\s+Rinforzata(?:\\s*\\(Lvl\\s*7\\))?$/i, width:2, desc:"CA = 17 (Se non si indossa equipaggiamento che la possa modificare, in caso contrario si perderebbe il beneficio di CORAZZA Rinforzata e si calcolerebbe la CA come di prassi 10+ MOD DEST+BONUS COMP.)"},
+    {canonical:"Doppio Volto", match:/^Doppio\\s+Volto(?:\\s*\\(Lvl\\s*7\\))?$/i, width:2, desc:"Il pg acquisisce la capacità di creare una copia esatta di se stesso, scegliendo quanto dividere tra il suo corpo e quello della copia tra PF e Danni, essendo mentalemnete connessi, ed essendo lo stesso essere, il giocatore potrà compiere gesti e parlare da entrambi i corpi proprio come se non si fosse mai diviso. Se il tiro dovesse uscire inferiore a 5 la copia avrebbe la personalità alternativa del pg e sarebbe un avversario a tutti gli effetti per i giocatori. Danni aggiuntivi 3d6 + 2 + 24 PF, questi dati potranno essere gestiti interamente dal giocatore che, potrà decidere di dividerli equamente in entrambi gli involucri o potenziarne uno e minimizzare l’altro. L’importante è che sopravviva uno dei due esseri non importa quale. Fino a quando la copia sarà sul campo di battaglia il pg non potrà effettuare trasformazioni. Il pg non è obbligato a dividersi in una copia sola. (Durata tutto lo scontro / 8h)"},
+    {canonical:"Sintesi Parziale", match:/^Sintesi\\s+Parziale(?:\\s*\\(Lvl\\s*8\\))?$/i, width:2, desc:"Il personaggio è in grado di richiamare in modo incompleto e controllato i vantaggi delle proprie trasformazioni senza attivarle nella loro interezza. Spendendo un solo slot, può mantenere nella forma base un solo elemento o vantaggio alla volta appartenente a una delle trasformazioni già possedute, scegliendo liberamente se manifestare una componente fisica evidente, come ali, gambe mutate, arti specializzati o altri adattamenti visibili, oppure un beneficio più interno e meno appariscente, come incrementi ai punteggi di caratteristica, maggiore resistenza, punti ferita aggiuntivi, mobilità superiore, tenuta fisica, capacità sensoriali o altri vantaggi propri della trasformazione selezionata. Il potere resta stabile e attivo fino a quando il personaggio non decide di mutarlo in una trasformazione completa, che può quindi essere raggiunta senza spendere un ulteriore slot. La sintesi non resta però del tutto rigida: una volta per turno avversario, se necessario, il personaggio può tentare di modificare rapidamente il vantaggio attivo o richiamare una risposta mutagena istantanea, come uno scudo, una schivata adattiva, una corazza improvvisa o un altro accorgimento coerente con le proprie forme, effettuando un Tiro Salvezza su Costituzione con CD 16. In caso di successo, il cambio o la risposta si attivano immediatamente, permettendo alla sintesi di adattarsi anche nel pieno della pressione nemica."}
+  ];
+  const buckets = ["abilita","passive","truccetti"];
+  defs.forEach(def=>{
+    let item = null;
+    let sourceKey = null;
+    for (const key of buckets){
+      const found = STATE[key].find(x=>def.match.test(String(x && x.nome || "").trim()));
+      if (found){ item = found; sourceKey = key; break; }
+    }
+    if (!item){
+      item = {nome:def.canonical, tag:"Abilità", width:def.width, hidden:false, desc:def.desc};
+      STATE.abilita.push(item);
+      changed = true;
+    } else {
+      // Remove any duplicate copies in the wrong semantic buckets.
+      for (const key of buckets){
+        const before = STATE[key].length;
+        STATE[key] = STATE[key].filter(x=>x === item || !def.match.test(String(x && x.nome || "").trim()));
+        if (STATE[key].length !== before) changed = true;
+      }
+      if (sourceKey !== "abilita"){
+        STATE[sourceKey] = STATE[sourceKey].filter(x=>x !== item);
+        if (!STATE.abilita.includes(item)) STATE.abilita.push(item);
+        changed = true;
+      }
+    }
+    if (item.nome !== def.canonical){ item.nome = def.canonical; changed = true; }
+    if (item.tag !== "Abilità"){ item.tag = "Abilità"; changed = true; }
+    if (!Number(item.width)){ item.width = def.width; changed = true; }
+    if (item.desc !== def.desc){ item.desc = def.desc; changed = true; }
+  });
+
+  // Il tracker di Potenza Elettrica resta in Risorse per il colpo concentrato 1/Riposo Lungo.
+  // La card però non deve più comparire tra i Trucchetti.
+  const pe = defs.find(x=>x.canonical === "Potenza Elettrica");
+  if (pe){
+    const before = STATE.truccetti.length;
+    STATE.truccetti = STATE.truccetti.filter(x=>!pe.match.test(String(x && x.nome || "").trim()));
+    if (STATE.truccetti.length !== before) changed = true;
+  }
+
+  // Adattamenti Animali: il documento non assegna una nuova categoria esplicita.
+  // Manteniamo la decisione precedente Passiva/Potenziamento, ma riallineiamo nome e testo.
+  const adMatch = /^Adattamenti\s+Animali(?:\s*\(Lvl\s*8\))?$/i;
+  const ad = STATE.passive.find(x=>adMatch.test(String(x && x.nome || "").trim()));
+  if (ad){
+    const adDesc = "Il personaggio amplia ulteriormente il proprio repertorio biologico e sblocca 2 nuovi vantaggi animali a scelta, selezionandoli tra quelli che conosce, che ha già osservato o che può immagazzinare nel proprio archivio genetico. Questi adattamenti entrano stabilmente nel suo repertorio e possono essere richiamati come normali vantaggi genetici animali secondo le regole del personaggio.";
+    if (ad.nome !== "Adattamenti Animali"){ ad.nome = "Adattamenti Animali"; changed = true; }
+    if (ad.tag !== "Passiva"){ ad.tag = "Passiva"; changed = true; }
+    if (ad.desc !== adDesc){ ad.desc = adDesc; changed = true; }
+  }
+
+  const order = defs.map(x=>x.canonical);
+  const known = STATE.abilita.filter(x=>order.includes(String(x && x.nome || "").trim()));
+  const custom = STATE.abilita.filter(x=>!order.includes(String(x && x.nome || "").trim()));
+  known.sort((a,b)=>order.indexOf(a.nome)-order.indexOf(b.nome));
+  const reordered = known.concat(custom);
+  if (reordered.some((x,i)=>x !== STATE.abilita[i])){ STATE.abilita = reordered; changed = true; }
   return changed;
 }
 
@@ -3725,6 +3800,7 @@ function renderAll(){
   if (migrateOlaBlock4Point3TraduttoreBranchie()) queueSave();
   if (migrateOlaBlock4Point4CorpoDaLumaca()) queueSave();
   if (migrateOlaBlock4Points8To12()) queueSave();
+  if (migrateOlaBlock4Point24CanonicalAbilities()) queueSave();
   if (migrateOlaBlock4Points17To23()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
