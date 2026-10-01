@@ -20,6 +20,7 @@ const viewports = [
 for (const target of targets) {
   const normalized = target.replace(/^\.\//, "").replace(/^\//, "");
   const url = `${baseUrl}/${normalized}`;
+  const isCharacterSheet = /_Scheda_Interattiva\.html$/i.test(normalized);
 
   for (const viewport of viewports) {
     const context = await browser.newContext({
@@ -29,45 +30,43 @@ for (const target of targets) {
 
     if (authStub) {
       await context.addInitScript(() => {
+        const token = {
+          token: "visual-ci-token",
+          expiresAt: Date.now() + 60 * 60 * 1000,
+        };
         try {
           sessionStorage.setItem(
             "morgedal-google-token-v4-shared",
-            JSON.stringify({
-              token: "visual-ci-token",
-              expiresAt: Date.now() + 60 * 60 * 1000,
-            })
+            JSON.stringify(token)
+          );
+          sessionStorage.setItem(
+            "morgedal-google-token-v2",
+            JSON.stringify(token)
           );
         } catch {}
-
-        const realFetch = window.fetch.bind(window);
-        window.fetch = async (input, init) => {
-          const url =
-            typeof input === "string"
-              ? input
-              : input && typeof input.url === "string"
-                ? input.url
-                : "";
-
-          if (url.includes("https://www.googleapis.com/oauth2/v3/userinfo")) {
-            return new Response(
-              JSON.stringify({ email: "mariodevincenzodnd@gmail.com" }),
-              {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-              }
-            );
-          }
-
-          if (url.includes("https://www.googleapis.com/drive/")) {
-            return new Response("{}", {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-
-          return realFetch(input, init);
-        };
       });
+
+      await context.route(
+        "https://www.googleapis.com/oauth2/v3/userinfo*",
+        async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ email: "mariodevincenzodnd@gmail.com" }),
+          });
+        }
+      );
+
+      await context.route(
+        /https:\/\/www\.googleapis\.com\/drive\//i,
+        async (route) => {
+          await route.fulfill({
+            status: 404,
+            contentType: "application/json",
+            body: "{}",
+          });
+        }
+      );
     }
 
     const page = await context.newPage();
@@ -95,6 +94,19 @@ for (const target of targets) {
         timeout: 60_000,
       });
       status = response?.status() ?? null;
+
+      if (isCharacterSheet) {
+        await page
+          .waitForFunction(
+            () =>
+              document.title.startsWith("Scheda —") &&
+              document.getElementById("lock-screen")?.style.display === "none",
+            null,
+            { timeout: 15_000 }
+          )
+          .catch(() => {});
+      }
+
       await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
       await page.waitForTimeout(1200);
     } catch (err) {
@@ -102,15 +114,36 @@ for (const target of targets) {
     }
 
     const metrics = await page
-      .evaluate(() => ({
-        title: document.title,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-        clientWidth: document.documentElement.clientWidth,
-        clientHeight: document.documentElement.clientHeight,
-        bodyTextLength: document.body?.innerText?.length || 0,
-      }))
+      .evaluate(() => {
+        const lock = document.getElementById("lock-screen");
+        const lockVisible =
+          !!lock &&
+          getComputedStyle(lock).display !== "none" &&
+          getComputedStyle(lock).visibility !== "hidden";
+
+        return {
+          title: document.title,
+          currentUrl: location.href,
+          pathname: location.pathname,
+          scrollWidth: document.documentElement.scrollWidth,
+          scrollHeight: document.documentElement.scrollHeight,
+          clientWidth: document.documentElement.clientWidth,
+          clientHeight: document.documentElement.clientHeight,
+          bodyTextLength: document.body?.innerText?.length || 0,
+          lockVisible,
+          lockText: lockVisible ? (lock?.innerText || "").slice(0, 300) : "",
+        };
+      })
       .catch(() => null);
+
+    const accessGateFailed =
+      !!isCharacterSheet &&
+      !!metrics &&
+      (
+        metrics.lockVisible ||
+        /\/index\.html$/i.test(metrics.pathname || "") ||
+        !String(metrics.title || "").startsWith("Scheda —")
+      );
 
     const safeName = normalized
       .replace(/\.html$/i, "")
@@ -133,6 +166,7 @@ for (const target of targets) {
       status,
       navigationError,
       metrics,
+      accessGateFailed,
       horizontalOverflow:
         metrics ? metrics.scrollWidth > metrics.clientWidth + 2 : null,
       consoleErrors,
@@ -157,7 +191,8 @@ const hardFailures = report.filter(
     entry.navigationError ||
     (typeof entry.status === "number" && entry.status >= 400) ||
     !entry.metrics ||
-    entry.metrics.bodyTextLength === 0
+    entry.metrics.bodyTextLength === 0 ||
+    entry.accessGateFailed
 );
 
 console.log(JSON.stringify(report, null, 2));
