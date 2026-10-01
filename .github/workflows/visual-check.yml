@@ -8,6 +8,13 @@ on:
       - "*_Scheda_Interattiva.html"
       - ".github/scripts/visual-check.mjs"
       - ".github/workflows/visual-check.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "index.html"
+      - "*_Scheda_Interattiva.html"
+      - ".github/scripts/visual-check.mjs"
+      - ".github/workflows/visual-check.yml"
   workflow_dispatch:
     inputs:
       page:
