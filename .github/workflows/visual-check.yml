@@ -1,0 +1,92 @@
+name: Visual check Morgedal
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "index.html"
+      - "*_Scheda_Interattiva.html"
+      - ".github/scripts/visual-check.mjs"
+      - ".github/workflows/visual-check.yml"
+  workflow_dispatch:
+    inputs:
+      page:
+        description: "Pagina da controllare (es. Bull_Scheda_Interattiva.html)"
+        required: false
+        default: "index.html"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start local site
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/morgedal-http.log 2>&1 &
+          echo $! > /tmp/morgedal-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/morgedal-http.log
+          exit 1
+
+      - name: Select pages
+        id: pages
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            printf '%s\n' "${{ inputs.page }}" > /tmp/visual-pages.txt
+          else
+            git diff --name-only HEAD^ HEAD \
+              | grep -E '(^index\.html$|_Scheda_Interattiva\.html$)' \
+              | sort -u > /tmp/visual-pages.txt || true
+
+            if [ ! -s /tmp/visual-pages.txt ]; then
+              printf '%s\n' "index.html" > /tmp/visual-pages.txt
+            fi
+          fi
+
+          echo "Pages selected:"
+          cat /tmp/visual-pages.txt
+
+      - name: Run Playwright visual check
+        shell: bash
+        run: |
+          mapfile -t pages < /tmp/visual-pages.txt
+          node .github/scripts/visual-check.mjs "${pages[@]}"
+
+      - name: Upload visual report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: morgedal-visual-report
+          path: visual-report/
+          if-no-files-found: warn
+          retention-days: 14
