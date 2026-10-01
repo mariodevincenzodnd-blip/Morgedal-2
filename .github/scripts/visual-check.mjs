@@ -294,7 +294,7 @@ for (const target of targets) {
           }
         }
 
-        const sizeOptions = await requiredControls.dimension.locator("option").evaluateAll(opts => opts.map(o => o.value));
+        const sizeOptions = await requiredControls.dimensione.locator("option").evaluateAll(opts => opts.map(o => o.value));
         if (JSON.stringify(sizeOptions) !== JSON.stringify(["compatto","standard","grande","macro"])) {
           throw new Error(`Punto 16: preset dimensioni inattesi ${JSON.stringify(sizeOptions)}`);
         }
