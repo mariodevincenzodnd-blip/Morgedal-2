@@ -76,7 +76,7 @@ jobs:
               | sort -u > /tmp/visual-pages.txt || true
 
             if [ ! -s /tmp/visual-pages.txt ]; then
-              printf '%s\n' "index.html" > /tmp/visual-pages.txt
+              printf '%s\n' "index.html" "Ola_Scheda_Interattiva.html" > /tmp/visual-pages.txt
             fi
           fi
 
