@@ -967,6 +967,100 @@ function migrateOlaBlock4Points8To12(){
   return changed;
 }
 
+/* BLOCCO 4 · PUNTI 17–23 — Corredi Genetici.
+   Mantiene Corredi e Trasformazioni come sistemi distinti, normalizza i
+   cinque nomi canonici e i relativi Spazi Genetici, e crea tracker separati
+   SOLO per le capacità che nella fonte OLA riportano una Quantità esplicita.
+   Le descrizioni non vengono sovrascritte: eventuali correzioni manuali
+   dell'utente restano intatte. */
+function migrateOlaBlock4Points17To23(){
+  if (!STATE || !Array.isArray(STATE.corredi)) return false;
+  let changed = false;
+
+  const defs = [
+    {
+      canonical:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA",
+      match:/^(?:CORREDO\s+GENETICO\s+ANIMALE\s*:\s*)?CORPO\s+DA\s+LUMACA$/i,
+      spazi:0, max:2
+    },
+    {
+      canonical:"CORREDO GENETICO ANCESTRALE",
+      match:/^CORREDO\s+GENETICO\s*:?[\s-]*ANCESTRALE(?:\s*\([^)]*\))?$/i,
+      spazi:3, max:0
+    },
+    {
+      canonical:"CORREDO GENETICO DEMONIACO",
+      match:/^CORREDO\s+GENETICO\s*:?[\s-]*DEMONIACO(?:\s*\([^)]*\))?$/i,
+      spazi:3, max:0
+    },
+    {
+      canonical:"CORREDO GENETICO DRAGONIDE",
+      match:/^CORREDO\s+GENETICO\s*:?[\s-]*DRAGONIDE(?:\s*\([^)]*\))?$/i,
+      spazi:1, max:0
+    },
+    {
+      canonical:"CORREDO GENETICO NUMA",
+      match:/^CORREDO\s+GENETICO\s*:?[\s-]*NUMA(?:\s*\([^)]*\))?$/i,
+      spazi:1, max:0
+    }
+  ];
+
+  defs.forEach(def=>{
+    const item = STATE.corredi.find(x=>def.match.test(String(x && x.nome || "").trim()));
+    if (!item) return;
+    if (item.nome !== def.canonical){ item.nome = def.canonical; changed = true; }
+    if (item.tag !== "Trucchetto"){ item.tag = "Trucchetto"; changed = true; }
+    if (Number(item.spazi || 0) !== def.spazi){ item.spazi = def.spazi; changed = true; }
+    if (Number(item.max || 0) !== def.max){ item.max = def.max; changed = true; }
+    const safeUsed = Math.max(0, Math.min(def.max, Number(item.used || 0)));
+    if (Number(item.used || 0) !== safeUsed){ item.used = safeUsed; changed = true; }
+  });
+
+  if (!STATE.corredoUtilizzi || typeof STATE.corredoUtilizzi !== "object" || Array.isArray(STATE.corredoUtilizzi)){
+    STATE.corredoUtilizzi = {};
+    changed = true;
+  }
+
+  const sourceUses = {
+    "ancestrale-cura":2,
+    "ancestrale-visione-crepuscolare":2,
+    "ancestrale-saggezza-predominante":2,
+    "ancestrale-luce":2,
+    "ancestrale-levitazione":2,
+    "demoniaco-assorbimento-vitale":2,
+    "demoniaco-visione-crepuscolare":2,
+    "demoniaco-costituzione-possente":2,
+    "demoniaco-fuoco":2,
+    "demoniaco-calore":2,
+    "demoniaco-fumo-demoniaco":2,
+    "dragonide-denti-aguzzi":2,
+    "dragonide-visione-subacquea":2,
+    "dragonide-intelligenza-spiccata":2,
+    "dragonide-fuoco-fulmini":2,
+    "dragonide-pelle-a-scaglie":2,
+    "numa-artigli-affilati":2,
+    "numa-percezione-passiva":2,
+    "numa-destrezza-elevata":2,
+    "numa-guerriero-silenzioso":2,
+    "numa-acrobata":2
+  };
+
+  Object.entries(sourceUses).forEach(([key,max])=>{
+    const cur = STATE.corredoUtilizzi[key];
+    if (!cur || typeof cur !== "object"){
+      STATE.corredoUtilizzi[key] = {max, used:0, uso:"Quantità "+max};
+      changed = true;
+      return;
+    }
+    if (Number(cur.max || 0) !== max){ cur.max = max; changed = true; }
+    if (cur.uso !== "Quantità "+max){ cur.uso = "Quantità "+max; changed = true; }
+    const safeUsed = Math.max(0, Math.min(max, Number(cur.used || 0)));
+    if (Number(cur.used || 0) !== safeUsed){ cur.used = safeUsed; changed = true; }
+  });
+
+  return changed;
+}
+
 const INLINE_TRANSFORM_RESOURCE_NAMES = new Set([
   "Ab. Specifica — Velocità",
   "Ab. Specifica — Forza",
@@ -994,6 +1088,54 @@ function pipsForTransformationUse(key){
   return Array.from({length:u.max}).map((_,p)=>
     `<button class="pip ${p<u.used?'used':''}" data-transuse-key="${key}" data-transuse-pip="${p}"></button>`
   ).join("");
+}
+
+function pipsForCorredoUse(key){
+  const u = STATE.corredoUtilizzi && STATE.corredoUtilizzi[key];
+  if (!u) return "";
+  return Array.from({length:u.max}).map((_,p)=>
+    `<button class="pip ${p<u.used?'used':''}" data-corredo-use-key="${key}" data-corredo-use-pip="${p}"></button>`
+  ).join("");
+}
+
+function renderCorredoSpecificUses(corredo){
+  if (!corredo) return "";
+  const map = {
+    "CORREDO GENETICO ANCESTRALE":[
+      ["ancestrale-cura","CURA"],
+      ["ancestrale-visione-crepuscolare","VISIONE CREPUSCOLARE"],
+      ["ancestrale-saggezza-predominante","SAGGEZZA PREDOMINANTE"],
+      ["ancestrale-luce","LUCE"],
+      ["ancestrale-levitazione","LEVITAZIONE"]
+    ],
+    "CORREDO GENETICO DEMONIACO":[
+      ["demoniaco-assorbimento-vitale","ASSORBIMENTO VITALE"],
+      ["demoniaco-visione-crepuscolare","VISIONE CREPUSCOLARE"],
+      ["demoniaco-costituzione-possente","COSTITUZIONE POSSENTE"],
+      ["demoniaco-fuoco","FUOCO"],
+      ["demoniaco-calore","CALORE"],
+      ["demoniaco-fumo-demoniaco","FUMO DEMONIACO"]
+    ],
+    "CORREDO GENETICO DRAGONIDE":[
+      ["dragonide-denti-aguzzi","DENTI AGUZZI"],
+      ["dragonide-visione-subacquea","VISIONE SUBACQUEA"],
+      ["dragonide-intelligenza-spiccata","INTELLIGENZA SPICCATA"],
+      ["dragonide-fuoco-fulmini","FUOCO/FULMINI"],
+      ["dragonide-pelle-a-scaglie","PELLE A SCAGLIE"]
+    ],
+    "CORREDO GENETICO NUMA":[
+      ["numa-artigli-affilati","ARTIGLI AFFILATI"],
+      ["numa-percezione-passiva","PERCEZIONE PASSIVA"],
+      ["numa-destrezza-elevata","DESTREZZA ELEVATA"],
+      ["numa-guerriero-silenzioso","GUERRIERO SILENZIOSO"],
+      ["numa-acrobata","ACROBATA"]
+    ]
+  };
+  const rows = (map[String(corredo.nome || "").trim()] || []).map(([key,label])=>{
+    const u = STATE.corredoUtilizzi && STATE.corredoUtilizzi[key];
+    return u ? specificUsageRow(label, u.uso, pipsForCorredoUse(key)) : "";
+  }).filter(Boolean);
+  return rows.length ? `<div class="specific-usage-block corredo-usage-block">${rows.join("")}</div>` : "";
 }
 
 function specificUsageRow(label, rule, pips){
@@ -1164,13 +1306,14 @@ const DEFAULT_STATE = {
     {nome:"Alterazione: Numa", tag:"Abilità", width:1, hidden:true, desc:"<p><b>ALTERAZIONE FISICA: NUMA</b> PF +10 (Temporanei)</p>\n<p>MOD. FORZA + 3 · MOD. DESTREZZA + 5 · VELOCITÀ MOV. 15 · BONUS ATT. PER COLPIRE + 4 · PERCEZIONE PASSIVA + 4 · CA + 1</p>\n<p>Danni corpo a corpo: 3d12 + 3 danni sanguinamento (probabilità di causare sanguinamento con ogni colpo). Il pg usufruisce di 3 attacchi o di uno unico da 5d6 + 4, ad ogni colpo il pg lancera' una moneta e se dovesse uscire il risultato prescelto affibbiera' un + 1 sanguinamento al nemico fino alla fine dello scontro. Questo effetto e' cumulabile fino a + 10 danni grazie ai suoi lunghi artigli e denti aguzzi.<br>Il pg sviluppa la capacità di mutare la sua stazza in quello della razza felina Numa, una sottorazza dei Tabaxi, esclusivamente rappresentante pantere.<br>Il pg sviluppa azione costante, avendo la possibilit' di avere un'azione bonus per turno.<br>Il pg ha specifici bonus sui tiri di acrobazie e furtivita' ove in alcuni casi non e' necessario lanciare i dadi (chiedere al master). Bonus + 10<br>Grazie ai suoi affilatissimi artigli il pg puo' arrampicarsi sulla maggior parte delle superfici e rimanerne attaccato per diverso tempo (discrezione master).<br>Il pg ha un olfatto molto sviluppato oltre che l'udito, grazie a questi benefici ha molti vantaggi tattici.<br><b>Abilità Specifica :</b> Il pg utilizza la sua rabbia selvaggia per regredire a essere della foresta, il suo spostamento arriva a un tot di 20 i danni diventano 4d12 o 8d6 e puo' attaccare nemici vicini tra loro. Ogni attacco fatto con mosrsi recupera 5pft per un max di 20 pft. <b>Quantità - 2 -</b></p>"}
   ],
   corredi: [
-    {nome:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, desc:"Melma gelatinosa a solidificazione istantanea: rinuncia agli attacchi nel proprio turno; chi la tocca deve superare un TS o subire solidificazione parziale/totale. Velocità 1, CA +3, TS nemico 17, durata 4 turni. Quantità 2."},
-    {nome:"Corredo Genetico Ancestrale (3 spazi)", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Cura:</b> distribuisce fino a 50 cure.<br>• <b>Visione Crepuscolare:</b> vede al buio come fosse giorno.<br>• <b>Saggezza Predominante:</b> +4 Saggezza (l'anima di un Arcangelo convoglia energia spirituale).<br>• <b>Luce:</b> +3 danni a ogni colpo che la usa; in alternativa crea piccole creazioni di luce (oggetti o famigli, 1d6 danni / 10 PF / 4 mov / 14 CA), interconnesse con la sua mente.<br>• <b>Levitazione:</b> fino a 6 turni / 6h (non vola, ma può planare)."},
-    {nome:"Corredo Genetico Demoniaco (3 spazi)", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Assorbimento Vitale:</b> assorbe la linfa vitale dei nemici, 6d6.<br>• <b>Visione Crepuscolare:</b> vede al buio come fosse giorno.<br>• <b>Costituzione Possente:</b> +4 Forza (energia di un demone superiore).<br>• <b>Fuoco:</b> +3 danni a colpo; a distanza 7d6.<br>• <b>Calore:</b> immune al freddo e alle basse temperature.<br>• <b>Fumo Demoniaco:</b> nube nera fino a 4 caselle; i nemici dentro devono superare TS Destrezza 18 per vederci, e gli attacchi dentro l'area ottengono +5."},
-    {nome:"Corredo Genetico Dragonide (1 spazio)", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Denti Aguzzi:</b> morso 5d6+2 sanguinamento.<br>• <b>Visione Subacquea:</b> vede chiaramente sott'acqua fino a 6 turni/6h.<br>• <b>Intelligenza Spiccata:</b> +4 Intelligenza.<br>• <b>Fuoco/Fulmini:</b> eiettati dalla bocca fino a 5 caselle — più vicino il nemico, più danno (max 8d6, scala fino a 4d6 alla distanza massima).<br>• <b>Pelle a Scaglie:</b> +2 CA fino a fine scontro."},
-    {nome:"Corredo Genetico Numa (1 spazio)", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Artigli Affilati:</b> graffi/morsi 6d6+2 sanguinamento.<br>• <b>Percezione Passiva:</b> +6 (udito e olfatto sviluppati).<br>• <b>Destrezza Elevata:</b> +2 Destrezza.<br>• <b>Fuoco/Fulmini:</b> come Dragonide, max 8d6 a 5 caselle scalando a 4d6.<br>• <b>Guerriero Silenzioso:</b> +10 su prove di non essere rilevato.<br>• <b>Acrobata:</b> +10 su furtività/acrobazie o azioni complesse senza tiro."}
+    {nome:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, desc:"<div class=\"canonical-text\">Il Pg ha la possibilità di mutare il proprio corpo in melma gelatinosa con solidificazione istantanea (lumaca combattente). Alterando il proprio stato fisico, da solido a melmoso, il pg rinuncia a compiere attacchi considerando il suo stato, ma, se dovesse esserne oggetto, il nemico una volta venuto a contatto con la sua gelatina sarà costretto a superare dei TS per evitare la solidificazione istantanea, parziale o totale. Velocità di movimento 1, CA +3, TS Nemico 17, Durata 4 turni, Quantità  -2-</div>"},
+    {nome:"CORREDO GENETICO ANCESTRALE", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"<div class=\"canonical-text\">CURA : Possibilità di utilizzare o distribuire un max di 50 Cure.  Quantità 2<br>VISIONE CREPUSCOLARE : I suoi occhi possono vedere in qualsiasi condizione di buio come se fosse giorno. Quantità 2<br>SAGGEZZA PREDOMINANTE : L’anima di un ARCANGELO  è molto potente e riesce a convogliare molta energia spirituale nel corpo di chi lo ospita. Il PG guadagna un + 4 sulla caratteristica di SAGGEZZA. Quantità 2 <br>LUCE : Il PG può generare luce  come elemento di difesa o attacco. Ogni volta che verra’ utilizzata il danno guadagnera’ un + 3 per ogni colpo inferto. Il pg puo’ in alternativa creare delle piccole creazioni di luce come oggetti o famigli da 1d6 danni / 10pf / 4 mov / 14 CA di qualsiasi entita’ di piccole dimensioni, esse sono interconnesse con la mente del PG, dunque puo’ vedere e sentire le stesse cose delle evocazioni. Quantità 2<br>LEVITAZIONE : Il PG puo’ levitare per un max di 6 turni / 6h. non puo’ volare ma grazie alla levitazione puo’ planare se necessario.Quantità 2</div>"},
+    {nome:"CORREDO GENETICO DEMONIACO", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"<div class=\"canonical-text\">ASSORBIMENTO VITALE : Possibilità di Assorbire la linfa vitale dai nemici (6D6).  Quantità 2<br>VISIONE CREPUSCOLARE : I suoi occhi possono vedere in qualsiasi condizione di buio come se fosse giorno. Quantità 2<br>COSTITUZIONE POSSENTE : Il corpo di un DEMONE SUPERIORE è molto potente e riesce a sprigionare molta energia come un catalizzatore. Il PG guadagna un + 4 sulla caratteristica di FORZA. Quantità 2 <br>FUOCO : Il PG può generare  fuoco come  attacco. Ogni volta che verra’ utilizzato il fuoco come attacco il danno guadagnera’ un + 3 per ogni colpo inferto. Se utilizzato come colpo a distanza 7d6. Quantità 2<br>CALORE : Il pg non ha problemi di temperature basse e glaciali che potrebbero influire negativamente sui suoi sistemi. Quantità 2  <br>FUMO DEMONIACO : Il PG viene ricoperto da un fumo denso e nero che lo avvolge per max 4 caselle di distanza. Qualsiasi nemico in questo raggio dovra’ effettuare un TS Destrezza di 18 per potervi vedere attraverso. Tutti gli attacchi all’interno guadagnano un + 5 .Quantità 2</div>"},
+    {nome:"CORREDO GENETICO DRAGONIDE", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"<div class=\"canonical-text\">DENTI AGUZZI : Possibilità di infliggere ingenti danni con morsi 5d6 + 2 sanguinamento. Quantità 2<br>VISIONE SUBACQUEA : I suoi occhi vengono ricoperti di una sottilissima membrana che gli permette di vedere con chiarezza sott'acqua fino a un massimo di 6 Turni o 6h Quantità 2<br>INTELLIGENZA SPICCATA : Il cervello di un DRAGONIDE è una delle armi terrene più potenti mai esistite se utilizzato con criterio. Il PG guadagna un + 4 sulla caratteristica di INTELLIGENZA.Quantità 2<br>FUOCO/FULMINI : Il PG può eiettare  fuoco o fulmini dalla bocca fino ad una distanza massima di 5 Caselle. Più vicino è il nemico più danno subirà. Danno max 8d6 a scalare di una casella fino a 4d6 dalla massima.Quantità 2<br>PELLE A SCAGLIE : Il PG viene ricoperto da scaglie che rendono la sua pelle più dura. + 2 CA fino alla fine dello scontro.Quantità 2</div>"},
+    {nome:"CORREDO GENETICO NUMA", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"<div class=\"canonical-text\">ARTIGLI AFFILATI : Possibilità di infliggere ingenti danni con graffi e morsi 6d6 + 2  sanguinamento. Quantità 2<br>PERCEZIONE PASSIVA : Il suo udito e il suo olfatto sviluppato potenziano in modo inequivocabile la sua percezione del circondario, rendendo il pg molto piu’ attento + 6 PERCEZIONE PASSIVA. Quantità 2<br>DESTREZZA ELEVATA : Il corpo di un NUMA è un elevato strumento di destrezza e abilita’ tecniche. Il PG guadagna un + 2 sulla caratteristica di DESTREZZA. Quantità 2<br>GUERRIERO SILENZIOSO : Il PG ha un passo velato e non viene riconosciuto e non da nemici specifici o incantesimi rivelatori in ogni caso guadagna sulle prove un + 10 sui tiri. Quantità 2<br>ACROBATA  : Il PG puo’ effettuare acrobazie e azioni complesse senza tiri specifici , in caso contrario guadagna un bonus di + 10 su tutti i tiri di furtivita’ e acrobazie. Quantità 2</div>"}
   ],
   spaziGeneticiMax: 10,
+  corredoUtilizzi: {},
   truccetti: [
     {nome:"Contrasti", desc:"In caso di perdita di controllo durante lo sdoppiamento (Doppio Volto), il PG può tentare di dominare la parte “corrotta” del suo alter ego: +3 sul tiro contrapposto.", uso:"4 x Riposo Lungo"},
     {nome:"Ab. Specifica — Velocità / Forza / Volo / Mini", desc:"Ogni forma di Alterazione Fisica porta con sé un'abilità intrinseca dedicata, considerata trucchetto (non consuma slot): schivata su tiro opposto (Velocità), Berserk +2d6 danni 1x riposo lungo (Forza), attacchi a distanza con turbini 3d6 max 2 colpi (Volo), Colpo Devastante 12d6 max 1 a scontro (Mini).", uso:"Quantità variabile per forma (vedi Risorse)"},
@@ -1289,7 +1432,7 @@ const BLANK_STATE = {
   abilita: [],
   incantesimo: [],
   divergenzaIntro: "", ambiti: [], campiAttiva: [], divergenzaAttivaNote: "", divergenzaPassiva: "",
-  trasformazioni: [], corredi: [], spaziGeneticiMax: 10,
+  trasformazioni: [], corredi: [], spaziGeneticiMax: 10, corredoUtilizzi: {},
   truccetti: [],
 
   descrizione: { eta:"", altezza:"", peso:"", occhi:"", capelli:"", colorePersonaggio:"" },
@@ -2194,9 +2337,14 @@ function masterDelete(cat, idx){
   queueSave();
 }
 function masterCreate(cat){
-  const seed = cat === "trasformazioni"
-    ? {nome:"Nuova Trasformazione", desc:"", tag:"Abilità", width:2, hidden:true, sizePreset:"standard"}
-    : {nome:"Nuovo elemento", desc:""};
+  let seed;
+  if (cat === "trasformazioni"){
+    seed = {nome:"Nuova Trasformazione", desc:"", tag:"Abilità", width:2, hidden:true, sizePreset:"standard"};
+  } else if (cat === "corredi"){
+    seed = {nome:"Nuovo Corredo", desc:"", tag:"Trucchetto", width:1, hidden:true, spazi:0, max:0, used:0};
+  } else {
+    seed = {nome:"Nuovo elemento", desc:""};
+  }
   STATE[cat].push(masterFromCanonical(cat, seed));
   masterRerender(cat);
   queueSave();
@@ -2218,7 +2366,12 @@ function masterSetField(cat, idx, field, val){
     else if (field === "desc") item[1] = val;
     else if (field === "group") item[2] = val;
   } else {
-    item[field] = (field === "spazi") ? (parseInt(val,10)||0) : val;
+    if (field === "spazi" || field === "max"){
+      item[field] = Math.max(0, parseInt(val,10) || 0);
+      if (field === "max" && Number(item.used || 0) > item.max) item.used = item.max;
+    } else {
+      item[field] = val;
+    }
   }
 }
 function masterBoxHeight(cat, idx){
@@ -2385,7 +2538,7 @@ function bindMasterControls(root){
       const val = el.matches("[contenteditable]") ? el.innerHTML : el.value;
       masterSetField(cat, Number(idx), field, val);
       if (cat === "corredi" && field === "spazi" && typeof refreshSpaziGenetici === "function") refreshSpaziGenetici();
-      if (cat === "trasformazioni" && field === "tag"){
+      if ((cat === "trasformazioni" && field === "tag") || (cat === "corredi" && (field === "tag" || field === "max"))){
         masterRerender(cat);
         queueSave();
         return;
@@ -2508,16 +2661,27 @@ function renderPoteri(){
     const nameField = masterOn
       ? `<input type="text" class="master-name-input" data-master-field="corredi|${i}|nome" value="${esc(c.nome)}">`
       : `<h3>${c.nome}</h3>`;
-    const pipsHtml = (c.max>0) ? `<div class="pips">${Array.from({length:c.max}).map((_,p)=>`<button class="pip ${p<c.used?'used':''}" data-corredopip="${i}-${p}"></button>`).join("")}</div>` : "";
+    const tagField = masterOn ? (()=>{
+      const current = String(c.tag || "Trucchetto");
+      const values = Array.from(new Set([current, "Trucchetto", "Passiva", "Abilità", "Incantesimo"]));
+      return `<select class="master-corredo-tag master-transform-tag" data-master-field="corredi|${i}|tag" title="Categoria del Corredo">${values.map(v=>`<option value="${esc(v)}"${v===current?" selected":""}>${esc(v)}</option>`).join("")}</select>`;
+    })() : `<span class="tag ${tagColorClass(c.tag)}">${c.tag}</span>`;
+    const pipsHtml = (c.max>0) ? `<div class="specific-usage-block corredo-card-usage"><div class="specific-usage-row"><div class="specific-usage-copy"><div class="specific-usage-name">UTILIZZI DEL CORREDO</div><div class="specific-usage-rule">Quantità ${c.max}</div></div><div class="pips">${Array.from({length:c.max}).map((_,p)=>`<button class="pip ${p<c.used?'used':''}" data-corredopip="${i}-${p}"></button>`).join("")}</div></div></div>` : "";
+    const internalUsesHtml = renderCorredoSpecificUses(c);
+    const maxField = masterOn
+      ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Quantità/utilizzi: <input type="number" min="0" class="master-uso-input" style="width:52px;" data-master-field="corredi|${i}|max" value="${c.max||0}"></div>`
+      : "";
     const spaziField = masterOn
-      ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Spazi genetici: <input type="number" class="master-uso-input" style="width:44px;" data-master-field="corredi|${i}|spazi" value="${c.spazi||0}"></div>`
+      ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Spazi genetici: <input type="number" min="0" class="master-uso-input" style="width:44px;" data-master-field="corredi|${i}|spazi" value="${c.spazi||0}"></div>`
       : (c.spazi>0 ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:6px;">Spazi genetici: ${c.spazi}</div>` : "");
     return `<div class="subcard${masterOn && c.hidden ? ' master-hidden-item' : ''}" id="anchor-${slugify(c.nome)}"${masterBoxStyle("corredi", i)}>
       ${toolbar}
-      <span class="tag ${tagColorClass(c.tag)}">${c.tag}</span>
+      ${tagField}
       ${nameField}
       <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich-arr="corredi-${i}">${c.desc}</div>
+      ${internalUsesHtml}
       ${pipsHtml}
+      ${maxField}
       ${spaziField}
     </div>`;
   }).join("");
@@ -2584,7 +2748,7 @@ function renderPoteri(){
       <h2>Corredi Genetici</h2>
       <div class="inv-cap" style="margin-bottom:12px;">
         <span style="font-size:12px;color:var(--text-dim);">Spazi Genetici</span>
-        <input type="number" id="spazi-genetici-max" value="${STATE.spaziGeneticiMax}" style="width:60px;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:#c9a3f0;border-radius:6px;text-align:center;font-family:var(--mono);">
+        <input type="number" id="spazi-genetici-max" value="${STATE.spaziGeneticiMax}" ${masterOn ? "" : "readonly"} style="width:60px;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:#c9a3f0;border-radius:6px;text-align:center;font-family:var(--mono);">
         <div class="inv-bar"><div class="inv-bar-fill" id="spazi-genetici-fill" style="background:#9450d8;"></div></div>
         <span id="spazi-genetici-total" style="font-family:var(--mono);font-size:13px;color:#c9a3f0;"></span>
       </div>
@@ -2633,6 +2797,16 @@ function renderPoteri(){
       renderPoteri(); queueSave();
     });
   });
+  document.querySelectorAll('[data-corredo-use-key]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const key = btn.dataset.corredoUseKey;
+      const p = Number(btn.dataset.corredoUsePip);
+      const u = STATE.corredoUtilizzi && STATE.corredoUtilizzi[key];
+      if (!u) return;
+      u.used = (p < u.used) ? p : p + 1;
+      renderPoteri(); queueSave();
+    });
+  });
   document.querySelectorAll('[data-transuse-key]').forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const key = btn.dataset.transuseKey;
@@ -2654,6 +2828,9 @@ function renderPoteri(){
   document.getElementById("reset-risorse").addEventListener("click", ()=>{
     STATE.risorse.forEach(r=>r.used=0);
     STATE.corredi.forEach(c=>{ if (c.max>0) c.used=0; });
+    if (STATE.corredoUtilizzi){
+      Object.values(STATE.corredoUtilizzi).forEach(u=>{ if (u && typeof u === "object") u.used = 0; });
+    }
     STATE.trasformazioni.forEach(t=>{ if (t.slotsTemp) t.slotsTemp.forEach(s=>s.used=0); });
     if (STATE.trasformazioneUtilizzi){
       Object.values(STATE.trasformazioneUtilizzi).forEach(u=>{ if (u && typeof u === "object") u.used = 0; });
@@ -2662,7 +2839,7 @@ function renderPoteri(){
   });
 
   const spaziMaxInput = document.getElementById("spazi-genetici-max");
-  if (spaziMaxInput){
+  if (spaziMaxInput && masterOn){
     spaziMaxInput.addEventListener("input", ()=>{
       STATE.spaziGeneticiMax = Math.max(0, parseInt(spaziMaxInput.value||"0",10));
       refreshSpaziGenetici(); queueSave();
@@ -3522,6 +3699,7 @@ function renderAll(){
   if (migrateOlaBlock4Point3TraduttoreBranchie()) queueSave();
   if (migrateOlaBlock4Point4CorpoDaLumaca()) queueSave();
   if (migrateOlaBlock4Points8To12()) queueSave();
+  if (migrateOlaBlock4Points17To23()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
