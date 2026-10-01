@@ -118,7 +118,7 @@ for (const target of targets) {
           timeout: 60_000,
         });
 
-        await page.evaluate(() => {
+        await page.evaluate((enableMaster) => {
           const token = {
             token: "visual-ci-token",
             expiresAt: Date.now() + 60 * 60 * 1000,
@@ -131,7 +131,10 @@ for (const target of targets) {
             "morgedal-google-token-v2",
             JSON.stringify(token)
           );
-        });
+          if (enableMaster) {
+            sessionStorage.setItem("morgedal-master-unlocked", "1");
+          }
+        }, /^Ola_Scheda_Interattiva\.html$/i.test(normalized));
       }
 
       const response = await page.goto(url, {
@@ -161,6 +164,11 @@ for (const target of targets) {
           await page.waitForTimeout(500);
         } else {
           throw new Error("Tab POTERI & RISORSE non trovata nella scheda OLA");
+        }
+
+        const numaPlayer = page.locator("#anchor-alterazione-numa");
+        if (await numaPlayer.count()) {
+          throw new Error("Numa deve essere nascosta di default in modalità Player");
         }
 
         const ancestrale = page.locator("#anchor-alterazione-ancestrale");
@@ -207,6 +215,143 @@ for (const target of targets) {
         if (dragonideUsedReset !== 0) {
           throw new Error("Dragonide: ripristino del pip di test non riuscito");
         }
+
+        const masterToggle = page.locator("#master-editor-toggle");
+        if (!(await masterToggle.count()) || !(await masterToggle.isVisible())) {
+          throw new Error("Editor Master non disponibile nel test OLA");
+        }
+        await masterToggle.click();
+        await page.waitForTimeout(200);
+
+        let transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        let numaMaster = page.locator("#anchor-alterazione-numa");
+        if ((await numaMaster.count()) !== 1) {
+          throw new Error("Numa non compare in Editor Master pur essendo hidden");
+        }
+        const numaPips = await numaMaster.locator(".specific-usage-block .pip").count();
+        if (numaPips !== 2) {
+          throw new Error(`Numa: tracker Abilità Specifica atteso 2, trovato ${numaPips}`);
+        }
+        const numaEye = numaMaster.locator('[data-master-eye^="trasformazioni-"]');
+        if (!(await numaEye.count()) || !(await numaEye.evaluate(el => el.classList.contains("is-hidden")))) {
+          throw new Error("Numa: occhio Master non segnala lo stato hidden");
+        }
+
+        const cardCountBefore = await transformGrid.locator(":scope > .subcard").count();
+        const eyeCountBefore = await transformGrid.locator('[data-master-eye^="trasformazioni-"]').count();
+        if (eyeCountBefore !== cardCountBefore) {
+          throw new Error(`Trasformazioni: occhi indipendenti ${eyeCountBefore}/${cardCountBefore}`);
+        }
+
+        const addTransform = page.locator('[data-master-create="trasformazioni"]');
+        if (!(await addTransform.count())) {
+          throw new Error("Punto 16: pulsante Nuova Trasformazione assente");
+        }
+        await addTransform.click();
+        await page.waitForTimeout(150);
+
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        let newIndex = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        if (newIndex < 0) {
+          throw new Error("Punto 16: nuova trasformazione non creata");
+        }
+
+        let newCard = transformGrid.locator(":scope > .subcard").nth(newIndex);
+        const requiredControls = {
+          nome: newCard.locator(".master-name-input"),
+          descrizione: newCard.locator('.rich[contenteditable="true"]'),
+          categoria: newCard.locator(".master-transform-tag"),
+          dimensione: newCard.locator(".master-transform-size"),
+          ordineSu: newCard.locator("[data-master-up]"),
+          ordineGiu: newCard.locator("[data-master-down]"),
+          visibilita: newCard.locator("[data-master-eye]"),
+        };
+        for (const [label, locator] of Object.entries(requiredControls)) {
+          if (!(await locator.count())) {
+            throw new Error(`Punto 16: controllo ${label} assente`);
+          }
+        }
+
+        const sizeOptions = await requiredControls.dimension.locator("option").evaluateAll(opts => opts.map(o => o.value));
+        if (JSON.stringify(sizeOptions) !== JSON.stringify(["compatto","standard","grande","macro"])) {
+          throw new Error(`Punto 16: preset dimensioni inattesi ${JSON.stringify(sizeOptions)}`);
+        }
+        if (!(await requiredControls.visibilita.evaluate(el => el.classList.contains("is-hidden")))) {
+          throw new Error("Punto 16: nuova trasformazione deve nascere nascosta al Player");
+        }
+
+        await requiredControls.categoria.selectOption("Passiva");
+        await page.waitForTimeout(120);
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        newIndex = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        newCard = transformGrid.locator(":scope > .subcard").nth(newIndex);
+        if (await newCard.locator(".master-transform-tag").inputValue() !== "Passiva") {
+          throw new Error("Punto 16: categoria trasformazione non persistita nel render");
+        }
+
+        await newCard.locator(".master-transform-size").selectOption("macro");
+        await page.waitForTimeout(120);
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        newIndex = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        newCard = transformGrid.locator(":scope > .subcard").nth(newIndex);
+        const macroStyle = await newCard.getAttribute("style") || "";
+        if (!macroStyle.includes("grid-column:span 3") || !macroStyle.includes("min-height:420px")) {
+          throw new Error(`Punto 16: preset macro non applicato (${macroStyle})`);
+        }
+
+        const orderBefore = newIndex;
+        await newCard.locator("[data-master-up]").click();
+        await page.waitForTimeout(120);
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        const orderAfter = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        if (orderBefore <= 0 || orderAfter !== orderBefore - 1) {
+          throw new Error(`Punto 16: riordino fallito (${orderBefore} -> ${orderAfter})`);
+        }
+
+        newCard = transformGrid.locator(":scope > .subcard").nth(orderAfter);
+        await newCard.locator("[data-master-eye]").click();
+        await page.waitForTimeout(120);
+        await masterToggle.click();
+        await page.waitForTimeout(120);
+        if ((await page.locator("#anchor-nuova-trasformazione").count()) !== 1) {
+          throw new Error("Punto 16: trasformazione resa visibile non compare al Player");
+        }
+
+        await masterToggle.click();
+        await page.waitForTimeout(120);
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        newIndex = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        newCard = transformGrid.locator(":scope > .subcard").nth(newIndex);
+        await newCard.locator("[data-master-eye]").click();
+        await page.waitForTimeout(120);
+        await masterToggle.click();
+        await page.waitForTimeout(120);
+        if (await page.locator("#anchor-nuova-trasformazione").count()) {
+          throw new Error("Punto 15/16: trasformazione nascosta lascia tracce al Player");
+        }
+
+        await masterToggle.click();
+        await page.waitForTimeout(120);
+        transformGrid = page.locator("#anchor-trasformazioni-top .grid.grid-3");
+        newIndex = await transformGrid.locator(":scope > .subcard").evaluateAll((cards) =>
+          cards.findIndex(card => card.querySelector(".master-name-input")?.value === "Nuova Trasformazione")
+        );
+        if (newIndex >= 0) {
+          await transformGrid.locator(":scope > .subcard").nth(newIndex).locator("[data-master-del]").click();
+          await page.waitForTimeout(120);
+        }
+        await masterToggle.click();
+        await page.waitForTimeout(120);
       }
 
       await page.waitForTimeout(1200);
