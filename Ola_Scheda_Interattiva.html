@@ -331,6 +331,22 @@
   .subcard .tag.tag-incantesimo{color:var(--violet);background:rgba(148,80,216,0.12);border-color:var(--violet-dim);}
   .subcard .tag.tag-ambito{color:var(--teal);background:rgba(47,184,172,0.14);border-color:var(--teal-dim);}
   .subcard .tag.tag-campo{color:var(--good);background:rgba(111,154,99,0.14);border-color:rgba(111,154,99,0.45);}
+  .specific-ability-label{
+    display:inline-block;color:var(--red-glow);font-weight:800;letter-spacing:.35px;
+    background:rgba(201,70,59,0.11);border:1px solid rgba(201,70,59,0.42);
+    border-radius:5px;padding:1px 5px;margin:2px 1px;
+  }
+  .specific-usage-block{
+    margin-top:12px;padding-top:10px;border-top:1px dashed rgba(201,70,59,0.38);
+  }
+  .specific-usage-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:8px 10px;margin-top:7px;border-radius:7px;
+    background:rgba(201,70,59,0.07);border:1px solid rgba(201,70,59,0.25);
+  }
+  .specific-usage-copy{display:flex;flex-direction:column;gap:2px;min-width:220px;flex:1;}
+  .specific-usage-name{font-size:11.5px;font-weight:800;color:var(--red-glow);text-transform:uppercase;letter-spacing:.55px;}
+  .specific-usage-rule{font-size:10.5px;color:var(--text-dim);}
   .subcard-grouped{grid-column:1/-1;}
   .subcard-subsection{padding-top:10px;margin-top:10px;border-top:1px dashed var(--border-soft);}
   .subcard-subsection:first-of-type{border-top:none;margin-top:6px;padding-top:0;}
@@ -896,6 +912,140 @@ function migrateOlaBlock4Point4CorpoDaLumaca(){
   return true;
 }
 
+/* BLOCCO 4 · PUNTI 8–12 — Trasformazioni.
+   - Velocità/Forza/Volo/Mini restano ABILITÀ.
+   - Le trasformazioni lunghe occupano tutta la riga.
+   - Gli utilizzi delle Abilità Specifiche derivano SOLO dalla fonte OLA.
+   - Energia Pura (Passiva) resta distinta da Alterazione: Pura Energia.
+   - Gli slot temporanei restano proprietà delle singole trasformazioni. */
+function migrateOlaBlock4Points8To12(){
+  if (!STATE || !Array.isArray(STATE.trasformazioni)) return false;
+  let changed = false;
+
+  const byName = (name)=> STATE.trasformazioni.find(t => String(t && t.nome || "").trim() === name);
+  ["Alterazione: Velocità","Alterazione: Forza","Alterazione: Volo","Alterazione: Mini"].forEach(name=>{
+    const t = byName(name);
+    if (t && t.tag !== "Abilità"){ t.tag = "Abilità"; changed = true; }
+  });
+
+  ["Alterazione: Ancestrale","Alterazione: Pura Energia","Alterazione: Demoniaca","Alterazione: Dragonide"].forEach(name=>{
+    const t = byName(name);
+    if (t && t.width !== 3){ t.width = 3; changed = true; }
+  });
+
+  const energiaPura = Array.isArray(STATE.passive)
+    ? STATE.passive.find(p => /^Energia Pura$/i.test(String(p && p.nome || "").trim()))
+    : null;
+  if (energiaPura && energiaPura.tag !== "Passiva"){ energiaPura.tag = "Passiva"; changed = true; }
+
+  const puraEnergia = byName("Alterazione: Pura Energia");
+  if (puraEnergia && puraEnergia.tag !== "Abilità"){ puraEnergia.tag = "Abilità"; changed = true; }
+
+  if (!STATE.trasformazioneUtilizzi || typeof STATE.trasformazioneUtilizzi !== "object" || Array.isArray(STATE.trasformazioneUtilizzi)){
+    STATE.trasformazioneUtilizzi = {};
+    changed = true;
+  }
+  const sourceUses = {
+    "pura-energia-tesla-avanzata": {max:1, uso:"1 ogni 2 Riposi Lunghi"},
+    "demoniaca-rust": {max:1, uso:"1 x Riposo Lungo"},
+    "demoniaca-stealth": {max:1, uso:"1 x Scontro"},
+    "dragonide-recuperare-slot": {max:1, uso:"1 x Riposo Lungo"},
+    "numa-rabbia-selvaggia": {max:2, uso:"Quantità 2"}
+  };
+  Object.entries(sourceUses).forEach(([key, def])=>{
+    const cur = STATE.trasformazioneUtilizzi[key];
+    if (!cur || typeof cur !== "object"){
+      STATE.trasformazioneUtilizzi[key] = {max:def.max, used:0, uso:def.uso};
+      changed = true;
+      return;
+    }
+    if (cur.max !== def.max){ cur.max = def.max; changed = true; }
+    if (cur.uso !== def.uso){ cur.uso = def.uso; changed = true; }
+    const safeUsed = Math.max(0, Math.min(def.max, Number(cur.used || 0)));
+    if (cur.used !== safeUsed){ cur.used = safeUsed; changed = true; }
+  });
+  return changed;
+}
+
+const INLINE_TRANSFORM_RESOURCE_NAMES = new Set([
+  "Ab. Specifica — Velocità",
+  "Ab. Specifica — Forza",
+  "Ab. Specifica — Volo",
+  "Ab. Specifica — Mini"
+]);
+
+function highlightTransformationSpecifics(html){
+  return String(html || "")
+    .replace(/Abilità Specifica/gi, '<span class="specific-ability-label">Abilità Specifica</span>')
+    .replace(/Abilità Speciale/gi, '<span class="specific-ability-label">Abilità Speciale</span>');
+}
+
+function pipsForResource(resourceIndex){
+  const r = STATE.risorse && STATE.risorse[resourceIndex];
+  if (!r) return "";
+  return Array.from({length:r.max}).map((_,p)=>
+    `<button class="pip ${p<r.used?'used':''}" data-respip="${resourceIndex}-${p}"></button>`
+  ).join("");
+}
+
+function pipsForTransformationUse(key){
+  const u = STATE.trasformazioneUtilizzi && STATE.trasformazioneUtilizzi[key];
+  if (!u) return "";
+  return Array.from({length:u.max}).map((_,p)=>
+    `<button class="pip ${p<u.used?'used':''}" data-transuse-key="${key}" data-transuse-pip="${p}"></button>`
+  ).join("");
+}
+
+function specificUsageRow(label, rule, pips){
+  return `<div class="specific-usage-row">
+    <div class="specific-usage-copy">
+      <div class="specific-usage-name">${label}</div>
+      <div class="specific-usage-rule">${rule}</div>
+    </div>
+    <div class="pips">${pips}</div>
+  </div>`;
+}
+
+function renderTransformationSpecificUses(t){
+  if (!t) return "";
+  const name = String(t.nome || "").trim();
+  const rows = [];
+
+  const resourceMap = {
+    "Alterazione: Velocità": ["Ab. Specifica — Velocità", "Abilità Specifica", "Quantità 3"],
+    "Alterazione: Forza": ["Ab. Specifica — Forza", "Abilità Specifica", "1 x Riposo Lungo · Quantità 1"],
+    "Alterazione: Volo": ["Ab. Specifica — Volo", "Abilità Specifica", "Quantità 4"],
+    "Alterazione: Mini": ["Ab. Specifica — Mini", "Abilità Specifica", "Quantità 2 · max 1 per scontro"]
+  };
+  const rm = resourceMap[name];
+  if (rm && Array.isArray(STATE.risorse)){
+    const idx = STATE.risorse.findIndex(r => String(r && r.nome || "") === rm[0]);
+    if (idx >= 0) rows.push(specificUsageRow(rm[1], rm[2], pipsForResource(idx)));
+  }
+
+  const extraMap = {
+    "Alterazione: Pura Energia": [
+      ["pura-energia-tesla-avanzata", "Abilità Specifica — Tesla Avanzata"]
+    ],
+    "Alterazione: Demoniaca": [
+      ["demoniaca-rust", "Abilità Specifica (variante Rust)"],
+      ["demoniaca-stealth", "Abilità Specifica (variante Stealth)"]
+    ],
+    "Alterazione: Dragonide": [
+      ["dragonide-recuperare-slot", "Abilità Specifica — Recuperare Slot"]
+    ],
+    "Alterazione: Numa": [
+      ["numa-rabbia-selvaggia", "Abilità Specifica"]
+    ]
+  };
+  (extraMap[name] || []).forEach(([key,label])=>{
+    const u = STATE.trasformazioneUtilizzi && STATE.trasformazioneUtilizzi[key];
+    if (u) rows.push(specificUsageRow(label, u.uso, pipsForTransformationUse(key)));
+  });
+
+  return rows.length ? `<div class="specific-usage-block">${rows.join("")}</div>` : "";
+}
+
 const ATTACCHI_LINKS = [{"label": "Guanti del Monaco Difensore", "tab": "equip", "anchor": "anchor-guanti-del-monaco-difensore"}];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -1008,7 +1158,7 @@ const DEFAULT_STATE = {
     {nome:"Alterazione: Volo", tag:"Abilità", width:1, hidden:false, desc:"Mod. Forza +1, Mod. Destrezza +2 · Movimento 15 (volando) · Bonus attacco +3 · +10 PF temporanei.<br><br>Corpo a corpo: 6d6+2 danni da sanguinamento.<br><br>Il pg sviluppa la capacità di mutare la sua stazza fisica per avvantaggiarsi negli scontri sviluppando caratteristiche fisiche riconducibili a rapaci e volatili: ali e becco, così da raggiungere un'aerodinamicità spiccata, coda ridimensionata, artigli, e una stazza fisica complessivamente ridotta.<br><br><b>Abilità Specifica:</b> con un movimento d'ali attacca a distanza con turbini/colpi d'aria, 3d6 a colpo, max 2 di fila — se entrambi in successione, il secondo non richiede tiro sulla CA nemica (danno automatico). Quantità 4."},
     {nome:"Alterazione: Mini", tag:"Abilità", width:1, hidden:false, desc:"Mod. Forza +2, Mod. Destrezza +3 · Movimento 5 · Bonus attacco +3 · +10 PF temporanei.<br><br>Corpo a corpo: 5d6+2 danni da paralisi (elettricità).<br><br>Il pg sviluppa la capacità di mutare la sua stazza fisica per avvantaggiarsi negli scontri, riducendo di molto la sua statura fino a diventare difficilmente reperibile per i nemici, mantenendo però tutti i vantaggi, le caratteristiche e le abilità della forma normale.<br><br><b>Abilità Specifica — Colpo Devastante:</b> forza sufficiente a sollevare fino a 10 volte il proprio peso, concentrata in un colpo letale: 12d6 danni. Quantità 2, max 1 per scontro."},
     {nome:"Alterazione: Ancestrale", tag:"Abilità", width:3, hidden:false, desc:"<p><b>ALTERAZIONE FISICA : ANCESTRALE</b> PF +10 (Temporanei)</p>\n<p>MOD. INT + 2/MOD.CAR + 3/VELOCITÀ MOV. 9/BONUS TIRI PER CURE + 2</p>\n<p>Danni corpo a corpo: 5d6+2 danni, ogni colpo inferto 1d12 cure o 6Pf fissi, il pg commuta le sue ossa in un'arma simil bastone che può utilizzare per combattimento che comanda con telecinesi a distanza max 5 caselle. Il pg sviluppa la capacità di mutare la sua corporatura in una forma snella e somigliante ad un essere celeste (privo di ali) ma soprattutto acquisisce la capacità di combinare le sue capacità energetiche a quelle di luce dell'arcangelo. Il pg ha la facoltà di levitare costantemente ed elevarsi per brevi periodi non superiori ad 1h o 3 turni, passato un turno in discesa si potrà effettuare nuovamente l'ascesa. il PG acquisisce la capacità di curare gli alleati o se stesso avendo a disposizione 150 PF da poter ripartire con un max di 50 a giocatore. Ogni pg può avere un massimo di 20PF temporanei se già full vita. CD 16 su CARISMA (basterà effettuare una sola volta il tiro per poter curare gli alleati che si desidera). Il pg in questa forma acquisisce la possibilità di creare grandi colpi di energia combinati con luce santa, potenziando i suoi attacchi a distanza 8d6 max 10 caselle(ad ogni attacco 1d8 cure o 2d4). Il pg ha la capacità di guardare per un lasso di tempo breve nel passato di un personaggio toccandolo. CD 16 CARISMA. Il pg può leggere nella mente dei personaggi per un breve lasso di tempo. CD 16 CARISMA. Il PG può parlare direttamente con il dio della Vita LINFEUS. Qualora nel combattimento dovesse essere presente l'arcangelo Lux (o addirittura altri arcangeli)potrebbero esserci dei potenziamenti casuali. Durante la trasformazione il PG avrà a disposizione degli Slot unici che potranno essere utilizzati come \"Slot Incantesimi\" esclusivamente per le abilità della trasformazione corrente n. 5lvl 1, 4 lvl2, 3 lvl3, 2 lvl 4 e 1 lvl 5. Durante la trasformazione il PG potrà creare oggetti di luce, armi, protezioni per se' stesso o per gli altri o addirittura famigli. In base al livello dello slot il PG evocherà una magia più potente. Esempio slot lvl 1 famiglio = 1d6, 10pf, 10CA; slot lvl 6 = 6d6, 60 PF, 17 CA. <b>Abilità Specifica :</b> il pg acquisisce la possibilità di modellare la luce immagazzinata per poter creare oggetti, aumentare la sua forza creando pugni di luce o armi, aumentare la sua robustezza + CA, oppure evocare un famiglio di luce di qualsiasi entità a sua scelta. Tutti gli effetti delle abilità svaniranno una volta terminata la trasformazione.</p>\n<p><b>Creazione oggetti :</b> Lvl 1 = piccola taglia / Lvl 2 = media taglia / Lvl 3 = 1 piccolo e 1 medio o 3 piccoli / Lvl 4 = grande taglia / Lvl 5 = 1 grande taglia + 1 medio o 6 piccoli o 3 medi o 1 medio e 4 piccoli o 2 medi o 2 piccoli</p>\n<p><b>Bonus Attacco :</b> Lvl 1 = + 1d4 (piccola arma di luce) / Lvl 2 = + 1d6 ( arma di luce leggera / pugni di luce) / Lvl 3 = + 1d8 o 2 d4 ( arma di luce pesante / braccia di luce + 1 caselle distanza colpo nemico) Lvl 4 = + 1d12 o 2d6 (doppia arma leggera o braccio scheletrico aggiuntivo + 1 azione bonus + 2 caselle) / Lvl 5 = + 1d20 o 2d10 (doppia arma a scelta o braccia scheletriche aggiuntive dalla schiena + 1 CA + 1 azione bonus + 4 caselle + Tpc +4)</p>\n<p><b>Armatura Ancestrale :</b> Lvl 1 = + 1 CA (1 solo PG) / Lvl 2 = + 2 CA (1 solo PG) / Lvl 3 = + 1 CA ( 2 PG) + 10 PF Temporanei o + 2 CA e 20 PF (Solo 1) / Lvl 4 = + 3 CA e 30 PF (1 PG) o + 2 CA e 20 PF (2 PG) o + 1 CA e 10 PF (3 PG) / Lvl 5 = + 4 CA e 40 PF o + 3 CA e 30 PF (3 PG) o TUTTI i tuoi alleati compreso te + 2 CA e 20 PF</p>\n<p><b>Evocazione :</b> (Mentre le evocazioni saranno sul campo di battaglia il PG donerà parte della sua potenza per evocarle pertanto in base al danno che queste arrecheranno verrà decurtato dalla potenza massima del PG. Ex. 1 evocazione Lvl 1 danno 1d6, danno PG totale - 1d6 quindi 4d6 + 2)</p>\n<p>Lvl 1 = 1 evocazione/ 1d6 / 10 pf / 10 CA / 5 Movimento (Abilità: L'evocazione può compiere un salto di 5 caselle al termine dello spostamento per raggiungere il nemico)</p>\n<p>Lvl 2 = 1 evocazione / 2d6 / 20 pf / 12 CA / 6 Movimento (Abilità: l'evocazione può esplodere a comando o una volta colpita prima di svanire)</p>\n<p>Lvl 3 = 3 evocazioni di Lvl 1 o 1 evocazione 3d6 / 30 pf / 14 CA / 7 movimento (Abilità: L'evocazione ha la possibilità di effettuare un secondo Tpc se il primo dovesse fallire)</p>\n<p>Lvl 4 = 4 evocazioni Lvl 1 o 1 lvl 3 e 1 Lvl 1 o 2 Lvl 2 o 1 evocazione 4d6 / 40 pf / 16 CA / 8 movimento (Abilità: l'evocazione può effettuare un colpo a distanza con gli stessi danni del Cac)</p>\n<p>Lvl 5 = 5 evocazioni Lvl 1 o 1 Lvl 4 e 1 lvl 1 o 1 Lvl 3 e 2 Lvl 2 o 2 Lvl 2 e 1 lvl 1 o 1 evocazione da 5d6 / 5d6 / 18 CA / 9 movimento (Abilità: L'evocazione può essere divisa in più evocazioni, in base ai PF rimanenti. Ex quando raggiunge 50 PF si divide in una di Lvl 4 e 1 di Lvl 1, continuando così quella di Lvl 4 una volta colpita potrebbe dividersi in due di Lvl 2 mantenendo la sua abilità ma una volta trasformata può utilizzare anche quella dell'evocazione corrente). In base alle sembianze che prenderà l'evocazione questa avrà dei micro bonus sulle caratteristiche principali.</p>\n<p><b>FORZA</b> + 2 a Forza + 10PF + 1 CA / <b>VELOCITA'</b> + 2 a Destrezza + 5 PF + 2 su tiri per schivare + spostamento 12 caselle / <b>VOLO</b> + 1 Forza e + 1 Destrezza + può volare + spostamento 15 caselle / <b>MINI</b> + 2 Forza + 2 Destrezza + 2 danni bonus + 2 svantaggio ai Tpc dei nemici / <b>ANCESTRALE</b> + 2 SAGGEZZA + 2 CARISMA + 60 PF che può ripartire come preferisce agli alleati / <b>PURA ENERGIA</b> Distanza Caselle 20 (colpi) + 1CA. /<b>DEMONIACA</b> + 5 Danni elettrici a colpo + possibilità di lanciare palle di energia ai nemici distanza 15 caselle / <b>RUST</b> + 2 CA + 5 danni + 20 PF / <b>STEALTH</b> + 4 DESTREZZA + possibilità di compiere attacchi furtivi con bonus + 5 ai TpC</p>", slotsTemp:[{lvl:1,max:6,used:0},{lvl:2,max:5,used:0},{lvl:3,max:4,used:0},{lvl:4,max:3,used:0},{lvl:5,max:2,used:0},{lvl:6,max:1,used:0}]},
-    {nome:"Alterazione: Pura Energia", tag:"Abilità", width:2, hidden:false, desc:"<p><b>ALTERAZIONE FISICA : PURA ENERGIA</b></p>\n<p>MOD. COST + 3 / CA + 3 / VELOCITÀ MOV. 5 / PF TEMPORANEI +30</p>\n<p>Il PG sblocca la piena capacità di assorbire ed espellere energia, così facendo diventa a tutti gli effetti un vero e proprio catalizzatore vivente. In questa forma il suo corpo mantiene le condizioni fisiche standard ma diventa, quasi completamente etereo, un ammasso di pura energia. Il PG può compiere 4 azioni durante il turno. Danni 6d6, gli esseri viventi sono composti da energia, ogni qualvolta il PG colpisce un nemico questo viene depredato della sua energia vitale e il PG aumenta di potenza. Gli effetti potrebbero essere casuali quali, difficoltà di movimento/deambulazione, perdita di memoria, svenimenti, MORTE ISTANTANEA. Ola è in grado di assorbire gran parte o tutta l'energia di un essere, quando lo fa' guadagna +1d6. CD 17 . Ogni volta che assorbe energia da un nemico, tira un d6. Se esce 1, accumula un \"punto di instabilità\" altrimenti gli altri saranno \"punti energia\". Al 4° punto, <b>rischia di perdere il controllo</b>: TS COSTITUZIONE CD 15, se fallisce esplode in un raggio di 10 caselle, infliggendo 20d6 a tutti (incluso sé stesso, ripartito per tutti i presenti). L'energia può essere scaricata nel terreno o dispersa in metallo/elementi conduttori. In questo stato il PG è letteralmente energia, pertanto ogni qualvolta qualcuno tenterà di attaccarlo, dovrà effettuare un TS COSTITUZIONE CD 16 per evitare di prendere danni Folgoranti. In caso di fallimento 2d6 danni folgoranti nell'immediatezza e 1d6 x tutto lo scontro. La potenza incanalata nel PG è così tanta che i suoi movimenti sono rallentati, esso levita costantemente da terra a furia dell'elettromagnetismo, senza nessuno sforzo. Gli attacchi non si distinguono tra Mischia e Distanza, in questo particolare stato, il nemico verrà attinto da fulmini e saette a prescindere dal tipo di attacco, basterà che sia nel campo di azione di 15 caselle. Con 2 punti energia può entrare temporaneamente nel corpo di un nemico ed impossessarsi di esso effettuando un tiro su COSTITUZIONE contrapposto. Una volta superato il Nemico non potrà effettuare nessuna azione se non ritentando i TS che aumenteranno gradualmente di difficoltà. Durata max 4 turni. Con 3 punti energia e se non effettua nessuno spostamento, il PG entra in modalità \"Tesla\", questo allarga il campo di attacco a 30 caselle e aggiunge +2d6 ai danni, in questa modalità il PG guadagna +1CA, poiché viene avvolto da fulmini. In presenza di superfici d'acqua, metallo o magie \"conduttrici\", Ola non può usare la modalità Tesla e il raggio d'azione si dimezza. I nemici in queste aree ricevono solo metà dei danni. In questo stato, non essendo fisico, non può compiere azioni complesse, aprire porte, raccogliere oggetti, usare oggetti magici non integrati nel corpo. Per qualsiasi interazione fisica, deve tornare in forma materiale. In modalità Tesla Ola può attaccare tutti i nemici nel raggio a sua disposizione ripartendo i dadi che ha come danni, anche se distanti tra loro (purché entrambi nel raggio). In questo stato il PG ha la capacità di attrarre metalli a sè, in modalità normale entro 10 caselle in modalità Tesla entro 30. <b>Abilità Specifica :</b> il PG ottiene abbastanza potenza da entrare in modalità Tesla Avanzata, questo permetterà di avere un raggio d'azione di 50 Caselle, un + 2 sulla CA e bonus ai danni di + 4d6 + 20 PFT. In modalità Tesla Avanzata il Pg, potrà comandare più nemici contemporaneamente. questi dovranno sostenere un TS su COSTITUZIONE CD 17, in caso di fallimento, il PG potrà fargli compiere azioni basiche o attacchi. Tot Max 6 Nemici. La trasformazione avrà termine alla fine dello scontro. 1 ogni 2 Riposi Lunghi.</p>"},
+    {nome:"Alterazione: Pura Energia", tag:"Abilità", width:3, hidden:false, desc:"<p><b>ALTERAZIONE FISICA : PURA ENERGIA</b></p>\n<p>MOD. COST + 3 / CA + 3 / VELOCITÀ MOV. 5 / PF TEMPORANEI +30</p>\n<p>Il PG sblocca la piena capacità di assorbire ed espellere energia, così facendo diventa a tutti gli effetti un vero e proprio catalizzatore vivente. In questa forma il suo corpo mantiene le condizioni fisiche standard ma diventa, quasi completamente etereo, un ammasso di pura energia. Il PG può compiere 4 azioni durante il turno. Danni 6d6, gli esseri viventi sono composti da energia, ogni qualvolta il PG colpisce un nemico questo viene depredato della sua energia vitale e il PG aumenta di potenza. Gli effetti potrebbero essere casuali quali, difficoltà di movimento/deambulazione, perdita di memoria, svenimenti, MORTE ISTANTANEA. Ola è in grado di assorbire gran parte o tutta l'energia di un essere, quando lo fa' guadagna +1d6. CD 17 . Ogni volta che assorbe energia da un nemico, tira un d6. Se esce 1, accumula un \"punto di instabilità\" altrimenti gli altri saranno \"punti energia\". Al 4° punto, <b>rischia di perdere il controllo</b>: TS COSTITUZIONE CD 15, se fallisce esplode in un raggio di 10 caselle, infliggendo 20d6 a tutti (incluso sé stesso, ripartito per tutti i presenti). L'energia può essere scaricata nel terreno o dispersa in metallo/elementi conduttori. In questo stato il PG è letteralmente energia, pertanto ogni qualvolta qualcuno tenterà di attaccarlo, dovrà effettuare un TS COSTITUZIONE CD 16 per evitare di prendere danni Folgoranti. In caso di fallimento 2d6 danni folgoranti nell'immediatezza e 1d6 x tutto lo scontro. La potenza incanalata nel PG è così tanta che i suoi movimenti sono rallentati, esso levita costantemente da terra a furia dell'elettromagnetismo, senza nessuno sforzo. Gli attacchi non si distinguono tra Mischia e Distanza, in questo particolare stato, il nemico verrà attinto da fulmini e saette a prescindere dal tipo di attacco, basterà che sia nel campo di azione di 15 caselle. Con 2 punti energia può entrare temporaneamente nel corpo di un nemico ed impossessarsi di esso effettuando un tiro su COSTITUZIONE contrapposto. Una volta superato il Nemico non potrà effettuare nessuna azione se non ritentando i TS che aumenteranno gradualmente di difficoltà. Durata max 4 turni. Con 3 punti energia e se non effettua nessuno spostamento, il PG entra in modalità \"Tesla\", questo allarga il campo di attacco a 30 caselle e aggiunge +2d6 ai danni, in questa modalità il PG guadagna +1CA, poiché viene avvolto da fulmini. In presenza di superfici d'acqua, metallo o magie \"conduttrici\", Ola non può usare la modalità Tesla e il raggio d'azione si dimezza. I nemici in queste aree ricevono solo metà dei danni. In questo stato, non essendo fisico, non può compiere azioni complesse, aprire porte, raccogliere oggetti, usare oggetti magici non integrati nel corpo. Per qualsiasi interazione fisica, deve tornare in forma materiale. In modalità Tesla Ola può attaccare tutti i nemici nel raggio a sua disposizione ripartendo i dadi che ha come danni, anche se distanti tra loro (purché entrambi nel raggio). In questo stato il PG ha la capacità di attrarre metalli a sè, in modalità normale entro 10 caselle in modalità Tesla entro 30. <b>Abilità Specifica :</b> il PG ottiene abbastanza potenza da entrare in modalità Tesla Avanzata, questo permetterà di avere un raggio d'azione di 50 Caselle, un + 2 sulla CA e bonus ai danni di + 4d6 + 20 PFT. In modalità Tesla Avanzata il Pg, potrà comandare più nemici contemporaneamente. questi dovranno sostenere un TS su COSTITUZIONE CD 17, in caso di fallimento, il PG potrà fargli compiere azioni basiche o attacchi. Tot Max 6 Nemici. La trasformazione avrà termine alla fine dello scontro. 1 ogni 2 Riposi Lunghi.</p>"},
     {nome:"Alterazione: Demoniaca", tag:"Abilità", width:3, hidden:false, desc:"<p><b>ALTERAZIONE FISICA : DEMONIACA</b></p>\n<p>MOD. FOR + 2 / MOD. DEST + 2 / CA + 1 / VELOCITÀ MOV. 9 / BONUS TIRI MUTAZIONE + 2 / PF TEMPORANEI +10</p>\n<p>La trasformazione prevede due varianti con le quali il PG si può alternare facendo un tiro su COSTITUZIONE che non richiede azioni. Il PG acquisisce la capacità di mutare il suo corpo in una forma muscolosa e somigliante ad un essere demoniaco. In questa particolare forma avrà la possibilità di alternarsi in due specifiche sotto trasformazioni. Una somigliante al demone Rust, quindi considerata d'attacco e mischia, con poteri di fuoco, ed una più furtiva, utilizzante il potere demoniaco e l'emomanzia. Nella sua forma base il personaggio ha comunque delle capacità demoniache. Danni CaC 5d6 + 4, il PG può una volta per scontro tentare di assorbire linfa vitale dal nemico che sta combattendo max 2 x scontro. I danni inferti saranno i PF recuperati, se full, possono essere convertiti in Temporanei per un max di 30PF. Max 3 CD 16. Il PG ha la possibilità di guardare negli occhi un essere senziente, è capire la sua natura se benevola o malevola. Nel caso in cui fosse malevola, potrebbe tentare un tiro per consumare l'anima del nemico fino a poterlo uccidere. CD 18( Dipende dai casi). Il PG può parlare direttamente con il dio della Morte CRATUS. Il PG può utilizzare tutte le abilità demoniache rubate da Ervork durante il suo viaggio, ma a sua differenza può immagazzinarle tutte senza avere limiti di spazio. Queste abilità consumano slot ammenochè non ci sia specificata la quantità di utilizzo allora verrebbero considerate \"trucchetti\".</p>\n<p>ABILITÀ DEMONE OBELIX : Possibilità di evocare delle catene e poterle utilizzare come meglio si preferisce. Queste hanno un attacco che intrappola il nemico facendogli patire le peggiori pene mentali e fisiche decise dal demone 2d6 ogni turno x 2 turni max 1 volta a scontro CD 16. In più si ha la facoltà di evocare raggi laser dagli occhi come lo stesso Obelix, danno a distanza 6d6.<br>ABILITÀ X:</p>\n<p><b>Abilità Speciale :</b> Il PG può tentare di piegare il volere del nemico ipnotizzandolo, ad una distanza massima di 8 caselle, i personaggi ipnotizzati eseguono temporaneamente gli ordinativi del giocatore, alcuni imperativi però potrebbero non funzionare a seconda del nemico scelto. Non ha effetto su creature pure. Durata 3 turni, una volta terminato l'effetto, se il giocatore ha a disposizione un'azione, può automaticamente ripetere il tiro per soggiogare la mente del nemico. CD 16</p>\n<h4>Variante Rust</h4>\n<p>MOD. FOR + 4 / MOD. DEST + 3 / CA + 3 / VELOCITÀ MOV. 8 / PF TEMPORANEI +10</p>\n<p>Il pg muta totalmente diventando molto più grosso e alto, con fuoco che fuoriesca dalla sua testa. Questa trasformazione deriva dal demone Rust insito nel corpo di Ervork pertanto si potrà dialogare con il summenzionato demone. Danni corpo a corpo: 7d6 oppure due attacchi da 3d6+3 ciascuno, se effettuati sullo stesso nemico di fila o un nemico non più distante di 2 caselle, non è necessario effettuare il secondo tiro sulla CA. Il PG può creare delle armi di fuoco con cui combattere durante lo scontro +1d6 ad arma max 2. Ogni arma generata equivarrà ad uno slot del PG. il PG ha la possibilità di compiere attacchi di puro fuoco misto energia, creando delle combinazioni di potenza demoniaca, questi attacchi a distanza, avranno un bonus aggiuntivo se caricati. (Minimo di carica 1 turno, max 4) Attacco Base 7d6 / <b>1° turno</b>(ossia il secondo turno passato in concentrazione)  totale danni  9d10(+1 al tiro per colpire + 1d4 danni incendiari x 3 turni) / <b>2° turno</b>  7d20 (+2 al tiro per colpire + 1d6 danni incendiari x 3 turni) / <b>3° turno</b>  9d20 o 18d10 (+3 al tiro per colpire + 1d8 danni incendiari x 3 turni)/ <b>4° turno</b>  12d20 o 24d10 (+5 al tiro per colpire +1d10 danni incendiari x 3 turni )[se si arriva ad usare anche il 4° turno si dovrà pazientare due turni non più uno, per riprendere la concentrazione.]</p>\n<p><b>Abilità Specifica :</b> il pg acquisisce la possibilità di creare un armatura di fuoco che lo avvolga garantendogli un + 1 alla CA e delle grosse ali infuocate che gli permettano di volare, distanza 20 caselle, in questa forma può generare automaticamente un arma a sua scelta di fuoco lavico che aggiunga un +1d6 ai danni. 1 x Riposo Lungo</p>\n<h4>Variante Stealth</h4>\n<p>MOD. FOR + 2 / MOD. DEST + 4 / BONUS ACROBAZIE + 4 / BONUS FURTIVITA' + 4/ VELOCITÀ MOV. 14</p>\n<p>Il pg assume una corporatura più snella e agile, con un mantello di fumo nero che fuoriesce dalla sua schiena, urtilizzabile per celare la sua presenza.In questa trasformazione il PG mischia la propria capacità energetica con il potere demoniaco puro, avendo la possibilità di utilizzare l'emomanzia come arma principale. Il corpo del PG viene avvolto da una cortina fumogena che simula una cappa. Questa ha la funzione di clare il PG affinchè il nemico venga colto alla sprovvista. Per attivare la sua abilità, il PG dovrà superare CD 13 di notte e CD 16 di giorno per utilizzare gli effetti della summenzionata. Questa garantisce bonus di +4 ai tiri su furtività e TpC. Il nemico dovrà effettuare un TS su DESTREZZA per individuare il PG. Il PG ha la possibilità di utilizzare il potere emomantico, antico potere demonico. L'attivazione richiede un sacrificio iniziale di 20 PF. Questo attiva la forma emomantica e garantisce +6 ai tiri su Furtività. All'attivazione, il PG ottiene 2 attacchi da 2d12 con lame di sangue ed energia evocate. Ogni 10 PF aggiuntivi sacrificati (fino a un massimo di 40PF totali) potenziano la forma: 30 PF 3 attacchi da 2d12 / 40 PF 4 attacchi da 2d12</p>\n<p>Dopo ogni attacco andato a segno, una sola volta per turno, può scegliere:</p>\n<p>Recuperare 5 PF / Aggiungere +1d6 ai danni all'attacco</p>\n<p>I danni bonus totali ottenibili sono limitati a +4d6 per attivazione. Una volta raggiunto +4d6 usati, al prossimo colpo lanciato o se si supera tale soglia, il PG entra in blocco: rimane immobile per 3 turni, non può agire né muoversi e gli attacchi contro di lui sono molto efficaci. Il PG può compiere grazie all'energia fusa con il sangue demoniaco dei grossi colpi concentrati, per farlo deve utilizzare 10 PF attuali oppure 10 PF recuperati tramite assorbimento. Questi particolari attacchi a distanza si nutriranno del sangue degli avversari. Pertanto verranno utilizzati i d6 bonus ottenuti tramite attacchi inferti in forma emomantica. Ogni d6 sacrificato viene sostituito e potenzia l'attacco: <b>1d6</b> → 1d8 / <b>2d6</b> → 2d8 + 5 PF recuperati / <b>3d6</b> → 3d8 + colpo perforante su 2 bersagli in linea (Il secondo ½ danno) / <b>4d6</b> → 4d8 + esplosione necrotica ad area divisibile + critico con 18 +1 CA (non cumulabile). Più il PG usa questi attacchi energetici misti ad emomanzia e più il suo corpo cresce di potere cumulando energia. Ogni colpo inferto con l'energia, causa al nemico una paralisi temporanea. Esso dovrà effettuare un TS COSTITUZIONE per non rimanere paralizzato 1 turno. <b>1</b>° Colpo CD 16 / <b>2°</b> Colpo CD 18 / <b>3°</b> Copo CD 20 / <b>4°</b> Colpo CD 22</p>\n<p>Se il PG dovesse riuscire ad effettuare un 5° Colpo, il nemico cadrebbe in uno stato catatonico dal quale non riuscirebbe più a fuoriuscire. (Salvo Casi Eccezionali). Se Ola scende sotto i 20PF non può più potenziarsi o evocare armi, se dovesse essere colpito a morte ed andare a terra perderebbe tutti i bonus guadagnati. <b>Abilità Specifica :</b> Una volta x scontro il PG ottiene abbastanza potenza da potersi muovere così veloce da teletrasportarsi in un luogo che può vedere, entro 30 caselle.</p>"},
     {nome:"Alterazione: Dragonide", tag:"Abilità", width:3, hidden:false, desc:"<p><b>ALTERAZIONE FISICA : DRAGONIDE</b></p>\n<p>MOD. INT + 3/MOD. CAR + 2/CA + 2 /VELOCITÀ MOV. 9/BONUS TIRI INCANTESIMI + 4/PF TEMP. +10</p>\n<p>I danni sono equivalenti alla forma base nonché 3d6+ 2 (nonostante il giocatore non sia competente nel combattimento corpo a corpo, ha la capacità di base di arrecare danni fisici anche senza armi). Se si avvale dei suoi denti aguzzi, il danno sale a 5d6 + 2 danni da sanguinamento.</p>\n<p>La trasformazione rende a tutti gli effetti Deagonide il PG e considerato che questi ultimi sono spesso di colori sgargianti e dagli occhi luminosi la sua tradizione viene considerata come non \"Diversa\" dal resto delle razze a differenza della sua forma base.</p>\n<p>Durante l'utilizzo di questa trasformazione il PG può avvalersi dell'utilizzo del suo potere energetico.</p>\n<p>La trasformazione prevede che Il PG acquisisca la capacità di utilizzare la magia avvalendosi dell'utilizzo di slot incantesimo.</p>\n<p>Il PG seppur non trasformato completamente può utilizzare diverse caratteristiche fisiche da Dragonide che verranno aggiunte alle mutazioni disponibili. Ossia :</p>\n<p><b>DENTI AGUZZI :</b> Il PG muta il suo volto in quello di un Dragonide, maturando la possibilità di infliggere ingenti danni con morsi 5d6 + 2 sanguinamento.</p>\n<p><b>VISIONE SUBACQUEA :</b> I suoi occhi vengono ricoperti di una sottilissima membrana che gli permette di vedere con chiarezza sott'acqua.</p>\n<p><b>INTELLIGENZA SPICCATA :</b> Il cervello di un Dragonide è una delle armi terrene più potenti mai esistite se utilizzato con criterio. Il PG guadagna un + 2 sulla caratteristica di INTELLIGENZA. Gia addizzionata alla trasformazione <b>FUOCO/FULMINI :</b> Il PG può eiettare fuoco o fulmini dalla bocca fino ad una distanza massima di 5 Caselle. Più vicino è il nemico più danno subirà. Danno max 8d6 a scalare di una casella fino a 4d6 dalla massima.</p>\n<p><b>PELLE A SCAGLIE :</b> Il PG viene ricoperto da scaglie che rendono la sua pelle più dura. + 2 CA. Già addizionata alla trasformazione.</p>\n<p>Il PG allo stato attuale non conosce incantesimi ne tantomeno è capace di lanciarli. Per farlo ogni mago utilizza un catalizzatore, ossia uno strumento dedito al solo fine di permettere al mago di rappresentare la magia in modo concreto. Ola ha il suo assistente integrato che permette la piena acquisizione di incantesimi senza avvalersi di tomi, catalizzatori o bastoni. Pertanto il PG non solo potrà lanciare incantesimi senza avvalersi dell'utilizzo dei summenzionati ma potrà anche imparare magie senza doverle necessariamente trascriverle o leggerle. Di norma un mago per imparare incantesimi deve impiegare un tot di ore affinché questo venga appreso, leggendo o studiando. Ola potrà fare la stessa cosa dimezzando il tempo di appresa e semplicemente guardando l'incantesimo lanciato anche senza chiedere al mago di condividere le informazioni di esso. (Non tutti gli incantesimi è possibile imparare).</p>\n<p>Il PG acquisisce la piena padronanza della lingua dragonide nonché lo SPAGNOLO STEREOTIPATO in più ha la possibilità di decifrare il Dragonide Antico.</p>\n<p>Nel corredo genetico Dragonide è presente la capacità altamente remota di \"Ascendere\" alla forma Definitiva, nonché trasformarsi in un vero Drago. Nel corredo genetico di questo Dragonide in particolare non vi è questa capacità ma si è guadagnato un punto \"Corredo Genetico\" che sommato ad altri potrebbe alla fine dare lo stesso effetto. (CORREDO GENETICO 1/X)</p>\n<p><b>Abilità Specifica :</b> Il PG una volta per Riposo Lungo può effettuare un tiro su \"Recuperare Slot\" tirando 2d6 il primo il livello degli slot da recuperare e il secondo per la quantità. (Il PG al livello attuale conosce e può utilizzare Slot max fino al livello 5 ma se dovesse uscire 6 sul dado guadagnerebbe la possibilità di lanciare un incantesimo di lvl 6 o addirittura poterlo donare ad un compagno con slot a livello)</p>", slotsTemp:[{lvl:1,max:6,used:0},{lvl:2,max:5,used:0},{lvl:3,max:4,used:0},{lvl:4,max:3,used:0},{lvl:5,max:2,used:0},{lvl:6,max:1,used:0}]},
     {nome:"Alterazione: Numa", tag:"Abilità", width:1, hidden:true, desc:"<p><b>ALTERAZIONE FISICA: NUMA</b> PF +10 (Temporanei)</p>\n<p>MOD. FORZA + 3 · MOD. DESTREZZA + 5 · VELOCITÀ MOV. 15 · BONUS ATT. PER COLPIRE + 4 · PERCEZIONE PASSIVA + 4 · CA + 1</p>\n<p>Danni corpo a corpo: 3d12 + 3 danni sanguinamento (probabilità di causare sanguinamento con ogni colpo). Il pg usufruisce di 3 attacchi o di uno unico da 5d6 + 4, ad ogni colpo il pg lancera' una moneta e se dovesse uscire il risultato prescelto affibbiera' un + 1 sanguinamento al nemico fino alla fine dello scontro. Questo effetto e' cumulabile fino a + 10 danni grazie ai suoi lunghi artigli e denti aguzzi.<br>Il pg sviluppa la capacità di mutare la sua stazza in quello della razza felina Numa, una sottorazza dei Tabaxi, esclusivamente rappresentante pantere.<br>Il pg sviluppa azione costante, avendo la possibilit' di avere un'azione bonus per turno.<br>Il pg ha specifici bonus sui tiri di acrobazie e furtivita' ove in alcuni casi non e' necessario lanciare i dadi (chiedere al master). Bonus + 10<br>Grazie ai suoi affilatissimi artigli il pg puo' arrampicarsi sulla maggior parte delle superfici e rimanerne attaccato per diverso tempo (discrezione master).<br>Il pg ha un olfatto molto sviluppato oltre che l'udito, grazie a questi benefici ha molti vantaggi tattici.<br><b>Abilità Specifica :</b> Il pg utilizza la sua rabbia selvaggia per regredire a essere della foresta, il suo spostamento arriva a un tot di 20 i danni diventano 4d12 o 8d6 e puo' attaccare nemici vicini tra loro. Ogni attacco fatto con mosrsi recupera 5pft per un max di 20 pft. <b>Quantità - 2 -</b></p>"}
@@ -2241,6 +2391,7 @@ function renderPoteri(){
   const masterOn = isMasterEditorOn();
 
   const risorseHtml = STATE.risorse.map((r,i)=>{
+    if (INLINE_TRANSFORM_RESOURCE_NAMES.has(String(r && r.nome || ""))) return "";
     if (!masterOn && r.hidden) return "";
     const pips = Array.from({length:r.max}).map((_,p)=>`<button class="pip ${p<r.used?'used':''}" data-respip="${i}-${p}"></button>`).join("");
     const nameField = masterOn
@@ -2297,11 +2448,14 @@ function renderPoteri(){
       ? `<input type="text" class="master-name-input" data-master-field="trasformazioni|${i}|nome" value="${esc(t.nome)}">`
       : `<h3>${t.nome}</h3>`;
     const slotsTempHtml = renderSlotsTempHtml(i, t.slotsTemp);
+    const descHtml = masterOn ? t.desc : highlightTransformationSpecifics(t.desc);
+    const specificUsesHtml = renderTransformationSpecificUses(t);
     return `<div class="subcard${masterOn && t.hidden ? ' master-hidden-item' : ''}" id="anchor-${slugify(t.nome)}"${masterBoxStyle("trasformazioni", i)}>
       ${toolbar}
       <span class="tag ${tagColorClass(t.tag)}">${t.tag}</span>
       ${nameField}
-      <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich-arr="trasformazioni-${i}">${t.desc}</div>
+      <div class="rich" ${masterOn ? 'contenteditable="true"' : ''} data-rich-arr="trasformazioni-${i}">${descHtml}</div>
+      ${specificUsesHtml}
       ${slotsTempHtml}
     </div>`;
   }).join("");
@@ -2438,6 +2592,16 @@ function renderPoteri(){
       renderPoteri(); queueSave();
     });
   });
+  document.querySelectorAll('[data-transuse-key]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const key = btn.dataset.transuseKey;
+      const p = Number(btn.dataset.transusePip);
+      const u = STATE.trasformazioneUtilizzi && STATE.trasformazioneUtilizzi[key];
+      if (!u) return;
+      u.used = (p < u.used) ? p : p + 1;
+      renderPoteri(); queueSave();
+    });
+  });
   document.querySelectorAll('[data-transslotpip]').forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const [ti,li,p] = btn.dataset.transslotpip.split("-").map(Number);
@@ -2450,6 +2614,9 @@ function renderPoteri(){
     STATE.risorse.forEach(r=>r.used=0);
     STATE.corredi.forEach(c=>{ if (c.max>0) c.used=0; });
     STATE.trasformazioni.forEach(t=>{ if (t.slotsTemp) t.slotsTemp.forEach(s=>s.used=0); });
+    if (STATE.trasformazioneUtilizzi){
+      Object.values(STATE.trasformazioneUtilizzi).forEach(u=>{ if (u && typeof u === "object") u.used = 0; });
+    }
     renderPoteri(); queueSave();
   });
 
@@ -3295,6 +3462,7 @@ function renderAll(){
   if (migrateOlaBlock4Point2QuickUtility()) queueSave();
   if (migrateOlaBlock4Point3TraduttoreBranchie()) queueSave();
   if (migrateOlaBlock4Point4CorpoDaLumaca()) queueSave();
+  if (migrateOlaBlock4Points8To12()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
