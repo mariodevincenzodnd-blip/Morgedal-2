@@ -358,9 +358,9 @@
     margin-bottom:8px;padding:4px 6px;border-radius:6px;
     background:rgba(148,80,216,0.08);border:1px dashed var(--violet-dim);
   }
-  .master-cat-select, .master-box-width{
+  .master-cat-select, .master-box-width, .master-transform-tag, .master-transform-size{
     background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);
-    border-radius:5px;font-size:10px;padding:2px 4px;max-width:120px;
+    border-radius:5px;font-size:10px;padding:2px 4px;max-width:150px;
   }
   .master-mini-btn, .master-mini-del{
     background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text-dim);
@@ -2163,7 +2163,7 @@ function masterFromCanonical(cat, c){
   if (cat === "abilita") return { nome:c.nome||"Nuova Abilità", tag:c.tag||"Abilità", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
   if (cat === "risorse") return { nome:c.nome||"Nuova Risorsa", desc:c.desc||"", max:c.max||1, used:0, width:c.width||1, hidden:!!c.hidden };
   if (cat === "incantesimo") return { nome:c.nome||"Nuovo Incantesimo", tag:c.tag||"Incantesimo", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden };
-  if (cat === "trasformazioni") return { nome:c.nome||"Nuova Trasformazione", tag:c.tag||"Abilità", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden, slotsTemp: c.slotsTemp };
+  if (cat === "trasformazioni") return { nome:c.nome||"Nuova Trasformazione", tag:c.tag||"Abilità", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden, slotsTemp:c.slotsTemp, sizePreset:c.sizePreset||null };
   if (cat === "corredi") return { nome:c.nome||"Nuovo Corredo", tag:c.tag||"Trucchetto", desc:c.desc||"", width:c.width||1, hidden:!!c.hidden, spazi:c.spazi||0, max:c.max||0, used:0 };
   return { nome:c.nome||"", desc:c.desc||"" };
 }
@@ -2194,7 +2194,10 @@ function masterDelete(cat, idx){
   queueSave();
 }
 function masterCreate(cat){
-  STATE[cat].push(masterFromCanonical(cat, {nome:"Nuovo elemento", desc:""}));
+  const seed = cat === "trasformazioni"
+    ? {nome:"Nuova Trasformazione", desc:"", tag:"Abilità", width:2, hidden:true, sizePreset:"standard"}
+    : {nome:"Nuovo elemento", desc:""};
+  STATE[cat].push(masterFromCanonical(cat, seed));
   masterRerender(cat);
   queueSave();
 }
@@ -2242,11 +2245,39 @@ function growBoxToFitContent(el){
   }
   return h;
 }
+function transformationSizePreset(idx){
+  const item = STATE.trasformazioni && STATE.trasformazioni[idx];
+  if (!item) return "compatto";
+  if (item.sizePreset === "macro") return "macro";
+  if (item.sizePreset === "grande") return "grande";
+  if (item.sizePreset === "standard") return "standard";
+  if (item.sizePreset === "compatto") return "compatto";
+  const w = Number(item.width || 1);
+  return w >= 3 ? "grande" : (w === 2 ? "standard" : "compatto");
+}
+function applyTransformationSizePreset(idx, preset){
+  const item = STATE.trasformazioni && STATE.trasformazioni[idx];
+  if (!item) return;
+  const map = {
+    compatto:{width:1, sizePreset:"compatto"},
+    standard:{width:2, sizePreset:"standard"},
+    grande:{width:3, sizePreset:"grande"},
+    macro:{width:3, sizePreset:"macro"}
+  };
+  const next = map[preset] || map.compatto;
+  item.width = next.width;
+  item.sizePreset = next.sizePreset;
+  if (preset !== "macro" && item.h && item.h < 420) item.h = null;
+  masterRerender("trasformazioni");
+  queueSave();
+}
 function masterBoxStyle(cat, idx){
   const w = masterBoxWidth(cat, idx);
   const h = masterBoxHeight(cat, idx);
+  const item = STATE[cat] && STATE[cat][idx];
   let style = "";
   if (w && w > 1) style += `grid-column:span ${w};`;
+  if (cat === "trasformazioni" && item && item.sizePreset === "macro") style += "min-height:420px;";
   if (h) style += `height:${h}px;`;
   return ` data-master-box="${cat}-${idx}"${style ? ` style="${style}"` : ""}`;
 }
@@ -2322,6 +2353,11 @@ function bindMasterControls(root){
       setMasterBoxWidth(cat, Number(idx), Number(sel.value));
     });
   });
+  root.querySelectorAll('[data-transform-size]').forEach(sel=>{
+    sel.addEventListener("change", ()=>{
+      applyTransformationSizePreset(Number(sel.dataset.transformSize), sel.value);
+    });
+  });
   root.querySelectorAll('[data-master-box]').forEach(el=>{
     el.addEventListener("pointerdown", (e)=>{
       const rect = el.getBoundingClientRect();
@@ -2349,6 +2385,11 @@ function bindMasterControls(root){
       const val = el.matches("[contenteditable]") ? el.innerHTML : el.value;
       masterSetField(cat, Number(idx), field, val);
       if (cat === "corredi" && field === "spazi" && typeof refreshSpaziGenetici === "function") refreshSpaziGenetici();
+      if (cat === "trasformazioni" && field === "tag"){
+        masterRerender(cat);
+        queueSave();
+        return;
+      }
       queueSave();
     });
   });
@@ -2660,17 +2701,35 @@ function refreshSpaziGenetici(){
 }
 function masterToolbarSimpleHtml(cat, idx){
   const w = masterBoxWidth(cat, idx);
-  const widthCtl = `<select class="master-box-width" data-master-width="${cat}-${idx}" title="Larghezza del riquadro">
+  const isTransform = cat === "trasformazioni";
+  const widthCtl = isTransform ? "" : `<select class="master-box-width" data-master-width="${cat}-${idx}" title="Larghezza del riquadro">
       <option value="1"${w===1?" selected":""}>1/3</option>
       <option value="2"${w===2?" selected":""}>2/3</option>
       <option value="3"${w===3?" selected":""}>3/3</option>
     </select>`;
+  const tagCtl = isTransform ? (()=>{
+    const current = String((STATE.trasformazioni[idx] && STATE.trasformazioni[idx].tag) || "Abilità");
+    const values = Array.from(new Set([current, "Abilità", "Trucchetto", "Incantesimo", "Passiva"]));
+    const options = values.map(v=>`<option value="${esc(v)}"${v===current?" selected":""}>${esc(v)}</option>`).join("");
+    return `<select class="master-transform-tag" data-master-field="trasformazioni|${idx}|tag" title="Categoria della trasformazione">${options}</select>`;
+  })() : "";
+  const sizeCtl = isTransform ? (()=>{
+    const preset = transformationSizePreset(idx);
+    return `<select class="master-transform-size" data-transform-size="${idx}" title="Dimensione della trasformazione">
+      <option value="compatto"${preset==="compatto"?" selected":""}>Compatto · 1/3</option>
+      <option value="standard"${preset==="standard"?" selected":""}>Standard · 2/3</option>
+      <option value="grande"${preset==="grande"?" selected":""}>Grande · 3/3</option>
+      <option value="macro"${preset==="macro"?" selected":""}>Macro / gigante · 3/3 alto</option>
+    </select>`;
+  })() : "";
   const isHidden = !!(STATE[cat][idx] && STATE[cat][idx].hidden);
   const eyeCtl = `<button type="button" class="master-mini-btn master-eye-btn${isHidden?' is-hidden':''}" data-master-eye="${cat}-${idx}" title="${isHidden?'Nascosto al giocatore — clic per mostrare':'Visibile al giocatore — clic per nascondere'}">${isHidden?'🙈':'👁️'}</button>`;
   return `<div class="master-toolbar">
+    ${tagCtl}
     <button type="button" class="master-mini-btn" data-master-up="${cat}-${idx}" title="Sposta su">↑</button>
     <button type="button" class="master-mini-btn" data-master-down="${cat}-${idx}" title="Sposta giù">↓</button>
     ${widthCtl}
+    ${sizeCtl}
     ${eyeCtl}
     <button type="button" class="master-mini-del" data-master-del="${cat}-${idx}" title="Elimina questo elemento">✕</button>
   </div>`;
