@@ -67,6 +67,29 @@ for (const target of targets) {
           });
         }
       );
+
+      if (isCharacterSheet) {
+        await context.route(url, async (route) => {
+          const response = await route.fetch();
+          let body = await response.text();
+          const gateBoot = 'document.addEventListener("DOMContentLoaded", initLock);';
+          const bypassBoot = 'document.addEventListener("DOMContentLoaded", ()=>{ try{ setMasterEditorOn(false); }catch(e){} hideLockScreen(); init(); });';
+
+          if (!body.includes(gateBoot)) {
+            throw new Error(`Visual auth bypass hook not found in ${normalized}`);
+          }
+
+          body = body.replace(gateBoot, bypassBoot);
+          await route.fulfill({
+            response,
+            body,
+            headers: {
+              ...response.headers(),
+              "content-type": "text/html; charset=utf-8",
+            },
+          });
+        });
+      }
     }
 
     const page = await context.newPage();
