@@ -216,9 +216,29 @@ for (const target of targets) {
           throw new Error("Dragonide: ripristino del pip di test non riuscito");
         }
 
+        // Il controllo auth non è oggetto di questo test: dopo aver verificato
+        // il Player, sblocca esplicitamente la sessione Master e ricarica la
+        // stessa scheda. Il boot CI spegne soltanto l'editor, non lo sblocco.
+        await page.evaluate(() => {
+          sessionStorage.setItem("morgedal-master-unlocked", "1");
+        });
+        await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
+        await page.waitForFunction(
+          () => document.title.startsWith("Scheda —"),
+          null,
+          { timeout: 15_000 }
+        );
+        const poteriTabMaster = page.locator(".tab-btn").filter({ hasText: "POTERI & RISORSE" }).first();
+        await poteriTabMaster.click();
+        await page.waitForTimeout(200);
+
         const masterToggle = page.locator("#master-editor-toggle");
         if (!(await masterToggle.count()) || !(await masterToggle.isVisible())) {
-          throw new Error("Editor Master non disponibile nel test OLA");
+          const masterState = await page.evaluate(() => ({
+            unlocked: sessionStorage.getItem("morgedal-master-unlocked"),
+            editor: sessionStorage.getItem("morgedal-master-editor"),
+          }));
+          throw new Error(`Editor Master non disponibile nel test OLA: ${JSON.stringify(masterState)}`);
         }
         await masterToggle.click();
         await page.waitForTimeout(200);
