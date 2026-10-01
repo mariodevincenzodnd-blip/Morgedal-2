@@ -153,6 +153,17 @@ for (const target of targets) {
       }
 
       await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+
+      if (/^Ola_Scheda_Interattiva\.html$/i.test(normalized)) {
+        const poteriTab = page.locator(".tab-btn").filter({ hasText: "POTERI & RISORSE" }).first();
+        if (await poteriTab.count()) {
+          await poteriTab.click();
+          await page.waitForTimeout(500);
+        } else {
+          throw new Error("Tab POTERI & RISORSE non trovata nella scheda OLA");
+        }
+      }
+
       await page.waitForTimeout(1200);
     } catch (err) {
       navigationError = String(err);
