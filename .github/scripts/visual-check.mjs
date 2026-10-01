@@ -162,6 +162,51 @@ for (const target of targets) {
         } else {
           throw new Error("Tab POTERI & RISORSE non trovata nella scheda OLA");
         }
+
+        const ancestrale = page.locator("#anchor-alterazione-ancestrale");
+        const dragonide = page.locator("#anchor-alterazione-dragonide");
+        if (!(await ancestrale.count()) || !(await dragonide.count())) {
+          throw new Error("Macro-riquadri Ancestrale/Dragonide non trovati");
+        }
+
+        const pipCounts = async (card) =>
+          await card.locator(".slot-lvl .pips").evaluateAll((rows) =>
+            rows.map((row) => row.querySelectorAll(".pip").length)
+          );
+
+        const expectedTempSlots = [6, 5, 4, 3, 2, 1];
+        const ancestralCounts = await pipCounts(ancestrale);
+        const dragonideCounts = await pipCounts(dragonide);
+        if (JSON.stringify(ancestralCounts) !== JSON.stringify(expectedTempSlots)) {
+          throw new Error(`Ancestrale: progressione slot inattesa ${JSON.stringify(ancestralCounts)}`);
+        }
+        if (JSON.stringify(dragonideCounts) !== JSON.stringify(expectedTempSlots)) {
+          throw new Error(`Dragonide: progressione slot inattesa ${JSON.stringify(dragonideCounts)}`);
+        }
+
+        const ancestralUsedBefore = await ancestrale.locator(".slot-lvl .pip.used").count();
+        const dragonFirstPip = dragonide.locator(".slot-lvl").first().locator(".pip").first();
+        await dragonFirstPip.click();
+        await page.waitForTimeout(150);
+
+        const ancestralAfterClick = page.locator("#anchor-alterazione-ancestrale");
+        const dragonideAfterClick = page.locator("#anchor-alterazione-dragonide");
+        const ancestralUsedAfter = await ancestralAfterClick.locator(".slot-lvl .pip.used").count();
+        const dragonideUsedAfter = await dragonideAfterClick.locator(".slot-lvl .pip.used").count();
+
+        if (ancestralUsedAfter !== ancestralUsedBefore) {
+          throw new Error("Dragonide modifica il pool temporaneo di Ancestrale");
+        }
+        if (dragonideUsedAfter !== 1) {
+          throw new Error(`Dragonide: click slot non registrato correttamente (${dragonideUsedAfter})`);
+        }
+
+        await dragonideAfterClick.locator(".slot-lvl").first().locator(".pip").first().click();
+        await page.waitForTimeout(150);
+        const dragonideUsedReset = await page.locator("#anchor-alterazione-dragonide .slot-lvl .pip.used").count();
+        if (dragonideUsedReset !== 0) {
+          throw new Error("Dragonide: ripristino del pip di test non riuscito");
+        }
       }
 
       await page.waitForTimeout(1200);
