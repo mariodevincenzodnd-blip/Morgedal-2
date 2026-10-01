@@ -89,6 +89,28 @@ for (const target of targets) {
     let navigationError = null;
 
     try {
+      if (authStub && isCharacterSheet) {
+        await page.goto(`${baseUrl}/index.html`, {
+          waitUntil: "domcontentloaded",
+          timeout: 60_000,
+        });
+
+        await page.evaluate(() => {
+          const token = {
+            token: "visual-ci-token",
+            expiresAt: Date.now() + 60 * 60 * 1000,
+          };
+          sessionStorage.setItem(
+            "morgedal-google-token-v4-shared",
+            JSON.stringify(token)
+          );
+          sessionStorage.setItem(
+            "morgedal-google-token-v2",
+            JSON.stringify(token)
+          );
+        });
+      }
+
       const response = await page.goto(url, {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
