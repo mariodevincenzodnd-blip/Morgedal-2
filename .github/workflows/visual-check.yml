@@ -95,13 +95,8 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             printf '%s\n' "${{ inputs.page }}" > /tmp/visual-pages.txt
           else
-            git diff --name-only HEAD^ HEAD \
-              | grep -E '(^index\.html$|_Scheda_Interattiva\.html$)' \
-              | sort -u > /tmp/visual-pages.txt || true
-
-            if [ ! -s /tmp/visual-pages.txt ]; then
-              printf '%s\n' "index.html" "Ola_Scheda_Interattiva.html" > /tmp/visual-pages.txt
-            fi
+            printf '%s\n' "index.html" > /tmp/visual-pages.txt
+            find . -maxdepth 1 -type f -name '*_Scheda_Interattiva.html' -printf '%f\n' | sort >> /tmp/visual-pages.txt
           fi
 
           echo "Pages selected:"
