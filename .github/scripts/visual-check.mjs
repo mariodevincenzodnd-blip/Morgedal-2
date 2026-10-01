@@ -5,6 +5,7 @@ import path from "node:path";
 const baseUrl = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const targets = process.argv.slice(2).length ? process.argv.slice(2) : ["index.html"];
 const outDir = process.env.VISUAL_OUT_DIR || "visual-report";
+const authStub = process.env.VISUAL_AUTH_STUB !== "0" && /^http:\/\/127\\.0\\.0\\.1(?::\\d+)?$/i.test(new URL(baseUrl).origin);
 
 await fs.mkdir(outDir, { recursive: true });
 
@@ -25,6 +26,49 @@ for (const target of targets) {
       viewport: { width: viewport.width, height: viewport.height },
       deviceScaleFactor: 1,
     });
+
+    if (authStub) {
+      await context.addInitScript(() => {
+        try {
+          sessionStorage.setItem(
+            "morgedal-google-token-v4-shared",
+            JSON.stringify({
+              token: "visual-ci-token",
+              expiresAt: Date.now() + 60 * 60 * 1000,
+            })
+          );
+        } catch {}
+
+        const realFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+          const url =
+            typeof input === "string"
+              ? input
+              : input && typeof input.url === "string"
+                ? input.url
+                : "";
+
+          if (url.includes("https://www.googleapis.com/oauth2/v3/userinfo")) {
+            return new Response(
+              JSON.stringify({ email: "mariodevincenzodnd@gmail.com" }),
+              {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              }
+            );
+          }
+
+          if (url.includes("https://www.googleapis.com/drive/")) {
+            return new Response("{}", {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+
+          return realFetch(input, init);
+        };
+      });
+    }
 
     const page = await context.newPage();
     const consoleErrors = [];
