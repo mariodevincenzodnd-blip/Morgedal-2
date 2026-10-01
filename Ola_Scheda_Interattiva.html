@@ -844,6 +844,40 @@ function migrateOlaBlock4Point2QuickUtility(){
   return true;
 }
 
+/* BLOCCO 4 · PUNTO 3 — Traduttore e Branchie.
+   Allinea soltanto le varianti legacy note alla scheda originale Drive:
+   entrambe restano PASSIVE separate. Traduttore conserva il bonus +3
+   riportato nella fonte; Branchie conserva il testo originale. La migrazione
+   è volutamente prudente: non sovrascrive descrizioni personalizzate diverse
+   dalle varianti note. */
+function migrateOlaBlock4Point3TraduttoreBranchie(){
+  if (!STATE || !Array.isArray(STATE.passive)) return false;
+  let changed = false;
+
+  const trad = STATE.passive.find(p =>
+    /^Traduttore(?:\s*\(\+3\))?$/i.test(String(p && p.nome || "").trim())
+  );
+  if (trad){
+    if (trad.nome === "Traduttore"){ trad.nome = "Traduttore (+3)"; changed = true; }
+    if (trad.tag !== "Passiva"){ trad.tag = "Passiva"; changed = true; }
+    const oldDesc = "Da utilizzare quando sento una lingua che non conosco, per provare a tradurla e a usarla.";
+    const canonicalDesc = "Da utilizzare quando sento una lingua che non conosco per provare a tradurla e a usarla.";
+    if (trad.desc === oldDesc){ trad.desc = canonicalDesc; changed = true; }
+  }
+
+  const branchie = STATE.passive.find(p =>
+    /^Branchie$/i.test(String(p && p.nome || "").trim())
+  );
+  if (branchie){
+    if (branchie.tag !== "Passiva"){ branchie.tag = "Passiva"; changed = true; }
+    const oldDesc = "Il PG è dotato di branchie che lo rendono a tutti gli effetti un anfibio: ha la capacità di rimanere in acqua per un tempo non superiore alle 3 ore/3 turni.";
+    const canonicalDesc = "Il Pg è dotato di branchie che lo rendono a tutti gli effetti un anfibio, ha la capacità di rimanere in acqua per un tempo non superiore alle 3 ore/3turni.";
+    if (branchie.desc === oldDesc){ branchie.desc = canonicalDesc; changed = true; }
+  }
+
+  return changed;
+}
+
 const ATTACCHI_LINKS = [{"label": "Guanti del Monaco Difensore", "tab": "equip", "anchor": "anchor-guanti-del-monaco-difensore"}];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -931,8 +965,8 @@ const DEFAULT_STATE = {
     {nome:"Antidoto", tag:"Passiva", width:1, hidden:false, desc:"I globuli bianchi presenti nel sangue del corpo ibrido del pg sono in grado di sviluppare la maggior parte di antiveleni/antiparassitario/anti-malarie."},
     {nome:"Termoregolazione", tag:"Passiva", width:1, hidden:false, desc:"Il corpo del pg è in grado di regolare la propria temperatura corporea, non è soggetto a intemperie o sbalzi termici di nessun tipo. Il freddo può influire negativamente sui sistemi interni."},
     {nome:"Codice Genetico", tag:"Passiva", width:2, hidden:false, desc:"Il personaggio possiede la capacità di acquisire il codice genetico di una razza o di una creatura con cui entra in contatto, analizzandolo attraverso il proprio sistema interno e assimilandolo in modo profondo. Una volta acquisito, il codice viene studiato, compreso e riprodotto dal personaggio in forma estremamente avanzata, come se quel patrimonio biologico facesse parte del suo stesso essere. Questo gli permette di trarre il massimo beneficio dalle qualità della razza assimilata, richiamandone i tratti più efficaci, i vantaggi principali e le peculiarità più utili. Se il codice viene conosciuto abbastanza a fondo, analizzato a lungo o sperimentato in modo ripetuto, il personaggio può arrivare non solo a riprodurlo, ma anche a modificarlo, perfezionarlo o adattarlo alle proprie esigenze, trattandolo come una matrice viva da plasmare e non come una semplice copia. L'archivio genetico del personaggio dispone di 10 spazi complessivi, ma non tutti i codici genetici occupano lo stesso valore: alcuni valgono 1 spazio, mentre altri, più complessi, più densi o più difficili da riprodurre, possono occupare più spazi contemporaneamente. La quantità di spazio richiesta dipende dalla corposità, dalla complessità biologica e dalla difficoltà di analisi del codice genetico assimilato; per questo un codice genetico semplice, come quello umano o di creature comuni, non avrà mai lo stesso peso di un codice più elevato, raro o innaturale, come quello demoniaco o di altre razze superiori. Più un codice genetico è complesso, più richiederà analisi, tempo e spazio disponibile per essere acquisito, compreso e riprodotto correttamente."},
-    {nome:"Traduttore", tag:"Passiva", width:1, hidden:false, desc:"Da utilizzare quando sento una lingua che non conosco, per provare a tradurla e a usarla."},
-    {nome:"Branchie", tag:"Passiva", width:1, hidden:false, desc:"Il PG è dotato di branchie che lo rendono a tutti gli effetti un anfibio: ha la capacità di rimanere in acqua per un tempo non superiore alle 3 ore/3 turni."},
+    {nome:"Traduttore (+3)", tag:"Passiva", width:1, hidden:false, desc:"Da utilizzare quando sento una lingua che non conosco per provare a tradurla e a usarla."},
+    {nome:"Branchie", tag:"Passiva", width:1, hidden:false, desc:"Il Pg è dotato di branchie che lo rendono a tutti gli effetti un anfibio, ha la capacità di rimanere in acqua per un tempo non superiore alle 3 ore/3turni."},
     {nome:"Modificatore Fisico (Lvl 6)", tag:"Passiva", width:2, hidden:false, desc:"Il pg acquisisce la capacità di mutare la forma del suo fisico e poterlo modellare a sua scelta, essendo malleabile il corpo del pg può avere diverse applicazioni sia in combattimento che no, ex braccio tagliente (da discutere con il Dm)."},
     {nome:"Energia Pura (Lvl 7)", tag:"Passiva", width:2, hidden:false, desc:"Il corpo dell'ibrido si evolve a tal punto da riuscire a immagazzinare l'energia in esubero, tutte le azioni e le entrate in combattimento del pg consumano solo ed esclusivamente 1 di energia, rimangono però a 5 le trasformazioni."},
     {nome:"Rig. Cell. Superiore (Lvl 7)", tag:"Passiva", width:2, hidden:false, desc:"Ogni turno di combattimento il pg rigenera 1PV, esclusi i combattimenti il pg ha la capacità di rigenerare 1PV per ora. In caso di perdita di arti, la loro ricrescita avverrebbe per metà, risultando più piccoli del normale come se fossero di fanciulli (la ricrescita effettiva non sarebbe sicura al 100%, pertanto il PG potrebbe tornare alle sue complete funzioni motorie come no)."},
@@ -3241,6 +3275,7 @@ function migrateInventorySourceFromOriginal(){
 function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   if (migrateOlaBlock4Point2QuickUtility()) queueSave();
+  if (migrateOlaBlock4Point3TraduttoreBranchie()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
