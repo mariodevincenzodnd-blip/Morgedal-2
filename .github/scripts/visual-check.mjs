@@ -29,7 +29,7 @@ for (const target of targets) {
     });
 
     if (authStub) {
-      await context.addInitScript(() => {
+      await context.addInitScript(({ enableMaster }) => {
         const token = {
           token: "visual-ci-token",
           expiresAt: Date.now() + 60 * 60 * 1000,
@@ -43,8 +43,11 @@ for (const target of targets) {
             "morgedal-google-token-v2",
             JSON.stringify(token)
           );
+          if (enableMaster) {
+            sessionStorage.setItem("morgedal-master-unlocked", "1");
+          }
         } catch {}
-      });
+      }, { enableMaster: /^Ola_Scheda_Interattiva\.html$/i.test(normalized) });
 
       await context.route(
         "https://www.googleapis.com/oauth2/v3/userinfo*",
@@ -118,7 +121,7 @@ for (const target of targets) {
           timeout: 60_000,
         });
 
-        await page.evaluate((enableMaster) => {
+        await page.evaluate(() => {
           const token = {
             token: "visual-ci-token",
             expiresAt: Date.now() + 60 * 60 * 1000,
@@ -131,10 +134,7 @@ for (const target of targets) {
             "morgedal-google-token-v2",
             JSON.stringify(token)
           );
-          if (enableMaster) {
-            sessionStorage.setItem("morgedal-master-unlocked", "1");
-          }
-        }, /^Ola_Scheda_Interattiva\.html$/i.test(normalized));
+        });
       }
 
       const response = await page.goto(url, {
