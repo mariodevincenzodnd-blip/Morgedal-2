@@ -878,6 +878,24 @@ function migrateOlaBlock4Point3TraduttoreBranchie(){
   return changed;
 }
 
+/* BLOCCO 4 · PUNTO 4 — Corpo da Lumaca.
+   Il corredo resta esclusivamente nei CORREDI GENETICI e viene allineato
+   al nome canonico stabilito nel documento operativo. La migrazione rinomina
+   soltanto le varianti legacy riconoscibili e non crea copie. */
+function migrateOlaBlock4Point4CorpoDaLumaca(){
+  if (!STATE || !Array.isArray(STATE.corredi)) return false;
+  const item = STATE.corredi.find(c => {
+    const nome = String(c && c.nome || "").trim();
+    return /^Corredo Genetico Animale\s*(?:—|–|-|:)\s*Corpo da Lumaca$/i.test(nome)
+      || /^Corpo da Lumaca$/i.test(nome);
+  });
+  if (!item) return false;
+  const canonicalName = "CORREDO GENETICO ANIMALE: CORPO DA LUMACA";
+  if (item.nome === canonicalName) return false;
+  item.nome = canonicalName;
+  return true;
+}
+
 const ATTACCHI_LINKS = [{"label": "Guanti del Monaco Difensore", "tab": "equip", "anchor": "anchor-guanti-del-monaco-difensore"}];
 function renderAttacchiNav(){
   if (!ATTACCHI_LINKS.length) return "";
@@ -996,7 +1014,7 @@ const DEFAULT_STATE = {
     {nome:"Alterazione: Numa", tag:"Abilità", width:1, hidden:true, desc:"<p><b>ALTERAZIONE FISICA: NUMA</b> PF +10 (Temporanei)</p>\n<p>MOD. FORZA + 3 · MOD. DESTREZZA + 5 · VELOCITÀ MOV. 15 · BONUS ATT. PER COLPIRE + 4 · PERCEZIONE PASSIVA + 4 · CA + 1</p>\n<p>Danni corpo a corpo: 3d12 + 3 danni sanguinamento (probabilità di causare sanguinamento con ogni colpo). Il pg usufruisce di 3 attacchi o di uno unico da 5d6 + 4, ad ogni colpo il pg lancera' una moneta e se dovesse uscire il risultato prescelto affibbiera' un + 1 sanguinamento al nemico fino alla fine dello scontro. Questo effetto e' cumulabile fino a + 10 danni grazie ai suoi lunghi artigli e denti aguzzi.<br>Il pg sviluppa la capacità di mutare la sua stazza in quello della razza felina Numa, una sottorazza dei Tabaxi, esclusivamente rappresentante pantere.<br>Il pg sviluppa azione costante, avendo la possibilit' di avere un'azione bonus per turno.<br>Il pg ha specifici bonus sui tiri di acrobazie e furtivita' ove in alcuni casi non e' necessario lanciare i dadi (chiedere al master). Bonus + 10<br>Grazie ai suoi affilatissimi artigli il pg puo' arrampicarsi sulla maggior parte delle superfici e rimanerne attaccato per diverso tempo (discrezione master).<br>Il pg ha un olfatto molto sviluppato oltre che l'udito, grazie a questi benefici ha molti vantaggi tattici.<br><b>Abilità Specifica :</b> Il pg utilizza la sua rabbia selvaggia per regredire a essere della foresta, il suo spostamento arriva a un tot di 20 i danni diventano 4d12 o 8d6 e puo' attaccare nemici vicini tra loro. Ogni attacco fatto con mosrsi recupera 5pft per un max di 20 pft. <b>Quantità - 2 -</b></p>"}
   ],
   corredi: [
-    {nome:"Corredo Genetico Animale — Corpo da Lumaca", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, desc:"Melma gelatinosa a solidificazione istantanea: rinuncia agli attacchi nel proprio turno; chi la tocca deve superare un TS o subire solidificazione parziale/totale. Velocità 1, CA +3, TS nemico 17, durata 4 turni. Quantità 2."},
+    {nome:"CORREDO GENETICO ANIMALE: CORPO DA LUMACA", tag:"Trucchetto", width:1, hidden:false, spazi:0, max:2, used:0, desc:"Melma gelatinosa a solidificazione istantanea: rinuncia agli attacchi nel proprio turno; chi la tocca deve superare un TS o subire solidificazione parziale/totale. Velocità 1, CA +3, TS nemico 17, durata 4 turni. Quantità 2."},
     {nome:"Corredo Genetico Ancestrale (3 spazi)", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Cura:</b> distribuisce fino a 50 cure.<br>• <b>Visione Crepuscolare:</b> vede al buio come fosse giorno.<br>• <b>Saggezza Predominante:</b> +4 Saggezza (l'anima di un Arcangelo convoglia energia spirituale).<br>• <b>Luce:</b> +3 danni a ogni colpo che la usa; in alternativa crea piccole creazioni di luce (oggetti o famigli, 1d6 danni / 10 PF / 4 mov / 14 CA), interconnesse con la sua mente.<br>• <b>Levitazione:</b> fino a 6 turni / 6h (non vola, ma può planare)."},
     {nome:"Corredo Genetico Demoniaco (3 spazi)", tag:"Trucchetto", width:3, hidden:false, spazi:3, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Assorbimento Vitale:</b> assorbe la linfa vitale dei nemici, 6d6.<br>• <b>Visione Crepuscolare:</b> vede al buio come fosse giorno.<br>• <b>Costituzione Possente:</b> +4 Forza (energia di un demone superiore).<br>• <b>Fuoco:</b> +3 danni a colpo; a distanza 7d6.<br>• <b>Calore:</b> immune al freddo e alle basse temperature.<br>• <b>Fumo Demoniaco:</b> nube nera fino a 4 caselle; i nemici dentro devono superare TS Destrezza 18 per vederci, e gli attacchi dentro l'area ottengono +5."},
     {nome:"Corredo Genetico Dragonide (1 spazio)", tag:"Trucchetto", width:2, hidden:false, spazi:1, max:0, used:0, desc:"Truccetto — ciascuna variante quantità 2:<br>• <b>Denti Aguzzi:</b> morso 5d6+2 sanguinamento.<br>• <b>Visione Subacquea:</b> vede chiaramente sott'acqua fino a 6 turni/6h.<br>• <b>Intelligenza Spiccata:</b> +4 Intelligenza.<br>• <b>Fuoco/Fulmini:</b> eiettati dalla bocca fino a 5 caselle — più vicino il nemico, più danno (max 8d6, scala fino a 4d6 alla distanza massima).<br>• <b>Pelle a Scaglie:</b> +2 CA fino a fine scontro."},
@@ -3276,6 +3294,7 @@ function renderAll(){
   if (canonicalizeTrucchettoCategorySpelling()) queueSave();
   if (migrateOlaBlock4Point2QuickUtility()) queueSave();
   if (migrateOlaBlock4Point3TraduttoreBranchie()) queueSave();
+  if (migrateOlaBlock4Point4CorpoDaLumaca()) queueSave();
   migrateInventorySourceFromOriginal();
   migrateInventoryPoint12();
   renderScheda();
