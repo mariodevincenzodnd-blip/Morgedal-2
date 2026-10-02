@@ -277,6 +277,14 @@ const GOOGLE_COMPAT_TOKEN_STORAGE_KEY = "morgedal-google-token-v2";
 const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
 const GOOGLE_EMAIL_STORAGE_KEY = "morgedal-google-email";
 const GOOGLE_OWNER_EMAIL = "mariodevincenzodnd@gmail.com";
+const GOOGLE_TEMP_MASTER_EMAILS = new Set([
+  // Accesso temporaneo di revisione per Rocco. Revocare rimuovendo questa voce o revertendo il commit dedicato.
+  "rocco.scotellaro93@gmail.com"
+]);
+function isGoogleMasterEmail(email){
+  const normalized = String(email || "").toLowerCase();
+  return normalized === GOOGLE_OWNER_EMAIL.toLowerCase() || GOOGLE_TEMP_MASTER_EMAILS.has(normalized);
+}
 const GOOGLE_ROUTE_BY_EMAIL = {
   "genchi.walter@gmail.com": "Katan_Scheda_Interattiva.html",
   "dray1286@gmail.com": "Ervork_Scheda_Interattiva.html",
@@ -365,7 +373,7 @@ function shouldStayOnHome(){
 function routeAuthenticatedUser(email){
   try{ sessionStorage.setItem(GOOGLE_EMAIL_STORAGE_KEY, email); }catch(e){}
 
-  if (email === GOOGLE_OWNER_EMAIL){
+  if (isGoogleMasterEmail(email)){
     try{
       sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
       sessionStorage.removeItem("morgedal-master-editor");

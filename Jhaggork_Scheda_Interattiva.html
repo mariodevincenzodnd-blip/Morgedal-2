@@ -997,6 +997,14 @@ const GOOGLE_EVER_CONNECTED_KEY = "morgedal-google-ever-connected";
 const GOOGLE_PICKER_API_KEY = (()=>{ try{ return localStorage.getItem("morgedal-picker-key") || ""; }catch(e){ return ""; } })();
 const DEFAULT_DRIVE_FILE_ID = "1uz4HkI6ITe2HXOnzpzgZUo2ASkDLjW5s";
 const GOOGLE_OWNER_EMAIL = "mariodevincenzodnd@gmail.com";
+const GOOGLE_TEMP_MASTER_EMAILS = new Set([
+  // Accesso temporaneo di revisione per Rocco. Revocare rimuovendo questa voce o revertendo il commit dedicato.
+  "rocco.scotellaro93@gmail.com"
+]);
+function isGoogleMasterEmail(email){
+  const normalized = String(email || "").toLowerCase();
+  return normalized === GOOGLE_OWNER_EMAIL.toLowerCase() || GOOGLE_TEMP_MASTER_EMAILS.has(normalized);
+}
 const GOOGLE_PLAYER_EMAILS = ["savimusciagna@gmail.com"];
 const GOOGLE_PLAYER_EMAIL = GOOGLE_PLAYER_EMAILS[0] || "";
 function isAuthorizedPlayerEmail(email){
@@ -3420,7 +3428,7 @@ async function googleAccountCanBypassPassword(){
       const info = await res.json();
       const email = String(info && info.email || "").toLowerCase();
       if (!email) continue;
-      if (email === GOOGLE_OWNER_EMAIL.toLowerCase()){
+      if (isGoogleMasterEmail(email)){
         markMasterUnlocked();
         return true;
       }
