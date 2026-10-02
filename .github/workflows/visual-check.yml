@@ -8,6 +8,8 @@ on:
       - "*_Scheda_Interattiva.html"
       - ".github/scripts/visual-check.mjs"
       - ".github/workflows/visual-check.yml"
+      - "build_vercel.py"
+      - ".github/workflows/deploy-pages.yml"
   pull_request:
     branches: ["main"]
     paths:
@@ -15,6 +17,8 @@ on:
       - "*_Scheda_Interattiva.html"
       - ".github/scripts/visual-check.mjs"
       - ".github/workflows/visual-check.yml"
+      - "build_vercel.py"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
     inputs:
       page:
@@ -121,3 +125,54 @@ jobs:
           path: visual-report/
           if-no-files-found: warn
           retention-days: 14
+
+
+  qa-build-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build deploy artifact with CI QA hash
+        env:
+          MORGEDAL_PICKER_API_KEY: ci-picker-placeholder
+          MORGEDAL_AUTOMATION_TOKEN_HASH: 6f9c44f126b68de22ee672f201d8bb09f805e9d43e0d383174682d8f430c3f98
+        run: python3 build_vercel.py
+
+      - name: Verify QA access is build-only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path(".")
+          dist = root / "dist"
+
+          assert (dist / "index.html").exists(), "dist/index.html missing"
+          assert (dist / "tinyfish-access.html").exists(), "tinyfish-access.html missing"
+          assert "__MORGEDAL_TINYFISH_QA__" not in (root / "index.html").read_text(encoding="utf-8"), "QA hook leaked into source index"
+
+          index = (dist / "index.html").read_text(encoding="utf-8")
+          assert "__MORGEDAL_TINYFISH_QA__" in index, "QA flag missing in built index"
+          assert "showHomeForAuthenticatedUser(GOOGLE_OWNER_EMAIL)" in index, "Home QA bypass missing"
+          assert "if (window.__MORGEDAL_TINYFISH_QA__)" in index, "Card-navigation QA bypass missing"
+
+          sheets = sorted(dist.glob("*_Scheda_Interattiva.html"))
+          assert sheets, "No built interactive sheets found"
+          for p in sheets:
+              text = p.read_text(encoding="utf-8")
+              assert "__MORGEDAL_TINYFISH_QA__" in text, f"QA flag missing in {p.name}"
+              assert "markMasterUnlocked();" in text, f"Master QA bypass missing in {p.name}"
+
+          admin = (dist / "admin.html").read_text(encoding="utf-8")
+          assert "__MORGEDAL_TINYFISH_QA__" in admin, "Admin QA flag missing"
+          assert 'sessionStorage.setItem(SESSION_KEY, "1")' in admin, "Admin QA unlock missing"
+
+          entry = (dist / "tinyfish-access.html").read_text(encoding="utf-8")
+          assert "6f9c44f126b68de22ee672f201d8bb09f805e9d43e0d383174682d8f430c3f98" in entry, "CI token-hash override not applied"
+          assert "morgedal-tinyfish-qa-v1" in entry, "QA storage key missing"
+
+          print(f"QA build smoke OK: {len(sheets)} schede verificate")
+          PY
