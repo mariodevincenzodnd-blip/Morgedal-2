@@ -157,7 +157,9 @@ jobs:
           index = (dist / "index.html").read_text(encoding="utf-8")
           assert "__MORGEDAL_TINYFISH_QA__" in index, "QA flag missing in built index"
           assert "showHomeForAuthenticatedUser(GOOGLE_OWNER_EMAIL)" in index, "Home QA bypass missing"
-          assert "if (window.__MORGEDAL_TINYFISH_QA__)" in index, "Card-navigation QA bypass missing"
+          assert "__MORGEDAL_TINYFISH_QA_PROMISE__" in index, "Async QA verifier missing"
+          assert "await window.__MORGEDAL_TINYFISH_QA_PROMISE__" in index, "Home QA token verification missing"
+          assert 'localStorage.getItem("morgedal-tinyfish-qa-v1") === "1"' not in index, "Insecure boolean QA flag still present"
 
           sheets = sorted(dist.glob("*_Scheda_Interattiva.html"))
           assert sheets, "No built interactive sheets found"
@@ -165,14 +167,18 @@ jobs:
               text = p.read_text(encoding="utf-8")
               assert "__MORGEDAL_TINYFISH_QA__" in text, f"QA flag missing in {p.name}"
               assert "markMasterUnlocked();" in text, f"Master QA bypass missing in {p.name}"
+              assert "await window.__MORGEDAL_TINYFISH_QA_PROMISE__" in text, f"Token verification missing in {p.name}"
 
           admin = (dist / "admin.html").read_text(encoding="utf-8")
-          assert "__MORGEDAL_TINYFISH_QA__" in admin, "Admin QA flag missing"
+          assert "__MORGEDAL_TINYFISH_QA_PROMISE__" in admin, "Admin QA verifier missing"
+          assert "await window.__MORGEDAL_TINYFISH_QA_PROMISE__" in admin, "Admin token verification missing"
           assert 'sessionStorage.setItem(SESSION_KEY, "1")' in admin, "Admin QA unlock missing"
 
           entry = (dist / "tinyfish-access.html").read_text(encoding="utf-8")
           assert "6f9c44f126b68de22ee672f201d8bb09f805e9d43e0d383174682d8f430c3f98" in entry, "CI token-hash override not applied"
           assert "morgedal-tinyfish-qa-v1" in entry, "QA storage key missing"
+          assert "localStorage.setItem(KEY, token)" in entry, "Validated raw token is not persisted"
+          assert 'localStorage.setItem(KEY, "1")' not in entry, "Insecure boolean authorization still present"
 
           print(f"QA build smoke OK: {len(sheets)} schede verificate")
           PY
