@@ -38,13 +38,24 @@ else:
 def inject_flag(html: str) -> str:
     marker_head = "</head>"
     if marker_head not in html:
-        raise RuntimeError("HTML senza </head>: impossibile inserire il flag QA.")
+        raise RuntimeError("HTML senza </head>: impossibile inserire il verificatore QA.")
     script = f"""<script>
-try {{
-  window.__MORGEDAL_TINYFISH_QA__ = localStorage.getItem("{AUTOMATION_STORAGE_KEY}") === "1";
-}} catch (e) {{
-  window.__MORGEDAL_TINYFISH_QA__ = false;
-}}
+window.__MORGEDAL_TINYFISH_QA__ = false;
+window.__MORGEDAL_TINYFISH_QA_PROMISE__ = (async () => {{
+  try {{
+    const token = localStorage.getItem("{AUTOMATION_STORAGE_KEY}") || "";
+    if (!token) return false;
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+    const digest = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    const ok = digest === "{AUTOMATION_TOKEN_HASH}";
+    window.__MORGEDAL_TINYFISH_QA__ = ok;
+    if (!ok) localStorage.removeItem("{AUTOMATION_STORAGE_KEY}");
+    return ok;
+  }} catch (e) {{
+    window.__MORGEDAL_TINYFISH_QA__ = false;
+    return false;
+  }}
+}})();
 </script>
 """
     return html.replace(marker_head, script + marker_head, 1)
@@ -53,8 +64,8 @@ def patch_index(path: Path):
     s = inject_flag(path.read_text(encoding="utf-8"))
 
     old = "function initGoogleIndex(){\n"
-    new = """function initGoogleIndex(){
-  if (window.__MORGEDAL_TINYFISH_QA__){
+    new = """async function initGoogleIndex(){
+  if (await window.__MORGEDAL_TINYFISH_QA_PROMISE__){
     try{
       sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
       sessionStorage.removeItem("morgedal-master-editor");
@@ -88,7 +99,7 @@ def patch_sheet(path: Path):
     s = inject_flag(path.read_text(encoding="utf-8"))
     old = "async function initLock(){\n"
     new = """async function initLock(){
-  if (window.__MORGEDAL_TINYFISH_QA__){
+  if (await window.__MORGEDAL_TINYFISH_QA_PROMISE__){
     markMasterUnlocked();
     setMasterEditorOn(false);
     hideLockScreen();
@@ -103,16 +114,51 @@ def patch_sheet(path: Path):
 
 def patch_admin(path: Path):
     s = inject_flag(path.read_text(encoding="utf-8"))
-    old = "let unlocked = false;\n"
-    new = """if (window.__MORGEDAL_TINYFISH_QA__){
+    old = """let unlocked = false;
+try{
+  unlocked =
+    sessionStorage.getItem(SESSION_KEY) === "1" ||
+    sessionStorage.getItem(MASTER_UNLOCK_KEY) === "1";
+}catch(e){}
+if (unlocked){
   try{
     sessionStorage.setItem(SESSION_KEY, "1");
     sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
-    sessionStorage.removeItem("morgedal-master-editor");
   }catch(e){}
+  showPanel();
+} else {
+  // L'accesso normale passa dalla Home e dall'account Google.
+  // L'account proprietario autorizzato entra qui senza password.
+  window.location.replace("index.html");
 }
+"""
+    new = """(async function initAdminAccess(){
+  let qaUnlocked = false;
+  try{ qaUnlocked = await window.__MORGEDAL_TINYFISH_QA_PROMISE__; }catch(e){}
+  if (qaUnlocked){
+    try{
+      sessionStorage.setItem(SESSION_KEY, "1");
+      sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
+      sessionStorage.removeItem("morgedal-master-editor");
+    }catch(e){}
+  }
 
-let unlocked = false;
+  let unlocked = false;
+  try{
+    unlocked =
+      sessionStorage.getItem(SESSION_KEY) === "1" ||
+      sessionStorage.getItem(MASTER_UNLOCK_KEY) === "1";
+  }catch(e){}
+  if (unlocked){
+    try{
+      sessionStorage.setItem(SESSION_KEY, "1");
+      sessionStorage.setItem(MASTER_UNLOCK_KEY, "1");
+    }catch(e){}
+    showPanel();
+  } else {
+    window.location.replace("index.html");
+  }
+})();
 """
     if old not in s:
         raise RuntimeError("Hook admin unlock non trovato in admin.html")
@@ -146,9 +192,9 @@ async function sha256Hex(text){{
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }}
-function unlockSession(){{
+function unlockSession(token){{
   try{{
-    localStorage.setItem(KEY, "1");
+    localStorage.setItem(KEY, token);
     sessionStorage.setItem("morgedal-master-unlocked", "1");
     sessionStorage.setItem("morgedal-admin-unlocked", "1");
     sessionStorage.removeItem("morgedal-master-editor");
@@ -169,11 +215,13 @@ function goHome(){{
   }}
 
   try{{
-    if (localStorage.getItem(KEY) === "1"){{
-      unlockSession();
+    const stored = localStorage.getItem(KEY) || "";
+    if (stored && await sha256Hex(stored) === EXPECTED){{
+      unlockSession(stored);
       goHome();
       return;
     }}
+    if (stored) localStorage.removeItem(KEY);
   }}catch(e){{}}
 
   if (!fragment){{
@@ -188,7 +236,7 @@ function goHome(){{
     return;
   }}
 
-  unlockSession();
+  unlockSession(fragment);
   goHome();
 }})();
 </script>
