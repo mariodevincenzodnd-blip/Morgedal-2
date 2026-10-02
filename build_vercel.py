@@ -6,7 +6,7 @@ OUT = ROOT / "dist"
 EXCLUDE = {".git", ".github", "dist", "__pycache__"}
 
 AUTOMATION_STORAGE_KEY = "morgedal-tinyfish-qa-v1"
-AUTOMATION_TOKEN_HASH = "e573727ecf9027b1df7bd0755bfd245d4603f07edef8baeb27821b1737b54fc7"
+AUTOMATION_TOKEN_HASH = os.environ.get("MORGEDAL_AUTOMATION_TOKEN_HASH", "e573727ecf9027b1df7bd0755bfd245d4603f07edef8baeb27821b1737b54fc7").strip()
 
 if OUT.exists():
     shutil.rmtree(OUT)
