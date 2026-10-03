@@ -40,6 +40,27 @@ Restano protetti e modificabili soltanto con Editor Master:
 
 L'Editor Master deve partire **spento** anche quando accede il proprietario.
 
+### Formattazione testo nell'Editor Master
+
+Quando l'Editor Master è attivo, le aree di testo ricco modificabili devono offrire una toolbar di formattazione comune, senza introdurre un secondo sistema di salvataggio.
+
+La toolbar deve consentire almeno:
+- scelta del font;
+- grassetto, corsivo e sottolineato;
+- dimensione numerica del carattere e pulsanti di aumento/riduzione;
+- colore del testo;
+- evidenziatore/colore di sfondo del testo;
+- rimozione della formattazione;
+- annulla/ripristina quando supportati dal browser.
+
+Regole:
+- la toolbar è visibile e utilizzabile **solo con Editor Master attivo**;
+- la formattazione si applica al testo selezionato dentro un'area contenteditable;
+- il contenuto formattato resta HTML della stessa proprietà già gestita dalla scheda e deve passare dagli stessi listener input e dallo stesso queueSave() esistenti;
+- non creare storage, file o salvataggi paralleli per la sola formattazione;
+- i Player vedono la resa formattata già salvata ma non ricevono la toolbar Master.
+
+
 ### Tracker PF / PF temporanei
 Il blocco dei **PF temporanei** deve essere una copia visiva speculare del blocco dei PF correnti:
 - titolo **PUNTI FERITA TEMPORANEI** con la stessa tipografia, grandezza, bordo e impaginazione di **PUNTI FERITA**;
