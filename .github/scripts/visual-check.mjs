@@ -1,11 +1,11 @@
-import { chromium } from "playwright";
+const { chromium } = await import(process.env.MORGEDAL_PLAYWRIGHT_MODULE || "playwright");
 import fs from "node:fs/promises";
 import path from "node:path";
 
 const baseUrl = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const targets = process.argv.slice(2).length ? process.argv.slice(2) : ["index.html"];
 const outDir = process.env.VISUAL_OUT_DIR || "visual-report";
-const authStub = process.env.VISUAL_AUTH_STUB !== "0" && /^http:\/\/127\\.0\\.0\\.1(?::\\d+)?$/i.test(new URL(baseUrl).origin);
+const authStub = process.env.VISUAL_AUTH_STUB !== "0" && new URL(baseUrl).hostname === "127.0.0.1";
 
 await fs.mkdir(outDir, { recursive: true });
 
@@ -29,6 +29,15 @@ for (const target of targets) {
     });
 
     if (authStub) {
+      let mockDriveState = null;
+      if (isCharacterSheet) {
+        await context.route("**/assets/sheet-persistence.js*", async route => {
+          const response = await route.fetch();
+          const source = (await response.text()).replace("const create = factory();",
+            "const createOriginal = factory(); const create = options => { root.__visualSheetOptions = options; return createOriginal(options); };");
+          await route.fulfill({ response, body: source });
+        });
+      }
       await context.addInitScript(({ enableMaster }) => {
         const token = {
           token: "visual-ci-token",
@@ -61,12 +70,20 @@ for (const target of targets) {
       );
 
       await context.route(
-        /https:\/\/www\.googleapis\.com\/drive\//i,
+        /https:\/\/www\.googleapis\.com\/(?:upload\/)?drive\//i,
         async (route) => {
+          if (isCharacterSheet) {
+            if (route.request().method() === "PATCH") {
+              mockDriveState = route.request().postDataJSON();
+            } else if (!mockDriveState) {
+              mockDriveState = await route.request().frame().page().evaluate(() =>
+                window.__visualSheetOptions.getState());
+            }
+          }
           await route.fulfill({
-            status: 404,
+            status: isCharacterSheet ? 200 : 404,
             contentType: "application/json",
-            body: "{}",
+            body: JSON.stringify(mockDriveState || {}),
           });
         }
       );
@@ -78,7 +95,7 @@ for (const target of targets) {
           const gateBoot = 'document.addEventListener("DOMContentLoaded", initLock);';
           const bypassBoot = 'document.addEventListener("DOMContentLoaded", ()=>{ try{ setMasterEditorOn(false); }catch(e){} hideLockScreen(); init(); });';
 
-          if (!body.includes(gateBoot)) {
+          if (!body.includes(gateBoot) && !body.includes(bypassBoot)) {
             throw new Error(`Visual auth bypass hook not found in ${normalized}`);
           }
 
