@@ -411,6 +411,47 @@
     .master-color-picker{position:static;margin:0 0 10px;}
   }
 
+  
+  /* ---------- MASTER TEXT FORMATTER (solo Editor Master) ---------- */
+  .master-text-toolbar{
+    display:none;position:fixed;left:16px;bottom:106px;z-index:61;
+    width:min(980px,calc(100vw - 32px));padding:8px 10px;border-radius:12px;
+    background:rgba(23,18,16,0.97);border:1px solid var(--violet-dim);
+    box-shadow:0 10px 30px rgba(0,0,0,0.38);color:var(--text-dim);
+    font-size:11px;backdrop-filter:blur(6px);
+  }
+  .master-text-toolbar.show{display:flex;flex-direction:column;gap:6px;}
+  .master-format-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .master-format-label{color:var(--violet);font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-right:2px;}
+  .master-format-select,.master-format-size{
+    height:28px;background:var(--bg-panel-3);border:1px solid var(--border-soft);
+    color:var(--text);border-radius:6px;font-size:11px;padding:3px 7px;
+  }
+  .master-format-select{min-width:138px;max-width:180px;}
+  .master-format-size{width:58px;text-align:center;font-family:var(--mono);}
+  .master-format-btn{
+    min-width:28px;height:28px;padding:0 7px;border-radius:6px;
+    background:var(--bg-panel-2);border:1px solid var(--border-soft);
+    color:var(--text);font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .master-format-btn:hover{border-color:var(--gold-bright);color:var(--gold-bright);}
+  .master-format-btn.is-italic{font-style:italic;}
+  .master-format-btn.is-underline{text-decoration:underline;}
+  .master-format-color{
+    display:inline-flex;align-items:center;gap:4px;height:28px;padding:2px 6px;
+    border:1px solid var(--border-soft);border-radius:6px;background:var(--bg-panel-2);
+    color:var(--text-dim);font-size:10px;cursor:pointer;
+  }
+  .master-format-color input[type=color]{
+    width:24px;height:20px;padding:0;border:0;background:none;cursor:pointer;
+  }
+  .master-format-sep{width:1px;height:22px;background:var(--border-soft);margin:0 1px;}
+  .master-format-hint{color:var(--text-faint);font-size:10px;line-height:1.35;}
+  @media (max-width:760px){
+    .master-text-toolbar{position:static;width:calc(100% - 32px);margin:0 16px 10px;}
+    .master-format-select{min-width:122px;max-width:150px;}
+  }
+
   /* ---------- EVOLUZIONI FUTURE (pannelli richiudibili) ---------- */
   .evo-note{font-size:12.5px;color:var(--text-faint);margin:-6px 0 14px;line-height:1.5;}
   .evo-level{background:var(--bg-panel-2);border:1px solid var(--border-soft);border-radius:8px;margin-bottom:10px;overflow:hidden;}
@@ -779,6 +820,38 @@
   <label for="master-color-input-2" title="Secondo colore opzionale: la striscia superiore diventa un gradiente tra i due (es. Gorg)">Colore 2</label>
   <input type="color" id="master-color-input-2">
   <button type="button" class="master-mini-del" id="master-color-2-clear" title="Rimuovi il secondo colore">✕</button>
+</div>
+
+
+<div class="master-text-toolbar" id="master-text-toolbar" title="Formattazione del testo selezionato (solo Editor Master)">
+  <div class="master-format-row">
+    <span class="master-format-label">Testo</span>
+    <select id="master-font-family" class="master-format-select" title="Tipo di carattere">
+      <option value="">Font</option>
+      <option value="Georgia, serif">Georgia</option>
+      <option value="Arial, sans-serif">Arial</option>
+      <option value="Verdana, sans-serif">Verdana</option>
+      <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+      <option value="Times New Roman, serif">Times New Roman</option>
+      <option value="Courier New, monospace">Courier New</option>
+      <option value="Segoe UI, sans-serif">Segoe UI</option>
+    </select>
+    <button type="button" class="master-format-btn" data-master-format-command="bold" title="Grassetto">B</button>
+    <button type="button" class="master-format-btn is-italic" data-master-format-command="italic" title="Corsivo">I</button>
+    <button type="button" class="master-format-btn is-underline" data-master-format-command="underline" title="Sottolineato">U</button>
+    <span class="master-format-sep"></span>
+    <button type="button" class="master-format-btn" id="master-font-smaller" title="Riduci di 1 px">A−</button>
+    <input type="number" id="master-font-size" class="master-format-size" min="8" max="72" step="1" value="14" title="Dimensione carattere in pixel">
+    <button type="button" class="master-format-btn" id="master-font-larger" title="Aumenta di 1 px">A+</button>
+    <span class="master-format-sep"></span>
+    <label class="master-format-color" title="Colore del testo">A <input type="color" id="master-text-color" value="#ece3d0"></label>
+    <label class="master-format-color" title="Evidenziatore / colore di sfondo">▰ <input type="color" id="master-highlight-color" value="#5c3a86"></label>
+    <span class="master-format-sep"></span>
+    <button type="button" class="master-format-btn" id="master-format-clear" title="Rimuovi formattazione">Tx</button>
+    <button type="button" class="master-format-btn" data-master-format-command="undo" title="Annulla">↶</button>
+    <button type="button" class="master-format-btn" data-master-format-command="redo" title="Ripristina">↷</button>
+  </div>
+  <span class="master-format-hint" id="master-format-hint">Seleziona del testo in un riquadro modificabile per formattarlo.</span>
 </div>
 
 <div class="savebar collapsed" id="savebar">
@@ -2940,6 +3013,226 @@ function refreshColorPicker(){
   if (input2) input2.value = STATE.identityColor2 || input.value;
 }
 
+
+/* ============================================================
+   EDITOR MASTER — FORMATTATORE TESTO
+   Mantiene la selezione anche quando si usano i controlli della toolbar.
+   Le modifiche vengono salvate nello stesso HTML gia' gestito dai listener
+   esistenti: nessun secondo storage e nessun percorso di salvataggio parallelo.
+   ============================================================ */
+let MASTER_FORMAT_RANGE = null;
+let MASTER_FORMAT_ROOT = null;
+const MASTER_FONT_MIN = 8;
+const MASTER_FONT_MAX = 72;
+
+function masterEditableRootFromNode(node){
+  if (!node) return null;
+  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!el) return null;
+  const root = el.closest('[contenteditable="true"]');
+  if (!root || !document.body.classList.contains("master-editor-on")) return null;
+  if (root.closest("#master-text-toolbar")) return null;
+  return root;
+}
+function masterSetFormatHint(msg){
+  const hint = document.getElementById("master-format-hint");
+  if (hint) hint.textContent = msg;
+}
+function masterCurrentFontSize(){
+  if (!MASTER_FORMAT_RANGE || !MASTER_FORMAT_ROOT || !MASTER_FORMAT_ROOT.isConnected) return 14;
+  let node = MASTER_FORMAT_RANGE.startContainer;
+  if (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentElement;
+  const px = node ? parseFloat(getComputedStyle(node).fontSize) : NaN;
+  return Number.isFinite(px) ? Math.round(px) : 14;
+}
+function masterCaptureFormatSelection(){
+  if (!isMasterEditorOn()) return false;
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount < 1) return false;
+  const range = sel.getRangeAt(0);
+  const startRoot = masterEditableRootFromNode(range.startContainer);
+  const endRoot = masterEditableRootFromNode(range.endContainer);
+  if (!startRoot || startRoot !== endRoot) return false;
+  MASTER_FORMAT_RANGE = range.cloneRange();
+  MASTER_FORMAT_ROOT = startRoot;
+  const size = document.getElementById("master-font-size");
+  if (size) size.value = String(masterCurrentFontSize());
+  masterSetFormatHint(range.collapsed
+    ? "Seleziona una parola o una frase per applicare la formattazione."
+    : "Formattazione pronta: le modifiche saranno salvate con la scheda.");
+  return true;
+}
+function masterRestoreFormatSelection(){
+  if (!MASTER_FORMAT_RANGE || !MASTER_FORMAT_ROOT || !MASTER_FORMAT_ROOT.isConnected) return null;
+  const sel = window.getSelection();
+  if (!sel) return null;
+  const range = MASTER_FORMAT_RANGE.cloneRange();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return range;
+}
+function masterDispatchFormattedInput(root){
+  if (!root) return;
+  root.dispatchEvent(new Event("input", { bubbles:true }));
+  queueSave();
+}
+function masterRememberRange(range, root){
+  if (!range || !root || !root.isConnected) return;
+  MASTER_FORMAT_RANGE = range.cloneRange();
+  MASTER_FORMAT_ROOT = root;
+  const sel = window.getSelection();
+  if (sel){
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+function masterApplyInlineStyle(property, value){
+  const range = masterRestoreFormatSelection();
+  const root = MASTER_FORMAT_ROOT;
+  if (!range || !root || range.collapsed){
+    masterSetFormatHint("Seleziona prima il testo da modificare.");
+    return false;
+  }
+
+  const startNode = range.startContainer;
+  const startOffset = range.startOffset;
+  const endNode = range.endContainer;
+  const endOffset = range.endOffset;
+  const nodes = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())){
+    if (!node.nodeValue || !node.nodeValue.length) continue;
+    try{
+      if (range.intersectsNode(node)) nodes.push(node);
+    }catch(_err){}
+  }
+
+  let firstSpan = null;
+  let lastSpan = null;
+  nodes.forEach(textNode=>{
+    let from = 0;
+    let to = textNode.nodeValue.length;
+    if (textNode === startNode && startNode.nodeType === Node.TEXT_NODE) from = startOffset;
+    if (textNode === endNode && endNode.nodeType === Node.TEXT_NODE) to = endOffset;
+    if (to <= from) return;
+
+    let selectedNode = textNode;
+    if (from > 0){
+      selectedNode = textNode.splitText(from);
+      to -= from;
+    }
+    if (to < selectedNode.nodeValue.length) selectedNode.splitText(to);
+
+    const span = document.createElement("span");
+    span.style[property] = value;
+    selectedNode.parentNode.insertBefore(span, selectedNode);
+    span.appendChild(selectedNode);
+    if (!firstSpan) firstSpan = span;
+    lastSpan = span;
+  });
+
+  if (!firstSpan || !lastSpan){
+    masterSetFormatHint("Nessun testo modificabile nella selezione.");
+    return false;
+  }
+
+  const newRange = document.createRange();
+  newRange.setStartBefore(firstSpan);
+  newRange.setEndAfter(lastSpan);
+  masterRememberRange(newRange, root);
+  masterDispatchFormattedInput(root);
+  masterSetFormatHint("Formattazione applicata e inclusa nel salvataggio.");
+  return true;
+}
+function masterExecFormatCommand(command){
+  const range = masterRestoreFormatSelection();
+  const root = MASTER_FORMAT_ROOT;
+  if (!root || !root.isConnected){
+    masterSetFormatHint("Seleziona prima il testo da modificare.");
+    return false;
+  }
+  if (!range && command !== "undo" && command !== "redo"){
+    masterSetFormatHint("Seleziona prima il testo da modificare.");
+    return false;
+  }
+  try{
+    document.execCommand("styleWithCSS", false, true);
+    const ok = document.execCommand(command, false, null);
+    if (command !== "undo" && command !== "redo"){
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) masterRememberRange(sel.getRangeAt(0), root);
+    }
+    masterDispatchFormattedInput(root);
+    masterSetFormatHint(ok === false ? "Comando non supportato dal browser." : "Formattazione applicata e inclusa nel salvataggio.");
+    return ok !== false;
+  }catch(_err){
+    masterSetFormatHint("Comando non supportato dal browser.");
+    return false;
+  }
+}
+function masterApplyFontSize(px){
+  px = Math.max(MASTER_FONT_MIN, Math.min(MASTER_FONT_MAX, parseInt(px || "14", 10)));
+  const size = document.getElementById("master-font-size");
+  if (size) size.value = String(px);
+  masterApplyInlineStyle("fontSize", px + "px");
+}
+function refreshMasterTextToolbar(){
+  const wrap = document.getElementById("master-text-toolbar");
+  if (!wrap) return;
+  const show = isMasterUnlocked() && isMasterEditorOn();
+  wrap.classList.toggle("show", show);
+  if (!show){
+    MASTER_FORMAT_RANGE = null;
+    MASTER_FORMAT_ROOT = null;
+    masterSetFormatHint("Seleziona del testo in un riquadro modificabile per formattarlo.");
+  }
+}
+function initMasterTextToolbar(){
+  const wrap = document.getElementById("master-text-toolbar");
+  if (!wrap) return;
+
+  document.addEventListener("selectionchange", ()=>{
+    if (!isMasterEditorOn()) return;
+    masterCaptureFormatSelection();
+  });
+
+  wrap.addEventListener("mousedown", e=>{
+    if (e.target.closest("button")) e.preventDefault();
+  });
+
+  wrap.querySelectorAll("[data-master-format-command]").forEach(btn=>{
+    btn.addEventListener("click", ()=> masterExecFormatCommand(btn.dataset.masterFormatCommand));
+  });
+
+  const font = document.getElementById("master-font-family");
+  if (font){
+    font.addEventListener("change", ()=>{
+      if (font.value) masterApplyInlineStyle("fontFamily", font.value);
+    });
+  }
+
+  const size = document.getElementById("master-font-size");
+  if (size){
+    size.addEventListener("change", ()=> masterApplyFontSize(size.value));
+  }
+  const smaller = document.getElementById("master-font-smaller");
+  if (smaller) smaller.addEventListener("click", ()=> masterApplyFontSize(masterCurrentFontSize() - 1));
+  const larger = document.getElementById("master-font-larger");
+  if (larger) larger.addEventListener("click", ()=> masterApplyFontSize(masterCurrentFontSize() + 1));
+
+  const color = document.getElementById("master-text-color");
+  if (color) color.addEventListener("change", ()=> masterApplyInlineStyle("color", color.value));
+
+  const highlight = document.getElementById("master-highlight-color");
+  if (highlight) highlight.addEventListener("change", ()=> masterApplyInlineStyle("backgroundColor", highlight.value));
+
+  const clear = document.getElementById("master-format-clear");
+  if (clear) clear.addEventListener("click", ()=> masterExecFormatCommand("removeFormat"));
+
+  refreshMasterTextToolbar();
+}
+
 function initHeroImageUpload(){
   const btn = document.getElementById("btn-hero-image");
   const input = document.getElementById("hero-image-input");
@@ -3053,6 +3346,7 @@ function renderAll(){
   applyHeroBg();
   applyIdentityColor();
   refreshColorPicker();
+  refreshMasterTextToolbar();
 }
 
 /* Riduce automaticamente la dimensione del font del nome personaggio se troppo lungo per stare
@@ -3517,6 +3811,7 @@ async function init(){
   initImageLightbox();
   initMasterEditorToggle();
   initColorPicker();
+  initMasterTextToolbar();
 }
 
 window.addEventListener("resize", ()=>{
