@@ -49,9 +49,11 @@ try{
       });
       assert.equal(result.same,true,'Rendering must not migrate canonical data');
       assert.equal(result.labels.length,result.count,file);
-      assert.ok(result.labels.every(s=>s.includes('Quantità')));
+      assert.ok(result.labels.every(s=>/^Trucchetto(?:CD|$)/.test(s)&&!s.includes('Quantità')),file+' CD-only badge');
       assert.equal(writes,0,'Loading/rendering must not save');
       await page.evaluate(()=>{document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-poteri').classList.add('active');});
+      const compact=await page.locator('.trick-metadata').first().evaluate(el=>({tag:el.getBoundingClientRect().width,card:el.closest('.subcard').getBoundingClientRect().width,text:el.textContent}));
+      if(compact.text.length<35)assert.ok(compact.tag<compact.card*.8,file+' badge must fit its content');
       await page.screenshot({path:out+'/'+file.replace('.html','')+'-tricks-'+width+'.png',fullPage:true});
       await page.locator('.trick-metadata').first().locator('..').screenshot({path:out+'/'+file.replace('.html','')+'-trick-card-'+width+'.png'});
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2);
@@ -59,10 +61,13 @@ try{
       await page.evaluate(()=>window.__tricksTest.master());
       const master=await page.evaluate(()=>{
         const state=window.__tricksTest.getState(),snapshot=JSON.stringify(state);window.__tricksTest.render();
-        return {same:snapshot===JSON.stringify(state),labels:[...document.querySelectorAll('.trick-metadata-input')].map(e=>e.value),overflow:document.documentElement.scrollWidth>innerWidth+2};
+        return {same:snapshot===JSON.stringify(state),labels:[...document.querySelectorAll('.trick-metadata-input')].map(e=>e.textContent),overflow:document.documentElement.scrollWidth>innerWidth+2};
       });
       assert.equal(master.same,true);assert.equal(master.overflow,false,file+' master overflow');
       assert.equal(master.labels.length,result.count);
+      const masterCompact=await page.locator('.trick-metadata').first().evaluate(el=>({tag:el.getBoundingClientRect().width,card:el.closest('.subcard').getBoundingClientRect().width,text:el.textContent}));
+      if(masterCompact.text.length<35)assert.ok(masterCompact.tag<masterCompact.card*.8,file+' Master badge must fit its content');
+      await page.locator('.trick-metadata').first().locator('..').screenshot({path:out+'/'+file.replace('.html','')+'-trick-master-card-'+width+'.png'});
       // Rich text, split styling, conditional/variable CDs, and missing CDs.
       const fixtures=await page.evaluate(()=>{
         const data={truccetti:[
@@ -84,27 +89,42 @@ try{
       assert.match(fixtures.labels[1],/per uccidere 20 \(solo in casi specifici\)/);
       assert.match(fixtures.labels[2],/CD 18 \(Caos lvl 5\)/);assert.match(fixtures.labels[3],/CD Variabile/);
       assert.match(fixtures.labels[4],/CD 17 \(TS Carisma\)/);assert.match(fixtures.desc[4],/Nemici entro 6 caselle: TS Carisma/);
-      assert.doesNotMatch(fixtures.labels[5],/CD/);assert.match(fixtures.labels[6],/Quantità 3 · CD 13/);assert.match(fixtures.labels[7],/Quantità - 20 -/);
+      assert.equal(fixtures.labels[5],'Trucchetto');assert.equal(fixtures.labels[6],'TrucchettoCD 13');assert.equal(fixtures.labels[7],'Trucchetto');
+      assert.match(fixtures.desc[7],/QUANTITA’ - 20 -/,'No pips: do not erase explicit quantity from source body');
+      assert.ok(fixtures.labels.every(s=>!s.includes('Quantità')&&!/Riposo|Scontro/.test(s)));
+      const countsBefore=await page.evaluate(()=>{
+        const s=window.__tricksTest.getState();return JSON.stringify({risorse:s.risorse,slots:s.slots});
+      });
       // Real editor events use the existing queueSave; metadata survives reload.
       const editable=page.locator('[data-trick-metadata]').first();
-      const originalHeader=await page.locator('.trick-metadata-input').first().inputValue();
+      const originalHeader=await page.locator('.trick-metadata-input').first().textContent();
       await editable.evaluate(el=>{el.insertAdjacentHTML('beforeend','<b> test modifica</b>');el.dispatchEvent(new Event('input',{bubbles:true}));});
       await page.waitForFunction(()=>!window.__tricksEngine.isDirty());
       await page.reload({waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>window.__tricksEngine?.isReady()&&document.getElementById('hp-cur'));
       await page.evaluate(()=>window.__tricksTest.master());
-      assert.equal(await page.locator('.trick-metadata-input').first().inputValue(),originalHeader);
+      assert.equal(await page.locator('.trick-metadata-input').first().textContent(),originalHeader);
       assert.match(await page.locator('[data-trick-metadata]').first().innerHTML(),/test modifica/);
-      const editedHeader='Quantità 7 · CD 12 (solo prova simulata)';
+      const preservedUsage=await page.evaluate(()=>{
+        let text=window.__tricksTest.getState().truccetti.find(t=>!t.hidden).uso||'';
+        for(const p of MorgedalTricks.segments(text).filter(s=>s.kind==='cd').reverse())text=text.slice(0,p.start)+text.slice(p.end);
+        return text.replace(/\s+/g,' ').replace(/^[,;·\s]+|[,;·\s]+$/g,'');
+      });
+      const editedHeader='CD 12 (solo prova simulata)';
       await page.evaluate(()=>{document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-poteri').classList.add('active');});
       await page.locator('.trick-metadata-input').first().fill(editedHeader);
       await page.waitForFunction(()=>!window.__tricksEngine.isDirty());
       await page.reload({waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>window.__tricksEngine?.isReady()&&document.getElementById('hp-cur'));
       await page.evaluate(()=>window.__tricksTest.master());
-      assert.equal(await page.locator('.trick-metadata-input').first().inputValue(),editedHeader);
+      assert.equal(await page.locator('.trick-metadata-input').first().textContent(),editedHeader);
+      const after=await page.evaluate(()=>{
+        const s=window.__tricksTest.getState();return {counts:JSON.stringify({risorse:s.risorse,slots:s.slots}),uso:s.truccetti.find(t=>!t.hidden).uso};
+      });
+      assert.equal(after.counts,countsBefore,'CD edits must not change pip/slot counts');
+      assert.equal(after.uso,[preservedUsage,editedHeader].filter(Boolean).join(' · '),'CD edits must preserve existing usage data');
       assert.deepEqual(errors,[]);
-      report.push({file,width,labels:master.labels,renderNoMutation:true,saveReload:true,noOverflow:true});
+      report.push({file,width,labels:master.labels,cdOnly:true,compact:true,countsUnchanged:true,renderNoMutation:true,saveReload:true,noOverflow:true});
       console.log('PASS Trucchetti '+file+' '+width);
       await context.close();
     }
