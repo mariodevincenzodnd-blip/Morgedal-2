@@ -143,6 +143,15 @@ Tutte le schede usano `assets/sheet-persistence.js`, con adattatori alle proprie
 - Una vecchia copia personale non può sostituire automaticamente il JSON ufficiale: un'importazione scelta dall'utente passa dal normale salvataggio protetto.
 - Verificare `node --test .github/scripts/persistence.test.cjs` e `.github/scripts/persistence-browser.mjs`, usando soltanto dati e richieste simulate.
 
+### Quantità e CD dei Trucchetti
+
+- Le 12 schede usano `assets/trick-metadata.js` per mostrare la CD accanto a **Quantità**, nella stessa riga del Trucchetto.
+- È una proiezione del contenuto esistente, non una migrazione automatica: caricamento e rendering non cambiano né salvano il JSON. La CD viene letta da `uso` o dalla descrizione; la quantità da `uso`, dai metadati espliciti nella descrizione o dalla risorsa collegata. Nessuna CD assente viene dedotta dalla CD generale delle abilità.
+- Spostare l'intero qualificatore insieme al valore: CD variabile, CD per uccidere, CD relativa a Caos e CD dei tiri salvezza rimangono distinguibili. I TS senza dicitura CD restano nella descrizione.
+- I metadati spostati non sono ripetuti nel corpo del Trucchetto; il resto del testo e la formattazione vengono conservati.
+- L'Editor Master può modificare la riga. Soltanto una modifica esplicita della riga o della descrizione consolida i metadati in `uso`, passando dallo stesso `queueSave` e dalle protezioni di persistenza esistenti.
+- Verificare `.github/scripts/trick-metadata-browser.mjs`: Player/Master, desktop/mobile, assenza di scritture al caricamento, CD condizionali/variabili, rich text e salvataggio/ricaricamento, esclusivamente con Drive simulato.
+
 ## 7. Principio assoluto sulle fonti
 
 Per nomi, testi, descrizioni, poteri, abilità, oggetti, inventario e classificazioni canoniche:

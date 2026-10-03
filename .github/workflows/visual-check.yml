@@ -7,6 +7,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/trick-metadata.js"
+      - ".github/scripts/trick-metadata-browser.mjs"
       - ".github/scripts/persistence*"
       - ".github/scripts/visual-check.mjs"
       - ".github/workflows/visual-check.yml"
@@ -18,6 +20,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/trick-metadata.js"
+      - ".github/scripts/trick-metadata-browser.mjs"
       - ".github/scripts/persistence*"
       - ".github/scripts/visual-check.mjs"
       - ".github/workflows/visual-check.yml"
@@ -101,6 +105,9 @@ jobs:
 
       - name: Verify save reload and navigation in the browser
         run: node .github/scripts/persistence-browser.mjs
+
+      - name: Verify Trucchetti metadata and editor save reload
+        run: node .github/scripts/trick-metadata-browser.mjs
 
       - name: Select pages
         id: pages

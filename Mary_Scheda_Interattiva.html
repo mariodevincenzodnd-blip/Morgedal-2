@@ -782,6 +782,7 @@
 </style>
 <link rel="stylesheet" href="assets/traveller-layout.css">
 <script src="assets/traveller-typography.js"></script>
+<script src="assets/trick-metadata.js"></script>
 <script src="assets/sheet-persistence.js?v=20261003-1"></script>
 </head>
 <body class="traveller-sheet" data-sheet="mary">
@@ -2338,6 +2339,7 @@ function renderPoteri(){
   panel.querySelector('#reset-slots').addEventListener('click',()=>{STATE.slots.forEach(s=>s.used=0);renderPoteri();queueSave();});
   panel.querySelector('#reset-risorse').addEventListener('click',()=>{STATE.risorse.forEach(r=>r.used=0);renderPoteri();queueSave();});
   bindMasterControls(panel);
+  MorgedalTricks.enhance(document.getElementById("panel-poteri"), STATE, masterOn, queueSave);
 }
 // Category changes use the common editor; these sheets do not have a separate
 // Divergenza tab. Keep Ambito/Campo visible inside Poteri & Risorse.
