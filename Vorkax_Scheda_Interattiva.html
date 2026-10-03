@@ -241,7 +241,7 @@
   .hp-numbers .btn.small{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
   .hp-row-temp{margin-top:0;}
   .hp-track-temp{height:22px;}
-  .hp-fill-temp{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));transition:width .3s;}
+  .hp-fill-temp{height:100%;background:linear-gradient(90deg,#197f79,#45d9ca);transition:width .3s;}
   .btn{
     background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
     border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;letter-spacing:.3px;
@@ -994,7 +994,7 @@ const BLANK_STATE = {
   livelloCaos: 0, livelloCaosMax: 0,
 
   ca: 10, iniziativa: 0, velocita: 6, bonusComp: 2, dadoVita: "1d8",
-  hpMax: 10, hpCur: 10, hpTemp: 0,
+  hpMax: 10, hpCur: 10, hpTemp: 0, hpTempMax: 10,
 
   saves: { FOR:false, DES:false, COS:false, INT:false, SAG:false, CAR:false },
 
@@ -1302,7 +1302,7 @@ async function driveLoad(){
       throw new Error("drive load failed: " + res.status);
     }
     const parsed = await res.json();
-    STATE = deepMerge(BLANK_STATE, parsed);
+    STATE = ensureHpTempMax(deepMerge(BLANK_STATE, parsed), parsed);
     renderAll();
     updateGoogleStatus();
     setStatus("Caricato da Google Drive \u2713");
@@ -1333,6 +1333,14 @@ function deepMerge(base, override){
   return (override !== undefined) ? override : base;
 }
 
+function ensureHpTempMax(state, source){
+  if (!state) return state;
+  if (source && Object.prototype.hasOwnProperty.call(source, "hpTempMax")) return state;
+  const previousScale = parseInt((source && source.hpMax) ?? state.hpMax ?? "0", 10);
+  state.hpTempMax = Number.isFinite(previousScale) ? Math.max(0, previousScale) : 0;
+  return state;
+}
+
 async function loadState(){
   if (!window.storage || typeof window.storage.get !== "function"){
     STORAGE_AVAILABLE = false;
@@ -1344,7 +1352,7 @@ async function loadState(){
     const res = await window.storage.get(STORAGE_KEY, false);
     if (res && res.value){
       const saved = JSON.parse(res.value);
-      STATE = deepMerge(DEFAULT_STATE, saved);
+      STATE = ensureHpTempMax(deepMerge(DEFAULT_STATE, saved), saved);
       setStatus("Dati caricati \u2713");
       return;
     }
@@ -1477,7 +1485,7 @@ async function openExistingLocalFile(){
     catch(err){ window.alert("Il file scelto non \u00e8 un backup valido."); return; }
     const ok = window.confirm("Caricare questa scheda e collegarla per il salvataggio automatico?\nLa scheda attuale verr\u00e0 sostituita.");
     if (!ok) return;
-    STATE = deepMerge(BLANK_STATE, parsed);
+    STATE = ensureHpTempMax(deepMerge(BLANK_STATE, parsed), parsed);
     localFileHandle = handle;
     renderAll();
     updateLocalFileStatus();
@@ -1784,7 +1792,7 @@ function renderScheda(){
           <button class="btn small" id="hp-temp-minus">−</button>
           <input type="number" id="hp-temp" value="${STATE.hpTemp}">
           <span style="color:var(--text-faint)">/</span>
-          <input type="number" id="hp-temp-ref" value="${STATE.hpMax}" readonly title="Scala grafica riferita ai PF massimi">
+          <input type="number" id="hp-temp-max" value="${STATE.hpTempMax}" title="Massimo PFT modificabile da Player e Master">
           <button class="btn small" id="hp-temp-plus">+</button>
         </div>
         <div class="hp-track hp-track-temp"><div class="hp-fill hp-fill-temp" id="hp-fill-temp"></div></div>
@@ -1880,26 +1888,63 @@ function renderScheda(){
   bindSimpleInputs();
   bindRich();
 
-  const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp"), hpTempRef = document.getElementById("hp-temp-ref");
+  const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp"), hpTempMax = document.getElementById("hp-temp-max");
   hpMax.readOnly = !isMasterEditorOn();
+  hpTempMax.readOnly = false;
+
+  function mixHpColor(from, to, t){
+    const safeT = Math.max(0, Math.min(1, t));
+    const mixed = from.map((v,i)=>Math.round(v + (to[i]-v)*safeT));
+    return "rgb(" + mixed.join(",") + ")";
+  }
+
+  function hpBarGradient(cur, max){
+    const green = [62,179,94], orange = [232,145,45], red = [210,66,66];
+    if (max <= 0) return "linear-gradient(90deg,rgb(44,77,52),rgb(62,179,94))";
+    const safeCur = Math.max(0, Math.min(max, cur));
+    const half = Math.floor(max / 2), third = Math.floor(max / 3);
+    let color;
+    if (safeCur <= third){
+      color = "rgb(" + red.join(",") + ")";
+    } else if (safeCur <= half){
+      color = mixHpColor(red, orange, (safeCur - third) / Math.max(1, half - third));
+    } else {
+      color = mixHpColor(orange, green, (safeCur - half) / Math.max(1, max - half));
+    }
+    const rgb = (color.match(/\d+/g) || []).map(Number);
+    const dark = rgb.length === 3 ? mixHpColor(rgb, [18,24,22], 0.30) : color;
+    return "linear-gradient(90deg," + dark + "," + color + ")";
+  }
+
   function refreshHp(){
     let cur = parseInt(hpCur.value||"0",10), max = parseInt(hpMax.value||"0",10);
+    if (max < 0) max = 0;
     if (cur > max) cur = max;
     if (cur < 0) cur = 0;
-    hpCur.value = cur;
-    let temp = parseInt(hpTemp.value||"0",10);
+    hpMax.value = max; hpCur.value = cur;
+
+    let temp = parseInt(hpTemp.value||"0",10), tempMax = parseInt(hpTempMax.value||"0",10);
+    if (tempMax < 0) tempMax = 0;
+    if (temp > tempMax) temp = tempMax;
     if (temp < 0) temp = 0;
-    STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp;
-    hpTempRef.value = max;
+    hpTempMax.value = tempMax; hpTemp.value = temp;
+
+    STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp; STATE.hpTempMax = tempMax;
+
     const pct = max>0 ? Math.max(0,Math.min(100, cur/max*100)) : 0;
-    document.getElementById("hp-fill").style.width = pct+"%";
-    document.getElementById("hp-fill").style.background = "linear-gradient(90deg,#3f6a3a,var(--good))";
-    const tempPct = max>0 ? Math.max(0,Math.min(100, temp/max*100)) : (temp>0 ? 100 : 0);
-    document.getElementById("hp-fill-temp").style.width = tempPct+"%";
+    const hpFill = document.getElementById("hp-fill");
+    hpFill.style.width = pct+"%";
+    hpFill.style.background = hpBarGradient(cur, max);
+
+    const tempPct = tempMax>0 ? Math.max(0,Math.min(100, temp/tempMax*100)) : 0;
+    const hpTempFill = document.getElementById("hp-fill-temp");
+    hpTempFill.style.width = tempPct+"%";
+    hpTempFill.style.background = "linear-gradient(90deg,#197f79,#45d9ca)";
   }
   hpCur.addEventListener("input", ()=>{refreshHp(); queueSave();});
   hpMax.addEventListener("input", ()=>{refreshHp(); queueSave();});
   hpTemp.addEventListener("input", ()=>{refreshHp(); queueSave();});
+  hpTempMax.addEventListener("input", ()=>{refreshHp(); queueSave();});
   document.getElementById("hp-minus").addEventListener("click", ()=>{hpCur.value = (parseInt(hpCur.value||"0",10)-1); refreshHp(); queueSave();});
   document.getElementById("hp-plus").addEventListener("click", ()=>{hpCur.value = (parseInt(hpCur.value||"0",10)+1); refreshHp(); queueSave();});
   document.getElementById("hp-temp-minus").addEventListener("click", ()=>{hpTemp.value = Math.max(0,parseInt(hpTemp.value||"0",10)-1); refreshHp(); queueSave();});
@@ -3416,7 +3461,7 @@ function initBackupButtons(){
       catch(err){ window.alert("Il file scelto non \u00e8 un backup valido."); return; }
       const ok = window.confirm("Ripristinare la scheda da questo file di backup?\nLa scheda attuale verr\u00e0 sostituita.");
       if (!ok) return;
-      STATE = deepMerge(BLANK_STATE, parsed);
+      STATE = ensureHpTempMax(deepMerge(BLANK_STATE, parsed), parsed);
       renderAll();
       queueSave();
       setStatus("Backup importato");
