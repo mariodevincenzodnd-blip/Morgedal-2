@@ -1825,7 +1825,7 @@ function renderScheda(){
     else if(safeCur<=half) color=mixHpColor(red,orange,(safeCur-third)/Math.max(1,half-third));
     else if(safeCur<=high) color=mixHpColor(orange,green,(safeCur-half)/Math.max(1,high-half));
     else color=mixHpColor(green,aqua,(safeCur-high)/Math.max(1,max-high));
-    const rgb=(color.match(/\\d+/g)||[]).map(Number), dark=rgb.length===3?mixHpColor(rgb,[18,24,22],0.30):color;
+    const rgb=(color.match(/[0-9]+/g)||[]).map(Number), dark=rgb.length===3?mixHpColor(rgb,[18,24,22],0.30):color;
     return "linear-gradient(90deg,"+dark+","+color+")";
   }
 
