@@ -46,17 +46,22 @@
       if(!node.textContent.trim()&&!node.querySelector('img,br'))node.remove();
     });
   }
-  function usage(item,parts,resource){
+  function usage(item,parts){
     const original=tidy(String(item.uso||''));
     const cdParts=segments(original).filter(s=>s.kind==='cd');
-    let quantity=original;
-    for(const p of [...cdParts].reverse())quantity=quantity.slice(0,p.start)+quantity.slice(p.end);
-    quantity=quantity.replace(/[,;·\s]+$/,'').trim();
-    if(!quantity){quantity=parts.find(p=>p.kind==='quantity')?.label||(resource&&Number.isFinite(resource.max)?String(resource.max):'—');}
-    if(/^qu(?:a)?ntit[àa]/i.test(quantity))quantity=quantity.replace(/^qu(?:a)?ntit[àa][’']?\s*/i,'Quantità ');
-    else quantity='Quantità '+quantity;
     const cds=[...cdParts,...parts.filter(p=>p.kind==='cd')].map(p=>p.label);
-    return quantity+(cds.length?' · '+[...new Set(cds)].join(' · '):'');
+    return [...new Set(cds)].join(' · ');
+  }
+  function withoutCD(text){
+    let value=String(text||'');
+    for(const p of segments(value).filter(s=>s.kind==='cd').reverse())value=value.slice(0,p.start)+value.slice(p.end);
+    return tidy(value).replace(/^[,;·\s]+|[,;·\s]+$/g,'');
+  }
+  function usageNote(text){
+    // Counts belong to the existing pips/controls, not to the category badge.
+    // Preserve recharge rules and conditions separately, without inferring counts.
+    return withoutCD(text).replace(/^qu(?:a)?ntit[àa][’']?\s*[-:]?\s*/i,'')
+      .replace(/^\d+\s*(?:x\s*|[-·]\s*|$)/i,'').replace(/^[-·\s]+|[-·\s]+$/g,'');
   }
   function enhance(panel,state,masterOn,save){
     const selector='[data-rich-arr^="truccetti-"], [data-master-field^="truccetti|"][data-master-field$="|desc"]';
@@ -66,27 +71,38 @@
       const item=state.truccetti?.[index],card=rich.closest('.subcard');
       if(!item||!card)return;
       rich.dataset.trickMetadata='1';
-      const nameKey=name=>String(name||'').split('\n')[0].toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
-      const resource=(state.risorse||[]).find(r=>nameKey(r.nome)===nameKey(item.nome));
-      const parts=segments(rich.textContent),value=usage(item,parts,resource);
-      removeSegments(rich,parts);
       const tag=card.querySelector('.tag');
       if(!tag)return;
+      const parts=segments(rich.textContent),value=usage(item,parts);
+      const removed=parts.filter(p=>p.kind==='cd'||card.querySelector('[data-respip]'));
+      removeSegments(rich,removed);
+      const originalUsage=withoutCD(item.uso);
+      const quantities=removed.filter(p=>p.kind==='quantity').map(p=>p.label);
+      const preserved=[originalUsage,...quantities.filter(q=>!originalUsage.includes(q))].filter(Boolean).join(' · ');
       tag.classList.add('trick-metadata');tag.replaceChildren();
-      const category=document.createElement('span');category.textContent='Trucchetto —';tag.append(category);
+      const category=document.createElement('span');category.textContent='Trucchetto';tag.append(category);
+      const note=[...new Set([originalUsage,...quantities].map(usageNote).filter(Boolean))].join(' · ');
+      if(note){
+        const info=document.createElement('div');info.className='trick-usage-note';info.textContent=note;
+        rich.before(info);
+      }
       let input;
       if(masterOn){
-        input=document.createElement('textarea');input.rows=2;input.className='master-uso-input trick-metadata-input';
-        input.value=value;input.setAttribute('aria-label','Quantità e CD del Trucchetto');tag.append(input);
-        input.addEventListener('input',()=>{item.uso=input.value;item.desc=rich.innerHTML;save();});
+        input=document.createElement('span');input.contentEditable='true';input.className='trick-metadata-input';
+        input.textContent=value;input.setAttribute('role','textbox');input.setAttribute('aria-label','CD del Trucchetto');tag.append(input);
+        const commitCD=()=>{item.uso=[preserved,tidy(input.textContent)].filter(Boolean).join(' · ');};
+        input.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault();});
+        input.addEventListener('input',()=>{commitCD();item.desc=rich.innerHTML;save();});
         // Capture runs before the existing rich-text handler and its queueSave.
-        rich.addEventListener('input',()=>{item.uso=input.value;},true);
-      }else{const label=document.createElement('span');label.textContent=value;tag.append(label);}
+        rich.addEventListener('input',commitCD,true);
+      }else if(value){const label=document.createElement('span');label.textContent=value;tag.append(label);}
     });
   }
   root.MorgedalTricks={enhance,segments,usage};
   const style=document.createElement('style');style.textContent=`
-    .tag.trick-metadata{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;max-width:100%;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;line-height:1.5}
-    .trick-metadata-input{flex:1 1 220px!important;width:auto!important;min-width:0!important;max-width:100%;box-sizing:border-box;font:inherit!important;line-height:1.5;resize:vertical;white-space:pre-wrap}
+    .tag.trick-metadata{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 8px;width:fit-content;max-width:100%;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;line-height:1.5}
+    .trick-metadata-input{min-width:2ch;max-width:100%;box-sizing:border-box;font:inherit;line-height:1.5;white-space:pre-wrap;border:1px solid currentColor;border-radius:4px;padding:0 4px}
+    .trick-metadata-input:empty:before{content:'CD';opacity:.5;pointer-events:none}
+    .trick-usage-note{font-size:.85em;opacity:.85;margin:4px 0;overflow-wrap:anywhere}
   `;document.head.append(style);
 })(window);
