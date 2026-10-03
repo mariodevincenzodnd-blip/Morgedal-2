@@ -144,7 +144,11 @@
     });
   }
   window.refreshHomeColors = async email => {
-    if (currentEmail === email && entries.values().next().value?.controller){ hideEditor(); return; }
+    if (currentEmail === email && entries.values().next().value?.controller){
+      hideEditor();
+      if (isMaster()) await Promise.all([...entries.values()].map(entry=>entry.controller.resume()));
+      return;
+    }
     const turn = ++generation;
     currentEmail = email;
     hideEditor();
@@ -176,6 +180,11 @@
       event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
       link?.hasAttribute("download") || link?.target === "_blank") return;
     if (![...entries.values()].some(e=>e.controller?.isDirty())) return;
+    if (accountButton?.id === "btn-google-home" && !loadGoogleTokenFromSession()){
+      // Re-authentication must remain possible when a pending save has no token.
+      entries.forEach(e=>e.controller?.preserve());
+      return;
+    }
     event.preventDefault(); event.stopImmediatePropagation();
     void flushAll().then(ok=>{
       if (!ok){ editorOn = isMaster(); document.body.classList.toggle("home-colors-on",editorOn);
