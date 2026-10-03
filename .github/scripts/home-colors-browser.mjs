@@ -12,7 +12,7 @@ async function setup(width=1280,email="mariodevincenzodnd@gmail.com"){
   await context.addInitScript(()=>{
     sessionStorage.setItem("morgedal-google-token-v4-shared",JSON.stringify({token:"mock-token",expiresAt:Date.now()+3600000}));
   });
-  await context.route("https://accounts.google.com/gsi/client",route=>route.fulfill({body:'window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){}})}}};',contentType:"text/javascript"}));
+  await context.route("https://accounts.google.com/gsi/client",route=>route.fulfill({body:'window.google={accounts:{oauth2:{initTokenClient:()=>({requestAccessToken(){window.mockLoginRequests=(window.mockLoginRequests||0)+1;}})}}};',contentType:"text/javascript"}));
   await context.route("https://www.googleapis.com/oauth2/v3/userinfo*",route=>route.fulfill({json:{email}}));
   await context.route(/https:\/\/www\.googleapis\.com\/(?:upload\/)?drive\//,async route=>{
     const req=route.request(), id=new URL(req.url()).pathname.split("/").pop();
@@ -80,6 +80,19 @@ try{
     assert.equal(await t.page.locator('.home-color-editor:visible').count(),0);
     await t.page.evaluate(()=>{const i=document.querySelector('[data-color="first"]');i.value="#010101";i.dispatchEvent(new Event("change",{bubbles:true}));});
     assert.equal(t.writes.length,0); count++; await t.context.close();
+  }
+  {
+    const t=await setup(); await t.page.click('#home-color-toggle');
+    await t.first.locator('[data-color="first"]:enabled').waitFor();
+    await t.page.evaluate(()=>sessionStorage.removeItem("morgedal-google-token-v4-shared"));
+    await edit(t.first,"second","#778899");
+    await t.first.locator('[role="status"]').filter({hasText:"non sincronizzate"}).waitFor();
+    await t.page.click('#btn-google-home');
+    assert.equal(await t.page.evaluate(()=>window.mockLoginRequests),1);
+    await t.page.evaluate(()=>{saveGoogleTokenToSession("renewed-mock-token",3600);routeAuthenticatedUser("mariodevincenzodnd@gmail.com");});
+    await t.page.click('#home-color-toggle'); await waitSaved(t.first);
+    assert.equal(t.records.get("1nNUTm4s9JIny4p5Ach6TWCN9BuIMSbnq").identityColor2,"#778899");
+    assert.deepEqual(t.errors,[]); count++; await t.context.close();
   }
   {
     const t=await setup(); t.setFailRead(true); await t.page.reload(); await t.page.click('#home-color-toggle');
