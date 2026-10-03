@@ -41,12 +41,14 @@ Restano protetti e modificabili soltanto con Editor Master:
 L'Editor Master deve partire **spento** anche quando accede il proprietario.
 
 ### Tracker PF / PF temporanei
-Il tracker dei **PF temporanei** deve mantenere la stessa gerarchia visiva e operativa del tracker dei PF correnti:
-- pulsanti **− / +** disponibili al Player;
-- campo numerico operativo;
-- barra orizzontale con stessa altezza, ingombro e stile di base della barra PF;
+Il blocco dei **PF temporanei** deve essere una copia visiva speculare del blocco dei PF correnti:
+- titolo **PUNTI FERITA TEMPORANEI** con la stessa tipografia, grandezza, bordo e impaginazione di **PUNTI FERITA**;
+- stessa riga controlli: **− | valore | / | riquadro di riferimento | +**;
+- i due riquadri numerici devono essere identici per dimensione e stile a quelli dei PF normali;
+- la barra orizzontale deve avere stessa altezza, stessa lunghezza e stesso allineamento della barra PF;
 - colore distinto **arancione/ambra** per riconoscere immediatamente i PF temporanei;
-- nessuna modifica alla logica del valore massimo dei PF: i PF temporanei restano un valore separato e non introducono un nuovo massimo canonico.
+- il secondo riquadro dei PFT mostra i PF massimi solo come riferimento della scala grafica della barra ed è in sola lettura: non rappresenta un massimo canonico dei PF temporanei;
+- i PF temporanei restano un valore separato e non introducono un nuovo massimo canonico.
 
 ## 3. OAuth e sessione Google
 
