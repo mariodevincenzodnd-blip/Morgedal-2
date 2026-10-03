@@ -17,7 +17,7 @@ try{
   await context.route(base+'/Katan_Scheda_Interattiva.html',async route=>{
    const response=await route.fetch(),source=await response.text();
    const hook='window.__katanTest={state:()=>STATE,render:()=>renderPoteri(),master:on=>{markMasterUnlocked();setMasterEditorOn(on);renderAll();}}; ';
-   const body=source.replace('document.addEventListener("DOMContentLoaded", initLock);',hook+'document.addEventListener("DOMContentLoaded", initLock);');
+   const body=source.replace(/document.addEventListener\("DOMContentLoaded", (?=initLock|\(\)=>)/,hook+'$&');
    assert.notEqual(body,source);await route.fulfill({response,body});
   });
   await context.route('**/assets/sheet-persistence.js*',async route=>{
