@@ -7,6 +7,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/home-colors.js"
+      - ".github/scripts/home-colors-browser.mjs"
       - "assets/trick-metadata.js"
       - "assets/katan-power-accordion.*"
       - ".github/scripts/katan-power-browser.mjs"
@@ -22,6 +24,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/home-colors.js"
+      - ".github/scripts/home-colors-browser.mjs"
       - "assets/trick-metadata.js"
       - "assets/katan-power-accordion.*"
       - ".github/scripts/katan-power-browser.mjs"
@@ -115,6 +119,9 @@ jobs:
 
       - name: Verify Katan nested power panels and shared counters
         run: node .github/scripts/katan-power-browser.mjs
+
+      - name: Verify Home colors and shared Drive data
+        run: node .github/scripts/home-colors-browser.mjs
 
       - name: Select pages
         id: pages
