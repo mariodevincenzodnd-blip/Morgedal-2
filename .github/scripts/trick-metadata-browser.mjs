@@ -52,6 +52,7 @@ try{
       assert.ok(result.labels.every(s=>/^Trucchetto(?:CD|$)/.test(s)&&!s.includes('Quantità')),file+' CD-only badge');
       assert.equal(writes,0,'Loading/rendering must not save');
       await page.evaluate(()=>{document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-poteri').classList.add('active');});
+      await page.evaluate(()=>{document.querySelectorAll('[data-power-section]').forEach(el=>el.open=true);});
       const compact=await page.locator('.trick-metadata').first().evaluate(el=>({tag:el.getBoundingClientRect().width,card:el.closest('.subcard').getBoundingClientRect().width,text:el.textContent}));
       if(compact.text.length<35)assert.ok(compact.tag<compact.card*.8,file+' badge must fit its content');
       await page.screenshot({path:out+'/'+file.replace('.html','')+'-tricks-'+width+'.png',fullPage:true});
@@ -111,6 +112,7 @@ try{
         return text.replace(/\s+/g,' ').replace(/^[,;·\s]+|[,;·\s]+$/g,'');
       });
       const editedHeader='CD 12 (solo prova simulata)';
+      await page.evaluate(()=>{document.querySelectorAll('[data-power-section]').forEach(el=>el.open=true);});
       await page.evaluate(()=>{document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-poteri').classList.add('active');});
       await page.locator('.trick-metadata-input').first().fill(editedHeader);
       await page.waitForFunction(()=>!window.__tricksEngine.isDirty());
