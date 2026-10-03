@@ -52,14 +52,16 @@ Il blocco dei **PF temporanei** deve essere una copia visiva speculare del blocc
 - per i salvataggi precedenti privi del nuovo campo, il massimo PFT viene inizializzato una sola volta al precedente valore di riferimento (PF massimi), così da preservare il comportamento visivo esistente fino alla prima modifica.
 
 ### Colore dinamico della barra PF
-La barra dei PF normali cambia colore in modo progressivo in base ai PF massimi correnti:
-- **verde** ai PF massimi;
-- transizione continua da verde ad arancione scendendo verso `floor(PF max / 2)`;
-- **arancione** esattamente alla metà calcolata per difetto;
-- transizione continua da arancione a rosso tra la metà e `floor(PF max / 3)`;
-- **rosso** al terzo calcolato per difetto e sotto tale soglia.
+La barra dei PF normali usa una scala cromatica progressiva che comunica visivamente lo stato di salute senza modificare alcun dato canonico:
+- a **PF massimi** il colore tende al **verde acqua/turchese**, vicino alla famiglia cromatica dei PFT ma distinto da essa;
+- scendendo dai PF massimi, il turchese sfuma gradualmente verso il **verde**;
+- intorno al **75% dei PF massimi** il riferimento cromatico è verde;
+- da lì la barra passa progressivamente al **giallo/arancione**, raggiungendo l'**arancione** a `floor(PF max / 2)`;
+- tra la metà e `floor(PF max / 3)` la barra sfuma progressivamente dall'arancione al **rosso**;
+- sotto il terzo la barra continua a scurirsi verso un **rosso sangue profondo**;
+- gli **ultimi 10 PF**, quando compatibili con le soglie del personaggio, usano il rosso sangue più denso come stato di massimo pericolo.
 
-Le soglie sono sempre ricalcolate quando cambia il valore dei PF massimi.
+Le soglie vengono sempre ricalcolate quando cambia il valore dei PF massimi. Per personaggi con un massimo PF molto basso, la soglia finale viene compressa automaticamente per mantenere l'ordine cromatico e non sovrapporsi in modo incoerente alle soglie percentuali.
 
 ## 3. OAuth e sessione Google
 

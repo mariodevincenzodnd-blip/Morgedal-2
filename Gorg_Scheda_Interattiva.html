@@ -235,7 +235,7 @@
   /* ---------- HP ---------- */
   .hp-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
   .hp-track{flex:1;min-width:220px;height:22px;background:var(--bg-panel-3);border:1px solid var(--border-soft);border-radius:12px;overflow:hidden;position:relative;}
-  .hp-fill{height:100%;background:linear-gradient(90deg,#3f6a3a,var(--good));transition:width .3s;}
+  .hp-fill{height:100%;background:linear-gradient(90deg,#2a6964,#54d2bd);transition:width .3s;}
   .hp-numbers{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:15px;flex:0 0 220px;}
   .hp-numbers input{width:64px;text-align:center;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);border-radius:6px;padding:6px 2px;}
   .hp-numbers .btn.small{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
@@ -1939,18 +1939,19 @@ function renderScheda(){
   }
 
   function hpBarGradient(cur, max){
-    const green = [62,179,94], orange = [232,145,45], red = [210,66,66];
-    if (max <= 0) return "linear-gradient(90deg,rgb(44,77,52),rgb(62,179,94))";
+    const aqua = [84,210,189], green = [62,179,94], orange = [232,145,45], red = [210,66,66], blood = [128,18,28];
+    if (max <= 0) return "linear-gradient(90deg,rgb(42,105,100),rgb(84,210,189))";
     const safeCur = Math.max(0, Math.min(max, cur));
-    const half = Math.floor(max / 2), third = Math.floor(max / 3);
+    const high = Math.max(1, Math.floor(max * 0.75));
+    const half = Math.max(1, Math.floor(max / 2));
+    const third = Math.max(1, Math.floor(max / 3));
+    const bloodLimit = Math.min(10, third);
     let color;
-    if (safeCur <= third){
-      color = "rgb(" + red.join(",") + ")";
-    } else if (safeCur <= half){
-      color = mixHpColor(red, orange, (safeCur - third) / Math.max(1, half - third));
-    } else {
-      color = mixHpColor(orange, green, (safeCur - half) / Math.max(1, max - half));
-    }
+    if (safeCur <= bloodLimit) color = "rgb(" + blood.join(",") + ")";
+    else if (safeCur <= third) color = mixHpColor(blood, red, (safeCur - bloodLimit) / Math.max(1, third - bloodLimit));
+    else if (safeCur <= half) color = mixHpColor(red, orange, (safeCur - third) / Math.max(1, half - third));
+    else if (safeCur <= high) color = mixHpColor(orange, green, (safeCur - half) / Math.max(1, high - half));
+    else color = mixHpColor(green, aqua, (safeCur - high) / Math.max(1, max - high));
     const rgb = (color.match(/\d+/g) || []).map(Number);
     const dark = rgb.length === 3 ? mixHpColor(rgb, [18,24,22], 0.30) : color;
     return "linear-gradient(90deg," + dark + "," + color + ")";
