@@ -1888,7 +1888,8 @@ function renderScheda(){
     hpCur.value = cur;
     let temp = parseInt(hpTemp.value||"0",10);
     if (temp < 0) temp = 0;
-    STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp;\n    hpTempRef.value = max;
+    STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp;
+    hpTempRef.value = max;
     const pct = max>0 ? Math.max(0,Math.min(100, cur/max*100)) : 0;
     document.getElementById("hp-fill").style.width = pct+"%";
     document.getElementById("hp-fill").style.background = "linear-gradient(90deg,#3f6a3a,var(--good))";
