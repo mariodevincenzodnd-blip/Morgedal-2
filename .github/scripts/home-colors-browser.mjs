@@ -63,6 +63,7 @@ try{
     assert.equal(t.writes.length,0);
     await t.page.reload(); await t.page.click('#home-color-toggle');
     await t.page.waitForFunction(()=>document.querySelector('.character-tile[data-character-file="Katan_Scheda_Interattiva.html"] [data-color="second"]').value==="#aabbcc");
+    await t.first.locator('[role="status"]').filter({hasText:"Non salvato"}).waitFor();
     t.setFailWrite(false); await t.first.locator('[data-action="retry"]').click(); await waitSaved(t.first);
     t.records.get("1nNUTm4s9JIny4p5Ach6TWCN9BuIMSbnq").hp=42;
     const before=t.writes.length; await edit(t.first,"first","#abcdef");
