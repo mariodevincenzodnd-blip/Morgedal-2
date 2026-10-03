@@ -8,6 +8,8 @@ on:
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
       - "assets/trick-metadata.js"
+      - "assets/katan-power-accordion.*"
+      - ".github/scripts/katan-power-browser.mjs"
       - ".github/scripts/trick-metadata-browser.mjs"
       - ".github/scripts/persistence*"
       - ".github/scripts/visual-check.mjs"
@@ -21,6 +23,8 @@ on:
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
       - "assets/trick-metadata.js"
+      - "assets/katan-power-accordion.*"
+      - ".github/scripts/katan-power-browser.mjs"
       - ".github/scripts/trick-metadata-browser.mjs"
       - ".github/scripts/persistence*"
       - ".github/scripts/visual-check.mjs"
@@ -108,6 +112,9 @@ jobs:
 
       - name: Verify Trucchetti metadata and editor save reload
         run: node .github/scripts/trick-metadata-browser.mjs
+
+      - name: Verify Katan nested power panels and shared counters
+        run: node .github/scripts/katan-power-browser.mjs
 
       - name: Select pages
         id: pages
