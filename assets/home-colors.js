@@ -32,7 +32,9 @@
     const disabled = !isMaster() || entry.busy || !entry.controller?.isReady() || entry.controller.hasConflict();
     entry.panel.hidden = !editorOn || !isMaster();
     entry.first.disabled = entry.second.disabled = entry.solid.disabled = disabled;
-    entry.retry.disabled = !isMaster() || entry.busy;
+    // A failed first load remains unready/busy in the shared engine, but retry
+    // must remain available. load() itself coalesces overlapping requests.
+    entry.retry.disabled = !isMaster();
     entry.conflict.hidden = !entry.controller?.hasConflict();
   }
   function hideEditor(){
