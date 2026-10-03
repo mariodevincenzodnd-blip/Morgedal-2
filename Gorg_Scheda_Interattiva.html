@@ -2277,10 +2277,9 @@ function renderPoteri(){
     return `<div class="slot-lvl">
       <div class="lvl-badge" ${STATE.slots.length === 1 ? 'style="display:none"' : ''}>${STATE.slots.length === 1 ? "" : "Livello " + s.lvl}</div>
       <div class="pips">${pips}</div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
-        <label style="font-size:10px;color:var(--text-faint);">max</label>
-        <input class="maxslot" type="number" data-slotmax="${i}" value="${s.max}">
-      </div>
+      ${isMasterEditorOn() ? `<div style="margin-left:auto;display:flex;align-items:center;">
+        <input class="maxslot" type="number" min="0" data-slotmax="${i}" value="${s.max}" aria-label="Numero slot">
+      </div>` : ""}
     </div>`;
   }).join("");
 
@@ -2398,8 +2397,8 @@ function renderPoteri(){
     });
   });
   document.querySelectorAll('[data-slotmax]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
     inp.addEventListener("input", ()=>{
+      if (!isMasterEditorOn()) return;
       const i = inp.dataset.slotmax;
       STATE.slots[i].max = Math.max(0, parseInt(inp.value||"0",10));
       if (STATE.slots[i].used > STATE.slots[i].max) STATE.slots[i].used = STATE.slots[i].max;

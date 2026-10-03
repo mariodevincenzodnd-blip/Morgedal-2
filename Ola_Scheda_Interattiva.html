@@ -2766,10 +2766,9 @@ function renderPoteri(){
     return `<div class="slot-lvl">
       <div class="lvl-badge" ${STATE.slots.length === 1 ? 'style="display:none"' : ''}>${STATE.slots.length === 1 ? "" : "Livello " + s.lvl}</div>
       <div class="pips">${pips}</div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
-        <label style="font-size:10px;color:var(--text-faint);">max</label>
-        <input class="maxslot" type="number" data-slotmax="${i}" value="${s.max}">
-      </div>
+      ${isMasterEditorOn() ? `<div style="margin-left:auto;display:flex;align-items:center;">
+        <input class="maxslot" type="number" min="0" data-slotmax="${i}" value="${s.max}" aria-label="Numero slot">
+      </div>` : ""}
     </div>`;
   }).join("");
 
@@ -2963,8 +2962,8 @@ function renderPoteri(){
     });
   });
   document.querySelectorAll('[data-slotmax]').forEach(inp=>{
-    inp.readOnly = !isMasterEditorOn();
     inp.addEventListener("input", ()=>{
+      if (!isMasterEditorOn()) return;
       const i = inp.dataset.slotmax;
       STATE.slots[i].max = Math.max(0, parseInt(inp.value||"0",10));
       if (STATE.slots[i].used > STATE.slots[i].max) STATE.slots[i].used = STATE.slots[i].max;
@@ -3019,6 +3018,17 @@ function renderPoteri(){
       renderPoteri(); queueSave();
     });
   });
+  document.querySelectorAll('[data-transslotmax]').forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      if (!isMasterEditorOn()) return;
+      const [ti,li] = inp.dataset.transslotmax.split("-").map(Number);
+      const s = STATE.trasformazioni[ti]?.slotsTemp?.[li];
+      if (!s) return;
+      s.max = Math.max(0, parseInt(inp.value||"0",10));
+      if (s.used > s.max) s.used = s.max;
+      renderPoteri(); queueSave();
+    });
+  });
   document.getElementById("reset-risorse").addEventListener("click", ()=>{
     STATE.risorse.forEach(r=>r.used=0);
     STATE.corredi.forEach(c=>{ if (c.max>0) c.used=0; });
@@ -3056,7 +3066,8 @@ function renderSlotsTempHtml(trasIdx, slotsTemp){
   if (!slotsTemp || !slotsTemp.length) return "";
   const rows = slotsTemp.map((s,li)=>{
     const pips = Array.from({length:s.max}).map((_,p)=>`<button class="pip ${p<s.used?'used':''}" data-transslotpip="${trasIdx}-${li}-${p}"></button>`).join("");
-    return `<div class="slot-lvl"><div class="lvl-badge">Livello ${s.lvl}</div><div class="pips">${pips}</div></div>`;
+    const maxControl = isMasterEditorOn() ? `<div style="margin-left:auto;display:flex;align-items:center;"><input class="maxslot" type="number" min="0" data-transslotmax="${trasIdx}-${li}" value="${s.max}" aria-label="Numero slot temporanei livello ${s.lvl}"></div>` : "";
+    return `<div class="slot-lvl"><div class="lvl-badge">Livello ${s.lvl}</div><div class="pips">${pips}</div>${maxControl}</div>`;
   }).join("");
   return `<div class="divider-label">Slot Incantesimo Temporanei</div>${rows}`;
 }
