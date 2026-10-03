@@ -40,6 +40,14 @@ Restano protetti e modificabili soltanto con Editor Master:
 
 L'Editor Master deve partire **spento** anche quando accede il proprietario.
 
+### Tracker PF / PF temporanei
+Il tracker dei **PF temporanei** deve mantenere la stessa gerarchia visiva e operativa del tracker dei PF correnti:
+- pulsanti **− / +** disponibili al Player;
+- campo numerico operativo;
+- barra orizzontale con stessa altezza, ingombro e stile di base della barra PF;
+- colore distinto **arancione/ambra** per riconoscere immediatamente i PF temporanei;
+- nessuna modifica alla logica del valore massimo dei PF: i PF temporanei restano un valore separato e non introducono un nuovo massimo canonico.
+
 ## 3. OAuth e sessione Google
 
 - Scope condiviso: Drive completo + userinfo.email.

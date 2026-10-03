@@ -239,8 +239,8 @@
   .hp-numbers{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:15px;}
   .hp-numbers input{width:64px;text-align:center;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);border-radius:6px;padding:6px 2px;}
   .hp-row-temp{margin-top:6px;}
-  .hp-track-temp{height:14px;}
-  .hp-fill-temp{height:100%;background:linear-gradient(90deg,#8a5a1f,var(--amber));transition:width .3s;}
+  .hp-track-temp{height:22px;}
+  .hp-fill-temp{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));transition:width .3s;}
   .btn{
     background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
     border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;letter-spacing:.3px;
@@ -1819,7 +1819,9 @@ function renderScheda(){
       <div class="hp-row hp-row-temp">
         <div class="hp-numbers">
           <label style="font-size:10.5px;color:var(--text-faint);text-transform:uppercase;">PF Temp.</label>
+          <button class="btn small" id="hp-temp-minus">−</button>
           <input type="number" id="hp-temp" value="${STATE.hpTemp}">
+          <button class="btn small" id="hp-temp-plus">+</button>
         </div>
         <div class="hp-track hp-track-temp"><div class="hp-fill hp-fill-temp" id="hp-fill-temp"></div></div>
       </div>
@@ -1935,6 +1937,8 @@ function renderScheda(){
   hpTemp.addEventListener("input", ()=>{refreshHp(); queueSave();});
   document.getElementById("hp-minus").addEventListener("click", ()=>{hpCur.value = (parseInt(hpCur.value||"0",10)-1); refreshHp(); queueSave();});
   document.getElementById("hp-plus").addEventListener("click", ()=>{hpCur.value = (parseInt(hpCur.value||"0",10)+1); refreshHp(); queueSave();});
+  document.getElementById("hp-temp-minus").addEventListener("click", ()=>{hpTemp.value = Math.max(0,parseInt(hpTemp.value||"0",10)-1); refreshHp(); queueSave();});
+  document.getElementById("hp-temp-plus").addEventListener("click", ()=>{hpTemp.value = (parseInt(hpTemp.value||"0",10)+1); refreshHp(); queueSave();});
   refreshHp();
   bindCaosTracker();
 }
