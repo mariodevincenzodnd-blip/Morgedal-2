@@ -66,7 +66,7 @@ Le soglie vengono sempre ricalcolate quando cambia il valore dei PF massimi. Per
 ### Etichetta delle riserve di slot
 
 La dicitura mostrata accanto agli slot deve riflettere la struttura reale della riserva:
-- se la scheda usa **una sola riserva complessiva di slot**, senza suddivisione per livelli, la dicitura deve essere semplicemente **Slot**;
+- se la scheda usa **una sola riserva complessiva di slot**, senza suddivisione per livelli, **non mostrare alcuna etichetta accanto ai pallini**: l'intestazione della sezione è già sufficiente;
 - se la scheda usa **più riserve distinte per livello**, le diciture restano **Livello 1**, **Livello 2**, **Livello 3**, ecc.;
 - la regola è strutturale e vale per tutte le schede esistenti e future: non trasformare una riserva unica in un fittizio "Livello 1".
 
