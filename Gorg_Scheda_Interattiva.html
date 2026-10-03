@@ -2275,7 +2275,7 @@ function renderPoteri(){
   const slotHtml = STATE.slots.map((s,i)=>{
     const pips = Array.from({length:s.max}).map((_,p)=>`<button class="pip ${p<s.used?'used':''}" data-slotpip="${i}-${p}"></button>`).join("");
     return `<div class="slot-lvl">
-      <div class="lvl-badge">${STATE.slots.length === 1 ? "Slot" : "Livello " + s.lvl}</div>
+      <div class="lvl-badge" ${STATE.slots.length === 1 ? 'style="display:none"' : ''}>${STATE.slots.length === 1 ? "" : "Livello " + s.lvl}</div>
       <div class="pips">${pips}</div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
         <label style="font-size:10px;color:var(--text-faint);">max</label>
