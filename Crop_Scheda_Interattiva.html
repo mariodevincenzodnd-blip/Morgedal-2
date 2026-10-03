@@ -238,7 +238,8 @@
   .hp-fill{height:100%;background:linear-gradient(90deg,#3f6a3a,var(--good));transition:width .3s;}
   .hp-numbers{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:15px;flex:0 0 220px;}
   .hp-numbers input{width:64px;text-align:center;background:var(--bg-panel-2);border:1px solid var(--border-soft);color:var(--text);border-radius:6px;padding:6px 2px;}
-  .hp-row-temp{margin-top:6px;}
+  .hp-numbers .btn.small{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
+  .hp-row-temp{margin-top:0;}
   .hp-track-temp{height:22px;}
   .hp-fill-temp{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));transition:width .3s;}
   .btn{
@@ -1718,11 +1719,14 @@ function renderScheda(){
         </div>
         <div class="hp-track"><div class="hp-fill" id="hp-fill"></div></div>
       </div>
+      <div style="height:18px;"></div>
+      <h2>Punti Ferita Temporanei</h2>
       <div class="hp-row hp-row-temp">
         <div class="hp-numbers">
-          <label style="font-size:10.5px;color:var(--text-faint);text-transform:uppercase;">PF Temp.</label>
           <button class="btn small" id="hp-temp-minus">−</button>
           <input type="number" id="hp-temp" value="${STATE.hpTemp}">
+          <span style="color:var(--text-faint)">/</span>
+          <input type="number" id="hp-temp-ref" value="${STATE.hpMax}" readonly title="Scala grafica riferita ai PF massimi">
           <button class="btn small" id="hp-temp-plus">+</button>
         </div>
         <div class="hp-track hp-track-temp"><div class="hp-fill hp-fill-temp" id="hp-fill-temp"></div></div>
@@ -1818,7 +1822,7 @@ function renderScheda(){
   bindSimpleInputs();
   bindRich();
 
-  const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp");
+  const hpCur = document.getElementById("hp-cur"), hpMax = document.getElementById("hp-max"), hpTemp = document.getElementById("hp-temp"), hpTempRef = document.getElementById("hp-temp-ref");
   hpMax.readOnly = !isMasterEditorOn();
   function refreshHp(){
     let cur = parseInt(hpCur.value||"0",10), max = parseInt(hpMax.value||"0",10);
@@ -1828,6 +1832,7 @@ function renderScheda(){
     let temp = parseInt(hpTemp.value||"0",10);
     if (temp < 0) temp = 0;
     STATE.hpCur = cur; STATE.hpMax = max; STATE.hpTemp = temp;
+    hpTempRef.value = max;
     const pct = max>0 ? Math.max(0,Math.min(100, cur/max*100)) : 0;
     document.getElementById("hp-fill").style.width = pct+"%";
     document.getElementById("hp-fill").style.background = "linear-gradient(90deg,#3f6a3a,var(--good))";
