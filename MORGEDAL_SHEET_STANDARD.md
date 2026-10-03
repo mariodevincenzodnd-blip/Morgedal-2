@@ -167,3 +167,13 @@ Per nomi, testi, descrizioni, poteri, abilità, oggetti, inventario e classifica
 8. se una fonte necessaria manca o due fonti sono in conflitto, non scegliere autonomamente: fermarsi su quella voce e chiedere al Master.
 
 Questa regola vale per tutte le schede esistenti e future.
+
+
+### Interfaccia Poteri di Katan — prova delle fasce espandibili
+
+Su richiesta esplicita di Mario, soltanto Katan usa tre fasce inizialmente chiuse dopo gli slot: Trucchetti, Abilità e Passive. Ogni voce ha una vista compatta con un breve riepilogo di visualizzazione e gli utilizzi esistenti; la freccia della voce apre il testo completo e gli utilizzi in fondo. Questa richiesta autorizza i riepiloghi in questa interfaccia di Katan, senza sostituire o abbreviare il testo canonico salvato. I riepiloghi predefiniti sono legati alla descrizione verificata; dopo una modifica del Master si usa un estratto del testo corrente.
+
+- Entrambe le viste leggono gli stessi indici di `STATE.risorse` e salvano tramite il `queueSave` esistente. Nessuna migrazione, unificazione o nuovo contatore al rendering.
+- I tracker degli utilizzi particolari sono presentati dentro l'abilità o passiva corrispondente, preservando tutti i contatori e gli stati già presenti. Per Superabilità è visibile anche il richiamo all'uso simultaneo delle caratteristiche. I due contatori preesistenti Super Abilità / SUPERABILITÀ restano distinti in attesa di un chiarimento di Mario.
+- Apertura e chiusura dei menu sono solo stato temporaneo dell'interfaccia; restano stabili durante il rerender dei pallini e non scrivono sul JSON. Le descrizioni complete e i controlli Master esistenti sono conservati.
+- Le altre undici schede restano con l'interfaccia corrente fino alla valutazione di Mario. Test: `.github/scripts/katan-power-browser.mjs`, soltanto Drive simulato.
