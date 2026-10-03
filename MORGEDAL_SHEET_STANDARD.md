@@ -128,6 +128,21 @@ Ogni nuova scheda deve nascere già con:
 - sintassi JavaScript verificata;
 - test dei campi operativi Player e dei massimi Master-only.
 
+### Persistenza e riapertura
+
+Tutte le schede usano `assets/sheet-persistence.js`, con adattatori alle proprietà già esistenti. Le nuove schede devono usare lo stesso modulo.
+
+- Caricare il JSON ufficiale prima di consentire scritture su Drive: default e caricamenti falliti non sono dati da sincronizzare.
+- Avviare un solo salvataggio alla volta; acquisire uno snapshot prima di qualsiasi attesa e usarlo anche per i backup secondari.
+- Confermare “Salvato su Drive” soltanto dopo la scrittura Drive della versione più recente. Un backup secondario riuscito non equivale a Drive sincronizzato.
+- Conservare un journal temporaneo delle modifiche pendenti, distinto per file, account e scheda del browser, senza token o stato di sblocco Master. Rimuoverlo dopo la conferma della versione inviata.
+- Alla riapertura recuperare il journal; se Drive contiene una versione diversa, chiedere quale versione usare e consentire di esportare il backup. Nessuna sovrascrittura automatica in caso di conflitto.
+- Prima di scrivere confrontare la versione Drive con quella caricata; usare Web Locks quando disponibili per coordinare schede della stessa origine. Questa protezione non costituisce una transazione atomica tra dispositivi diversi.
+- Non effettuare PATCH per pagine senza nuove modifiche. Ignorare i caricamenti arrivati dopo una modifica locale.
+- Rileggere Drive al ritorno dalla cache avanti/indietro; attendere le modifiche pendenti prima dei collegamenti interni e conservarle anche in caso di reload/chiusura.
+- Una vecchia copia personale non può sostituire automaticamente il JSON ufficiale: un'importazione scelta dall'utente passa dal normale salvataggio protetto.
+- Verificare `node --test .github/scripts/persistence.test.cjs` e `.github/scripts/persistence-browser.mjs`, usando soltanto dati e richieste simulate.
+
 ## 7. Principio assoluto sulle fonti
 
 Per nomi, testi, descrizioni, poteri, abilità, oggetti, inventario e classificazioni canoniche:

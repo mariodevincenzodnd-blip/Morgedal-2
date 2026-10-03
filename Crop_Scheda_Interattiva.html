@@ -795,9 +795,17 @@ body[data-sheet="crop"] #panel-forme [id^="source-"]{scroll-margin-top:90px;}
 @media(max-width:420px){body[data-sheet="crop"] .crop-form-stats,body[data-sheet="crop"] .crop-forms-all .crop-form-stats{grid-template-columns:1fr;}}
 @media print{body[data-sheet="crop"] .crop-form-picker,body[data-sheet="crop"] .crop-form-compare{display:none;}body[data-sheet="crop"] .crop-forms-all{display:block;}}
 
+.sheet-sync-notice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;padding:12px 18px;max-width:calc(100vw - 24px);border:1px solid var(--gold);border-radius:8px;background:var(--bg-panel);color:var(--text);font-size:14px;box-shadow:0 4px 20px #0008}
+.sheet-sync-loading .sheet-sync-notice{display:block}
+.sheet-sync-conflict{position:fixed;bottom:84px;left:16px;right:16px;z-index:100;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px;border:1px solid var(--gold);border-radius:8px;background:var(--bg-panel);color:var(--text);font-size:13px}
+.sheet-sync-conflict[hidden]{display:none}
+.sheet-sync-conflict button{padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-panel-2);color:var(--text);cursor:pointer}
+
+
 </style>
 <link rel="stylesheet" href="assets/traveller-layout.css">
 <script src="assets/traveller-typography.js"></script>
+<script src="assets/sheet-persistence.js?v=20261003-1"></script>
 </head>
 <body class="traveller-sheet" data-sheet="crop">
 
@@ -1196,43 +1204,21 @@ function signInGoogle(prompt){
 async function onGoogleSignedIn(){
   try{
     const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: "Bearer " + googleAccessToken }
+      headers:{Authorization:"Bearer " + googleAccessToken}, cache:"no-store"
     });
     const info = res.ok ? await res.json() : null;
     googleUserEmail = (info && info.email) || "";
-  }catch(e){ googleUserEmail = ""; }
-
-  driveFileIdKey = driveStorageKey();
-  let legacyFileId = null;
-  try{ legacyFileId = localStorage.getItem(driveFileIdKey) || null; }catch(e){}
-  const isPlayer = isAuthorizedPlayerEmail(googleUserEmail);
-
-  if (isPlayer && legacyFileId && legacyFileId !== DEFAULT_DRIVE_FILE_ID){
-    driveFileId = legacyFileId;
-    const loadedLegacy = await driveLoad();
-    if (loadedLegacy){
-      try{
-        driveFileId = DEFAULT_DRIVE_FILE_ID;
-        await driveUpdate(DEFAULT_DRIVE_FILE_ID);
-        try{ localStorage.setItem(driveFileIdKey, DEFAULT_DRIVE_FILE_ID); }catch(e){}
-        updateGoogleStatus();
-        setStatus("Modifiche precedenti migrate nel file condiviso ✓");
-        return;
-      }catch(e){
-        console.error("Migrazione verso il file condiviso non riuscita:", e);
-      }
-    }
-  }
-
-  driveFileId = DEFAULT_DRIVE_FILE_ID;
-  try{ localStorage.setItem(driveFileIdKey, driveFileId); }catch(e){}
-  updateGoogleStatus();
-
-  const ok = await driveLoad();
-  if (!ok){
-    setStatus("Errore collegamento file condiviso Drive");
+  }catch(_error){ googleUserEmail = ""; }
+  if (!googleUserEmail){
+    setStatus("Accesso Google non verificato — accedi di nuovo; le modifiche locali restano conservate");
     return;
   }
+  // Never replace the official JSON automatically with an obsolete personal copy.
+  driveFileId = DEFAULT_DRIVE_FILE_ID;
+  driveFileIdKey = driveStorageKey();
+  try{ localStorage.setItem(driveFileIdKey, driveFileId); }catch(_error){}
+  updateGoogleStatus();
+  await driveLoad();
 }
 async function driveFind(){
   const name = suggestedFileName();
@@ -1272,60 +1258,20 @@ async function driveCreate(){
 }
 
 async function driveUpdate(fileId){
-  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-    method: "PATCH",
-    headers: { Authorization: "Bearer " + googleAccessToken, "Content-Type": "application/json" },
-    body: JSON.stringify(STATE)
-  });
-  if (!res.ok){
-    const errBody = await res.text().catch(()=> "");
-    console.error("Drive (update) errore " + res.status + ": " + errBody);
-    const err = new Error("drive update failed: " + res.status);
-    err.status = res.status;
-    throw err;
-  }
+  if (fileId !== DEFAULT_DRIVE_FILE_ID) throw new Error("Salvataggio consentito solo sul file ufficiale");
+  return getSheetPersistence().flush();
 }
 
 async function driveSave(){
-  if (!googleAccessToken) return false;
-  try{
-    driveFileId = DEFAULT_DRIVE_FILE_ID;
-    await driveUpdate(driveFileId);
-    try{ localStorage.setItem(driveFileIdKey || driveStorageKey(), driveFileId); }catch(e){}
-    updateGoogleStatus();
-    return true;
-  }catch(e){
-    console.error("Salvataggio sul file condiviso Drive non riuscito:", e);
-    window.alert("Non riesco a salvare sul file condiviso ufficiale di questo personaggio. Non è stata creata alcuna copia personale. Riprova l'accesso Google oppure segnala l'errore al Master.");
-    return false;
-  }
+  driveFileId = DEFAULT_DRIVE_FILE_ID;
+  return getSheetPersistence().flush();
 }
 let driveLastLoadStatus = null;
 
 async function driveLoad(){
   driveLastLoadStatus = null;
-  if (!googleAccessToken || !driveFileId) return false;
-  try{
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, {
-      headers: { Authorization: "Bearer " + googleAccessToken }
-    });
-    if (!res.ok){
-      driveLastLoadStatus = res.status;
-      const errBody = await res.text().catch(()=> "");
-      console.error("Drive (load) errore " + res.status + ": " + errBody);
-      throw new Error("drive load failed: " + res.status);
-    }
-    const parsed = await res.json();
-    STATE = ensureHpTempMax(deepMerge(BLANK_STATE, parsed), parsed);
-    renderAll();
-    updateGoogleStatus();
-    setStatus("Caricato da Google Drive \u2713");
-    return true;
-  }catch(e){
-    console.error("Caricamento da Drive non riuscito:", e);
-    window.alert("Non sono riuscito a caricare il file da Drive. Apri la console (F12) per il dettaglio dell'errore.");
-    return false;
-  }
+  driveFileId = DEFAULT_DRIVE_FILE_ID;
+  return getSheetPersistence().load(false);
 }
 
 function updateGoogleStatus(){
@@ -1375,57 +1321,93 @@ async function loadState(){
   setStatus("Scheda pronta");
 }
 
+let SHEET_PERSISTENCE = null;
+function getSheetPersistence(){
+  if (SHEET_PERSISTENCE) return SHEET_PERSISTENCE;
+  let tabId;
+  try{
+    tabId = sessionStorage.getItem("morgedal-pending-tab-v1");
+    if (!tabId){
+      tabId = crypto.randomUUID();
+      sessionStorage.setItem("morgedal-pending-tab-v1", tabId);
+    }
+  }catch(_error){ tabId = String(Date.now()) + "-" + Math.random(); }
+  const notice = document.createElement("div");
+  notice.id = "sheet-sync-notice";
+  notice.className = "sheet-sync-notice";
+  notice.setAttribute("role", "status");
+  document.body.appendChild(notice);
+  SHEET_PERSISTENCE = window.createMorgedalPersistence({
+    fileId:DEFAULT_DRIVE_FILE_ID, tabId, instanceId:String(Date.now()) + "-" + Math.random(),
+    draftStorage:window.localStorage,
+    getIdentity:()=>googleUserEmail, getToken:()=>googleAccessToken,
+    getState:()=>STATE,
+    fetch:(url, init)=>fetch(url, init),
+    withLock:window.navigator.locks
+      ? (name, callback)=>window.navigator.locks.request(name, callback) : null,
+    applyState:parsed=>{
+      STATE = ensureHpTempMax(deepMerge(BLANK_STATE, parsed), parsed);
+      renderAll();
+      updateGoogleStatus();
+    },
+    saveSecondary:async snapshot=>{
+      let ok = true;
+      if (STORAGE_AVAILABLE && window.storage && typeof window.storage.set === "function"){
+        try{ await window.storage.set(STORAGE_KEY, snapshot, false); }catch(_error){ ok = false; }
+      }
+      if (localFileHandle && !(await writeLocalFile(snapshot))) ok = false;
+      return ok;
+    },
+    setStatus,
+    onSaveResult:ok=>{ lastSaveOk = ok; if (ok) clearStorageWarning(); },
+    onLoadError:error=>{ driveLastLoadStatus = error.status || null; },
+    onBusy:busy=>{
+      document.body.classList.toggle("sheet-sync-loading", busy);
+      document.querySelectorAll("#panels, .hero, #master-text-toolbar").forEach(el=>{ el.inert = busy; });
+      ["btn-import", "btn-new-sheet", "btn-open-file", "btn-link-new-file"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.disabled = busy;
+      });
+    },
+    onConflict:active=>{
+      let bar = document.getElementById("sheet-sync-conflict");
+      if (!bar){
+        bar = document.createElement("div");
+        bar.id = "sheet-sync-conflict";
+        bar.className = "sheet-sync-conflict";
+        bar.setAttribute("role", "alert");
+        bar.innerHTML = '<span>Le modifiche locali sono conservate, ma Drive contiene una versione diversa.</span> ' +
+          '<button type="button" data-sync-choice="backup">Esporta backup</button> ' +
+          '<button type="button" data-sync-choice="remote">Carica versione Drive</button> ' +
+          '<button type="button" data-sync-choice="local">Salva questa versione</button>';
+        document.body.appendChild(bar);
+        bar.addEventListener("click", async event=>{
+          const choice = event.target.dataset.syncChoice;
+          if (choice === "backup") document.getElementById("btn-export").click();
+          if (choice === "remote" && window.confirm("Caricare la versione Drive e scartare le modifiche locali di questa scheda? Esporta prima un backup se vuoi conservarle.")){
+            await getSheetPersistence().load(true);
+          }
+          if (choice === "local" && window.confirm("Sostituire la versione attuale su Drive con la scheda che stai visualizzando? Questa scelta sovrascrive le modifiche dell'altra versione.")){
+            await getSheetPersistence().resolveConflict();
+          }
+        });
+      }
+      bar.hidden = !active;
+    }
+  });
+  return SHEET_PERSISTENCE;
+}
+
 function queueSave(){
-  setStatus("Salvataggio\u2026");
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(performSave, 500);
+  getSheetPersistence().markChanged();
 }
 
 function flushSave(){
-  clearTimeout(saveTimer);
-  performSave();
+  return getSheetPersistence().flush();
 }
 
 async function performSave(){
-  let wroteSomething = false;
-  let cloudFailed = false;
-
-  if (STORAGE_AVAILABLE){
-    try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(STATE), false);
-      wroteSomething = true;
-    }catch(e){ cloudFailed = true; }
-  }
-
-  if (localFileHandle){
-    const ok = await writeLocalFile();
-    if (ok) wroteSomething = true;
-  }
-
-  let driveOk = false;
-  let driveAttempted = false;
-  if (googleAccessToken){
-    driveAttempted = true;
-    driveOk = await driveSave();
-    if (driveOk) wroteSomething = true;
-  }
-
-  const t = new Date();
-  const stamp = String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
-  if (wroteSomething){
-    lastSaveOk = true;
-    clearStorageWarning();
-    const extras = [localFileHandle ? "file locale" : null, driveOk ? "Drive" : null].filter(Boolean).join(" + ");
-    setStatus("Salvato \u2713 " + stamp + (extras ? " (" + extras + ")" : ""));
-  } else if (cloudFailed){
-    lastSaveOk = false;
-    setStatus("Errore di salvataggio \u2014 usa \u2018Esporta backup\u2019");
-  } else if (driveAttempted && !driveOk){
-    lastSaveOk = false;
-    setStatus("Errore di salvataggio su Drive \u2014 controlla la console (F12) o usa \u2018Esporta backup\u2019");
-  } else {
-    setStatus("Non salvato automaticamente \u2014 collega un file locale, Google Drive, o esporta il backup");
-  }
+  return getSheetPersistence().flush();
 }
 
 function setStorageWarning(){
@@ -1509,13 +1491,13 @@ async function openExistingLocalFile(){
   }
 }
 
-async function writeLocalFile(){
+async function writeLocalFile(snapshot = JSON.stringify(STATE, null, 2)){
   if (!localFileHandle) return false;
   try{
     const perm = await localFileHandle.requestPermission({ mode: "readwrite" });
     if (perm !== "granted") return false;
     const writable = await localFileHandle.createWritable();
-    await writable.write(JSON.stringify(STATE, null, 2));
+    await writable.write(snapshot);
     await writable.close();
     return true;
   }catch(e){ return false; }
@@ -1530,6 +1512,8 @@ function updateLocalFileStatus(){
 function setStatus(msg){
   const el = document.getElementById("savebar-status");
   if (el) el.textContent = msg;
+  const notice = document.getElementById("sheet-sync-notice");
+  if (notice) notice.textContent = msg;
 }
 
 function mod(score){ return Math.floor((score-10)/2); }
@@ -3589,25 +3573,13 @@ async function onDrivePicked(data){
   if (!data || data.action !== google.picker.Action.PICKED) return;
   const doc = data.docs && data.docs[0];
   if (!doc || !doc.id) return;
-
-  // Non colleghiamo subito la scheda al file scelto: prima verifichiamo che
-  // si riesca davvero a leggerlo con questo account (es. non più condiviso,
-  // spostato nel cestino, o scelto con l'account sbagliato). Se il caricamento
-  // fallisce, torniamo al collegamento precedente invece di restare bloccati
-  // su un id che farebbe fallire anche tutti i salvataggi automatici successivi.
-  const previousFileId = driveFileId;
-  driveFileId = doc.id;
-  driveFileIdKey = driveStorageKey();
-  setStatus("File collegato: " + (doc.name || "senza nome") + " — caricamento…");
-
-  const ok = await driveLoad();
-  if (ok){
-    try{ localStorage.setItem(driveFileIdKey, driveFileId); }catch(e){}
-    updateGoogleStatus();
-  } else {
-    driveFileId = previousFileId;
-    setStatus("Collegamento al file condiviso non riuscito — controlla che sia stato condiviso con questo account Google, poi riprova.");
+  if (doc.id !== DEFAULT_DRIVE_FILE_ID){
+    window.alert("Questa scheda usa un solo file ufficiale condiviso. Seleziona il file ufficiale di questo personaggio; per importare una copia precedente usa Importa scheda.");
+    return;
   }
+  driveFileId = DEFAULT_DRIVE_FILE_ID;
+  driveFileIdKey = driveStorageKey();
+  await driveLoad();
 }
 
 function initPrintButton(){
@@ -3620,10 +3592,7 @@ function initPrintButton(){
 }
 
 function initAutoFlush(){
-  document.addEventListener("visibilitychange", ()=>{
-    if (document.visibilityState === "hidden") flushSave();
-  });
-  window.addEventListener("pagehide", flushSave);
+  getSheetPersistence().attachLifecycle(window, document);
 }
 
 /* ============================================================
@@ -3872,7 +3841,14 @@ async function init(){
 
   document.getElementById("panels").innerHTML = TABS.map(t=>`<div class="panel ${t.id==='scheda'?'active':''}" id="panel-${t.id}"></div>`).join("");
 
-  renderAll();
+  const restoredDriveToken = loadGoogleTokenFromSession();
+  if (restoredDriveToken){
+    googleAccessToken = restoredDriveToken;
+    await onGoogleSignedIn();
+  } else {
+    renderAll();
+    getSheetPersistence().allowLocal();
+  }
   document.title = "Scheda \u2014 " + (STATE.nome || "Personaggio");
   initHeroDrag();
   initHeroZoom();
