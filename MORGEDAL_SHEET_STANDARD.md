@@ -20,7 +20,7 @@ Il Player deve poter usare e modificare i dati operativi necessari in sessione, 
 - punteggi/valori operativi previsti dalla scheda;
 - modificatori manuali operativi;
 - tiri salvezza e abilità dove previsti dal modello corrente;
-- PF correnti e PF temporanei;
+- PF correnti, PF temporanei e massimo operativo dei PFT;
 - utilizzi degli slot;
 - risorse e tracker;
 - Attacchi / Incantesimi di Prima Utilità;
@@ -29,7 +29,7 @@ Il Player deve poter usare e modificare i dati operativi necessari in sessione, 
 
 ### Editor Master
 Restano protetti e modificabili soltanto con Editor Master:
-- PF massimi;
+- PF massimi normali;
 - massimi degli slot;
 - capacità massima inventario;
 - struttura della scheda;
@@ -46,9 +46,20 @@ Il blocco dei **PF temporanei** deve essere una copia visiva speculare del blocc
 - stessa riga controlli: **− | valore | / | riquadro di riferimento | +**;
 - i due riquadri numerici devono essere identici per dimensione e stile a quelli dei PF normali;
 - la barra orizzontale deve avere stessa altezza, stessa lunghezza e stesso allineamento della barra PF;
-- colore distinto **arancione/ambra** per riconoscere immediatamente i PF temporanei;
-- il secondo riquadro dei PFT mostra i PF massimi solo come riferimento della scala grafica della barra ed è in sola lettura: non rappresenta un massimo canonico dei PF temporanei;
-- i PF temporanei restano un valore separato e non introducono un nuovo massimo canonico.
+- colore distinto **verde acqua/turchese** per riconoscere immediatamente i PF temporanei;
+- il secondo riquadro dei PFT rappresenta il **massimo operativo dei PFT** ed è modificabile sia dal Player sia dal Master;
+- i PFT correnti non possono superare il massimo PFT impostato; la barra PFT usa questo massimo come propria scala ed è indipendente dai PF massimi normali;
+- per i salvataggi precedenti privi del nuovo campo, il massimo PFT viene inizializzato una sola volta al precedente valore di riferimento (PF massimi), così da preservare il comportamento visivo esistente fino alla prima modifica.
+
+### Colore dinamico della barra PF
+La barra dei PF normali cambia colore in modo progressivo in base ai PF massimi correnti:
+- **verde** ai PF massimi;
+- transizione continua da verde ad arancione scendendo verso `floor(PF max / 2)`;
+- **arancione** esattamente alla metà calcolata per difetto;
+- transizione continua da arancione a rosso tra la metà e `floor(PF max / 3)`;
+- **rosso** al terzo calcolato per difetto e sotto tale soglia.
+
+Le soglie sono sempre ricalcolate quando cambia il valore dei PF massimi.
 
 ## 3. OAuth e sessione Google
 
