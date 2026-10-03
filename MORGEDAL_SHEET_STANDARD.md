@@ -46,7 +46,7 @@ Il blocco dei **PF temporanei** deve essere una copia visiva speculare del blocc
 - stessa riga controlli: **− | valore | / | riquadro di riferimento | +**;
 - i due riquadri numerici devono essere identici per dimensione e stile a quelli dei PF normali;
 - la barra orizzontale deve avere stessa altezza, stessa lunghezza e stesso allineamento della barra PF;
-- colore distinto **verde acqua/turchese** per riconoscere immediatamente i PF temporanei;
+- colore dinamico distinto per i PFT: a **PFT massimi** la barra è **blu elettrico**; scendendo, il colore sfuma in modo continuo verso il **celeste** (riferimento visivo alla metà) e poi verso il **verde acqua/turchese** a `floor(PFT max / 3)`; sotto un terzo resta verde acqua fino a zero, senza scatti cromatici;
 - il secondo riquadro dei PFT rappresenta il **massimo operativo dei PFT** ed è modificabile sia dal Player sia dal Master;
 - i PFT correnti non possono superare il massimo PFT impostato; la barra PFT usa questo massimo come propria scala ed è indipendente dai PF massimi normali;
 - per i salvataggi precedenti privi del nuovo campo, il massimo PFT viene inizializzato una sola volta al precedente valore di riferimento (PF massimi), così da preservare il comportamento visivo esistente fino alla prima modifica.
