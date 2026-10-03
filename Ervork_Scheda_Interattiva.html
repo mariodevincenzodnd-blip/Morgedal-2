@@ -762,6 +762,7 @@
 
 
 </style>
+<script src="assets/trick-metadata.js"></script>
 <script src="assets/sheet-persistence.js?v=20261003-1"></script>
 </head>
 <body>
@@ -2514,6 +2515,7 @@ function renderPoteri(){
     });
   });
   bindMasterControls(document.getElementById("panel-poteri"));
+  MorgedalTricks.enhance(document.getElementById("panel-poteri"), STATE, masterOn, queueSave);
 }
 
 /* ============================================================
