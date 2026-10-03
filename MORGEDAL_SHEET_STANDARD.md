@@ -69,6 +69,8 @@ La dicitura mostrata accanto agli slot deve riflettere la struttura reale della 
 - se la scheda usa **una sola riserva complessiva di slot**, senza suddivisione per livelli, **non mostrare alcuna etichetta accanto ai pallini**: l'intestazione della sezione è già sufficiente;
 - se la scheda usa **più riserve distinte per livello**, le diciture restano **Livello 1**, **Livello 2**, **Livello 3**, ecc.;
 - la regola è strutturale e vale per tutte le schede esistenti e future: non trasformare una riserva unica in un fittizio "Livello 1".
+- il controllo numerico che modifica il numero massimo di slot non mostra la parola **max** ed è renderizzato **solo con Editor Master attivo**; i giocatori vedono e consumano/ripristinano i pallini esistenti ma non possono aumentare o ridurre la capacità della riserva;
+- la stessa regola vale per ogni blocco di slot secondario o temporaneo, comprese le riserve di slot temporanei nelle trasformazioni.
 
 ## 3. OAuth e sessione Google
 
