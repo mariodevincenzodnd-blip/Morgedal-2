@@ -7,6 +7,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/home-colors.js"
+      - ".github/scripts/home-colors-browser.mjs"
       - "assets/trick-metadata.js"
       - "assets/katan-power-accordion.*"
       - ".github/scripts/katan-power-browser.mjs"
@@ -22,6 +24,8 @@ on:
       - "index.html"
       - "*_Scheda_Interattiva.html"
       - "assets/sheet-persistence.js"
+      - "assets/home-colors.js"
+      - ".github/scripts/home-colors-browser.mjs"
       - "assets/trick-metadata.js"
       - "assets/katan-power-accordion.*"
       - ".github/scripts/katan-power-browser.mjs"
@@ -106,6 +110,9 @@ jobs:
           done
           cat /tmp/morgedal-http.log
           exit 1
+
+      - name: Verify Home colors and shared Drive data
+        run: node .github/scripts/home-colors-browser.mjs
 
       - name: Verify save reload and navigation in the browser
         run: node .github/scripts/persistence-browser.mjs
