@@ -246,7 +246,7 @@
   .hp-numbers .btn.small{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
   .hp-row-temp{margin-top:0;}
   .hp-track-temp{height:22px;}
-  .hp-fill-temp{height:100%;background:linear-gradient(90deg,#197f79,#45d9ca);transition:width .3s;}
+  .hp-fill-temp{height:100%;background:linear-gradient(90deg,#0754a6,#008cff);transition:width .3s;}
   .btn{
     background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
     border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;letter-spacing:.3px;
@@ -2393,6 +2393,21 @@ function renderScheda(){
     return "linear-gradient(90deg,"+dark+","+color+")";
   }
 
+  function tempHpBarGradient(cur, max){
+    const electric = [0,140,255], sky = [92,195,255], aqua = [84,210,189];
+    if (max <= 0) return "linear-gradient(90deg,rgb(42,105,100),rgb(84,210,189))";
+    const safeCur = Math.max(0, Math.min(max, cur));
+    const half = Math.max(1, Math.floor(max / 2));
+    const third = Math.max(1, Math.floor(max / 3));
+    let color;
+    if (safeCur <= third) color = "rgb(" + aqua.join(",") + ")";
+    else if (safeCur <= half) color = mixHpColor(aqua, sky, (safeCur - third) / Math.max(1, half - third));
+    else color = mixHpColor(sky, electric, (safeCur - half) / Math.max(1, max - half));
+    const rgb = (color.match(/\d+/g) || []).map(Number);
+    const dark = rgb.length === 3 ? mixHpColor(rgb, [14,28,40], 0.24) : color;
+    return "linear-gradient(90deg," + dark + "," + color + ")";
+  }
+
   function refreshHp(){
     let cur = parseInt(hpCur.value||"0",10), max = parseInt(hpMax.value||"0",10);
     if (max < 0) max = 0;
@@ -2416,7 +2431,7 @@ function renderScheda(){
     const tempPct = tempMax>0 ? Math.max(0,Math.min(100, temp/tempMax*100)) : 0;
     const hpTempFill = document.getElementById("hp-fill-temp");
     hpTempFill.style.width = tempPct+"%";
-    hpTempFill.style.background = "linear-gradient(90deg,#197f79,#45d9ca)";
+    hpTempFill.style.background = tempHpBarGradient(temp, tempMax);
   }
   hpCur.addEventListener("input", ()=>{refreshHp(); queueSave();});
   hpMax.addEventListener("input", ()=>{refreshHp(); queueSave();});
