@@ -2454,7 +2454,7 @@ function renderPoteri(){
     if (s.specialNote) slotRefs.push({mark:s.refMark || "*", note:s.specialNote, color:s.refColor || "inherit"});
     const badgeMark = (s.special && s.refMark) ? `<sup class="pip-ref" style="color:${s.refColor||'inherit'};margin-left:2px;">${esc(s.refMark)}</sup>` : "";
     return `<div class="slot-lvl ${s.special?'slot-lvl-special':''}">
-      <div class="lvl-badge">Livello ${s.lvl}${s.special?' \u26a0\ufe0f':''}${badgeMark}</div>
+      <div class="lvl-badge">${STATE.slots.length === 1 ? "Slot" : "Livello " + s.lvl}${s.special?' \u26a0\ufe0f':''}${badgeMark}</div>
       <div class="pips">${pips}</div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
         <label style="font-size:10px;color:var(--text-faint);">max</label>

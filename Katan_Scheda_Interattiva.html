@@ -2229,7 +2229,7 @@ function renderPoteri(){
       return `<button class="pip slot-pip ${p<s.used?'used':''} ${colorClass}" data-slotpip="${i}-${p}"${title}></button>`;
     }).join("");
     return `<div class="slot-lvl ${s.special?'slot-lvl-special':''}">
-      <div class="lvl-badge">Livello ${s.lvl}${s.special?' \u26a0\ufe0f':''}</div>
+      <div class="lvl-badge">${STATE.slots.length === 1 ? "Slot" : "Livello " + s.lvl}${s.special?' \u26a0\ufe0f':''}</div>
       <div class="pips">${pips}</div>
       ${s.specialNote ? `<div class="slot-note">${esc(s.specialNote)}</div>` : ""}
       <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">

@@ -63,6 +63,13 @@ La barra dei PF normali usa una scala cromatica progressiva che comunica visivam
 
 Le soglie vengono sempre ricalcolate quando cambia il valore dei PF massimi. Per personaggi con un massimo PF molto basso, la soglia finale viene compressa automaticamente per mantenere l'ordine cromatico e non sovrapporsi in modo incoerente alle soglie percentuali.
 
+### Etichetta delle riserve di slot
+
+La dicitura mostrata accanto agli slot deve riflettere la struttura reale della riserva:
+- se la scheda usa **una sola riserva complessiva di slot**, senza suddivisione per livelli, la dicitura deve essere semplicemente **Slot**;
+- se la scheda usa **più riserve distinte per livello**, le diciture restano **Livello 1**, **Livello 2**, **Livello 3**, ecc.;
+- la regola è strutturale e vale per tutte le schede esistenti e future: non trasformare una riserva unica in un fittizio "Livello 1".
+
 ## 3. OAuth e sessione Google
 
 - Scope condiviso: Drive completo + userinfo.email.
