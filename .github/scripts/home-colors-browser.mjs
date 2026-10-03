@@ -90,7 +90,8 @@ try{
     await t.page.click('#btn-google-home');
     assert.equal(await t.page.evaluate(()=>window.mockLoginRequests),1);
     await t.page.evaluate(()=>{saveGoogleTokenToSession("renewed-mock-token",3600);routeAuthenticatedUser("mariodevincenzodnd@gmail.com");});
-    await t.page.click('#home-color-toggle'); await waitSaved(t.first);
+    await t.page.click('#home-color-toggle');
+    await t.first.locator('[role="status"]').filter({hasText:"Caricato da Google Drive"}).waitFor();
     assert.equal(t.records.get("1nNUTm4s9JIny4p5Ach6TWCN9BuIMSbnq").identityColor2,"#778899");
     assert.deepEqual(t.errors,[]); count++; await t.context.close();
   }
